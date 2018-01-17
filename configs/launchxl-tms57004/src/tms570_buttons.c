@@ -186,7 +186,7 @@ int board_button_irq(int id, xcpt_t irqhandler, FAR void *arg)
 #ifdef HAVE_IRQBUTTONS
   if (id == BUTTON_GIOA7)
     {
-      return board_button_irqx(GIO_BUTTON, IRQ_BUTTON, irqhandler,i
+      return board_button_irqx(GIO_BUTTON, IRQ_BUTTON, irqhandler,
                                &g_irq_button, arg);
     }
 #endif
