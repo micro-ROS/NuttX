@@ -262,5 +262,18 @@ int stm32_can_setup(void);
 int stm32_bmp180initialize(FAR const char *devpath);
 #endif
 
+/****************************************************************************
+ * Name: stm32_hih6130initialize
+ *
+ * Description:
+ *  Initialize I2C and register HIH-6130 sensor
+ *
+ ****************************************************************************/
+
+
+#ifdef CONFIG_SENSORS_HIH6130
+int stm32_hih6130initialize(FAR const char *devpath);
+#endif
+
 #endif  /* __ASSEMBLY__ */
 #endif /* __CONFIGS_OLIMEX_STM32_E407_SRC_INTERNAL_H */
