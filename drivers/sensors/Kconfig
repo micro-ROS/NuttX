@@ -49,6 +49,13 @@ config SENSORS_BMP180
 	---help---
 		Enable driver support for the Bosch BMP180 barometer sensor.
 
+config SENSORS_HIH6130
+	bool "HIH-6130 Humidity/Temperature Sensor support"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the HIH-6130 humidity/temperature sensor.
+
 config SENSORS_HCSR04
 	bool "HC-SR04 Distance Measurement Sensor"
 	default n
