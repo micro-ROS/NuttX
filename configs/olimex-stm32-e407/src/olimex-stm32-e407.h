@@ -250,5 +250,17 @@ int stm32_sdio_initialize(void);
 int stm32_can_setup(void);
 #endif
 
+/****************************************************************************
+ * Name: stm32_bmp180initialize
+ *
+ * Description:
+ *  Initialize I2C and register BMP180 sensor
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SENSORS_BMP180
+int stm32_bmp180initialize(FAR const char *devpath);
+#endif
+
 #endif  /* __ASSEMBLY__ */
 #endif /* __CONFIGS_OLIMEX_STM32_E407_SRC_INTERNAL_H */

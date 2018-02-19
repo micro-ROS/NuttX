@@ -1,8 +1,8 @@
 /************************************************************************************
- * configs/olimex-stm32-e407/src/stm32_boot.c
+ * configs/stm32f103-minimum/src/stm32_bmp180.c
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2018 Alan Carvalho de Assis. All rights reserved.
+ *   Author: Alan Carvalho de Assis <acassis@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,84 +39,67 @@
 
 #include <nuttx/config.h>
 
+#include <errno.h>
 #include <debug.h>
 
-#include <nuttx/arch.h>
-#include <nuttx/board.h>
-#include <arch/board/board.h>
-
-#include "up_arch.h"
-#include "olimex-stm32-e407.h"
-#include "stm32_ccm.h"
+#include <nuttx/spi/spi.h>
+#include <nuttx/sensors/bmp180.h>
 
 #include "stm32.h"
 #include "stm32_i2c.h"
+#include "olimex-stm32-e407.h"
+
+#if defined(CONFIG_I2C) && defined(CONFIG_SENSORS_BMP180)
+
+/************************************************************************************
+ * Pre-processor Definitions
+ ************************************************************************************/
+
+#define MPL115A_I2C_PORTNO 1   /* On I2C1 */
 
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_boardinitialize
+ * Name: stm32_bmp180initialize
  *
  * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
+ *   Initialize and register the MPL115A Pressure Sensor driver.
+ *
+ * Input parameters:
+ *   devpath - The full path to the driver to register. E.g., "/dev/press0"
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
  *
  ************************************************************************************/
 
-void stm32_boardinitialize(void)
+int stm32_bmp180initialize(FAR const char *devpath)
 {
-#if defined(CONFIG_STM32_OTGFS) || defined(CONFIG_STM32_OTGHS)
-  /* Initialize USB if the 1) OTG FS controller is in the configuration and 2)
-   * disabled, and 3) the weak function stm32_usbinitialize() has been brought
-   * into the build. Presumeably either CONFIG_USBDEV is also selected.
-   */
+  FAR struct i2c_master_s *i2c;
+  int ret;
 
-  if (stm32_usbinitialize)
+  sninfo("Initializing BMP180!\n");
+
+  /* Initialize I2C */
+
+  i2c = stm32_i2cbus_initialize(BMP180_I2C_PORTNO);
+
+  if (!i2c)
     {
-      stm32_usbinitialize();
+      return -ENODEV;
     }
-#endif
 
-#ifdef CONFIG_ARCH_LEDS
-  /* Configure on-board LEDs if LED support has been selected. */
+  /* Then register the barometer sensor */
 
-  board_autoled_initialize();
-#endif
+  ret = bmp180_register(devpath, i2c);
+  if (ret < 0)
+    {
+      snerr("ERROR: Error registering BM180\n");
+    }
 
-#ifdef CONFIG_ARCH_BUTTONS
-  /* Configure on-board BUTTONs if BUTTON support has been selected. */
-
-  board_button_initialize();
-#endif
+  return ret;
 }
 
-/****************************************************************************
- * Name: board_initialize
- *
- * Description:
- *   If CONFIG_BOARD_INITIALIZE is selected, then an additional
- *   initialization call will be performed in the boot-up sequence to a
- *   function called board_initialize().  board_initialize() will be
- *   called immediately after up_intitialize() is called and just before the
- *   initial application is started.  This additional initialization phase
- *   may be used, for example, to initialize board-specific device drivers.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_BOARD_INITIALIZE
-void board_initialize(void)
-{
-#if defined(CONFIG_NSH_LIBRARY) && !defined(CONFIG_LIB_BOARDCTL)
-  /* Perform NSH initialization here instead of from the NSH.  This
-   * alternative NSH initialization is necessary when NSH is ran in user-space
-   * but the initialization function must run in kernel space.
-   */
-
-  //board_app_initialize();
-  stm32_bringup();
-#endif
-}
-#endif
+#endif /* CONFIG_I2C && CONFIG_SENSORS_MPL115A && CONFIG_STM32_I2C1 */
