@@ -262,7 +262,7 @@ int stm32_bringup(void)
 #ifdef CONFIG_SENSORS_HIH6130
   /* Configure and initialize the LM75 sensor */
 
-  ret = stm32_hih6130initialize("/dev/prestemp");
+  ret = stm32_hih6130initialize("/dev/hih6130");
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: stm32_hih6130initialize() failed: %d\n", ret);
