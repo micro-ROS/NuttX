@@ -257,6 +257,18 @@ int stm32_sdio_initialize(void);
 int stm32_can_setup(void);
 #endif
 
+/************************************************************************************
+ * Name: stm32_mfrc522initialize
+ *
+ * Description:
+ *   Function used to initialize the MFRC522 RFID Transceiver
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_CL_MFRC522
+int stm32_mfrc522initialize(FAR const char *devpath);
+#endif
+
 /****************************************************************************
  * Name: stm32_bmp180initialize
  *

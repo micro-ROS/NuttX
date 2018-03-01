@@ -68,6 +68,10 @@
 
 void stm32_boardinitialize(void)
 {
+#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2)
+  stm32_spidev_initialize();
+#endif
+
 #if defined(CONFIG_STM32_OTGFS) || defined(CONFIG_STM32_OTGHS)
   /* Initialize USB if the 1) OTG FS controller is in the configuration and 2)
    * disabled, and 3) the weak function stm32_usbinitialize() has been brought
