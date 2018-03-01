@@ -231,6 +231,14 @@
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_1 /* PB6 */
 #define GPIO_I2C1_SDA GPIO_I2C1_SDA_1 /* PB7 */
 
+/*SPI*/
+#define GPIO_SPI1_SCK   GPIO_SPI1_SCK_1 /*PA5/ D13*/
+#define GPIO_SPI1_MOSI  GPIO_SPI1_MOSI_2/*PB5/ D11*/
+#define GPIO_SPI1_MISO  GPIO_SPI1_MISO_1/*PA6/ D12*/
+//Declaration of the Chip select pins
+#define GPIO_CS_MFRC522 (GPIO_OUTPUT|GPIO_SPEED_50MHz|\
+                           GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4) /*PA4/ D10*/
+
 /* Ethernet *************************************************************************/
 
 #if defined(CONFIG_STM32_ETHMAC)
