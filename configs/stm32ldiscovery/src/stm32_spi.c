@@ -1,9 +1,9 @@
 /************************************************************************************
- * configs/stm32ldiscovery/src/up_spi.c
- * arch/arm/src/board/up_spi.c
+ * configs/stm32f103-minimum/src/stm32_spi.c
  *
- *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *           Laurent Latil <laurent@latil.nom.fr>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,7 +42,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <errno.h>
 #include <debug.h>
 
 #include <nuttx/spi/spi.h>
@@ -53,7 +52,7 @@
 #include "stm32.h"
 #include "stm32ldiscovery.h"
 
-#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2) || defined(CONFIG_STM32_SPI3)
+#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2)
 
 /************************************************************************************
  * Public Functions
@@ -63,21 +62,57 @@
  * Name: stm32_spidev_initialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the stm32ldiscovery board.
+ *   Called to configure SPI chip select GPIO pins for the HY-MiniSTM32 board.
  *
  ************************************************************************************/
 
-void weak_function stm32_spidev_initialize(void)
+void stm32_spidev_initialize(void)
 {
-#ifdef CONFIG_STM32_SPI1
-  (void)stm32_configgpio(GPIO_MEMS_CS);    /* MEMS chip select */
-  (void)stm32_configgpio(GPIO_MEMS_INT1);  /* MEMS interrupts */
-  (void)stm32_configgpio(GPIO_MEMS_INT2);
+  /* NOTE: Clocking for SPI1 and/or SPI2 was already provided in stm32_rcc.c.
+   *       Configurations of SPI pins is performed in stm32_spi.c.
+   *       Here, we only initialize chip select pins unique to the board
+   *       architecture.
+   */
+
+#ifdef CONFIG_MTD_W25
+  (void)stm32_configgpio(FLASH_SPI1_CS);      /* FLASH chip select */
+#endif
+
+#ifdef CONFIG_CAN_MCP2515
+  (void)stm32_configgpio(GPIO_MCP2515_CS);    /* MCP2515 chip select */
+#endif
+
+#ifdef CONFIG_CL_MFRC522
+  (void)stm32_configgpio(GPIO_CS_MFRC522);    /* MFRC522 chip select */
+#endif
+
+#if defined(CONFIG_SENSORS_MAX6675)
+  (void)stm32_configgpio(GPIO_MAX6675_CS);    /* MAX6675 chip select */
+#endif
+
+#ifdef CONFIG_LCD_MAX7219
+  (void)stm32_configgpio(STM32_LCD_CS);       /* MAX7219 chip select */
+#endif
+
+#ifdef CONFIG_LCD_ST7567
+  (void)stm32_configgpio(STM32_LCD_CS);       /* ST7567 chip select */
+#endif
+
+#ifdef CONFIG_LCD_PCD8544
+  (void)stm32_configgpio(STM32_LCD_CS);       /* ST7567 chip select */
+#endif
+
+#ifdef CONFIG_WL_NRF24L01
+  stm32_configgpio(GPIO_NRF24L01_CS);         /* nRF24L01 chip select */
+#endif
+
+#ifdef CONFIG_MMCSD_SPI
+  stm32_configgpio(GPIO_SDCARD_CS);           /* SD/MMC Card chip select */
 #endif
 }
 
 /****************************************************************************
- * Name:  stm32_spi1/2/3select and stm32_spi1/2/3status
+ * Name:  stm32_spi1/2select and stm32_spi1/2status
  *
  * Description:
  *   The external functions, stm32_spi1/2/3select and stm32_spi1/2/3status must be
@@ -102,23 +137,96 @@ void weak_function stm32_spidev_initialize(void)
  ****************************************************************************/
 
 #ifdef CONFIG_STM32_SPI1
-void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
+void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
+                      bool selected)
 {
-  spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
+#if defined(CONFIG_CAN_MCP2515)
+  if (devid == SPIDEV_CANBUS(0))
+    {
+      stm32_gpiowrite(GPIO_MCP2515_CS, !selected);
+    }
+#endif
 
-  stm32_gpiowrite(GPIO_MEMS_CS, !selected);
+#if defined(CONFIG_CL_MFRC522)
+  if (devid == SPIDEV_CONTACTLESS(0))
+    {
+      stm32_gpiowrite(GPIO_CS_MFRC522, !selected);
+    }
+#endif
+
+#if defined(CONFIG_SENSORS_MAX6675)
+  if (devid == SPIDEV_TEMPERATURE(0))
+    {
+      stm32_gpiowrite(GPIO_MAX6675_CS, !selected);
+    }
+#endif
+
+#ifdef CONFIG_LCD_MAX7219
+  if (devid == SPIDEV_DISPLAY(0))
+    {
+      stm32_gpiowrite(STM32_LCD_CS, !selected);
+    }
+#endif
+
+#ifdef CONFIG_LCD_PCD8544
+  if (devid == SPIDEV_DISPLAY(0))
+    {
+      stm32_gpiowrite(STM32_LCD_CS, !selected);
+    }
+#endif
+
+#ifdef CONFIG_LCD_ST7567
+  if (devid == SPIDEV_DISPLAY(0))
+    {
+      stm32_gpiowrite(STM32_LCD_CS, !selected);
+    }
+#endif
+
+#ifdef CONFIG_WL_NRF24L01
+  if (devid == SPIDEV_WIRELESS(0))
+    {
+      stm32_gpiowrite(GPIO_NRF24L01_CS, !selected);
+    }
+#endif
+
+#ifdef CONFIG_MMCSD_SPI
+  if (devid == SPIDEV_MMCSD(0))
+    {
+      stm32_gpiowrite(GPIO_SDCARD_CS, !selected);
+    }
+#endif
+
+#ifdef CONFIG_MTD_W25
+  stm32_gpiowrite(FLASH_SPI1_CS, !selected);
+#endif
 }
 
 uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
-  return 0;
+  uint8_t status = 0;
+
+#ifdef CONFIG_WL_NRF24L01
+  if (devid == SPIDEV_WIRELESS(0))
+    {
+       status |= SPI_STATUS_PRESENT;
+    }
+#endif
+
+#ifdef CONFIG_MMCSD_SPI
+  if (devid == SPIDEV_MMCSD(0))
+    {
+       status |= SPI_STATUS_PRESENT;
+    }
+#endif
+
+  return status;
 }
 #endif
 
 #ifdef CONFIG_STM32_SPI2
-void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
+void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid,
+                      bool selected)
 {
-  spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 }
 
 uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
@@ -127,17 +235,6 @@ uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 }
 #endif
 
-#ifdef CONFIG_STM32_SPI3
-void stm32_spi3select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
-  spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
-}
-
-uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-  return 0;
-}
-#endif
 
 /****************************************************************************
  * Name: stm32_spi1cmddata
@@ -164,25 +261,39 @@ uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, uint32_t devid)
 
 #ifdef CONFIG_SPI_CMDDATA
 #ifdef CONFIG_STM32_SPI1
-int stm32_spi1cmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd)
+int stm32_spi1cmddata(FAR struct spi_dev_s *dev, uint32_t devid,
+                      bool cmd)
 {
-  return -ENODEV;
-}
+#ifdef CONFIG_LCD_ST7567
+  if (devid == SPIDEV_DISPLAY(0))
+    {
+      /*  This is the Data/Command control pad which determines whether the
+       *  data bits are data or a command.
+       */
+
+      (void)stm32_gpiowrite(STM32_LCD_RS, !cmd);
+
+      return OK;
+    }
 #endif
 
-#ifdef CONFIG_STM32_SPI2
-int stm32_spi2cmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd)
-{
-  return -ENODEV;
-}
+#ifdef CONFIG_LCD_PCD8544
+  if (devid == SPIDEV_DISPLAY(0))
+    {
+      /*  This is the Data/Command control pad which determines whether the
+       *  data bits are data or a command.
+       */
+
+      (void)stm32_gpiowrite(STM32_LCD_CD, !cmd);
+
+      return OK;
+    }
 #endif
 
-#ifdef CONFIG_STM32_SPI3
-int stm32_spi3cmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd)
-{
+
   return -ENODEV;
 }
 #endif
-#endif /* CONFIG_SPI_CMDDATA */
+#endif
 
 #endif /* CONFIG_STM32_SPI1 || CONFIG_STM32_SPI2 */
