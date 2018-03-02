@@ -277,6 +277,18 @@
 /*I2C*/
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2 /* PB8 */
 #define GPIO_I2C1_SDA GPIO_I2C1_SDA_2 /* PB9 */
+
+/*SPI*/
+#define GPIO_SPI1_SCK   (GPIO_ALT |GPIO_SPEED_40MHz|\
+                          GPIO_AF5 | GPIO_PORTA | GPIO_PIN5) /*PA5*/
+#define GPIO_SPI1_MOSI  (GPIO_ALT |GPIO_SPEED_40MHz|\
+                          GPIO_AF5 | GPIO_PORTA | GPIO_PIN12)/*PA12*/
+#define GPIO_SPI1_MISO  (GPIO_ALT |GPIO_SPEED_40MHz|\
+                          GPIO_AF5 | GPIO_PORTA | GPIO_PIN11)/*PA11*/
+
+/*SPI CS*/
+#define GPIO_CS_MFRC522 (GPIO_OUTPUT|GPIO_SPEED_40MHz|\
+                           GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN13) /*PA13/
 /************************************************************************************
  * Public Function Prototypes
  ************************************************************************************/

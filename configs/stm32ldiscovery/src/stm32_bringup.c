@@ -259,6 +259,16 @@ int stm32_bringup(void)
     }
 #endif
 
+#ifdef CONFIG_SENSORS_HIH6130
+  /* Configure and initialize the LM75 sensor */
+
+  ret = stm32_hih6130initialize("/dev/hih6130");
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: stm32_hih6130initialize() failed: %d\n", ret);
+    }
+#endif
+
 #ifdef CONFIG_RGBLED
   /* Configure and initialize the RGB LED. */
 
@@ -276,14 +286,6 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: stm32_hcsr04_initialize() failed: %d\n", ret);
-    }
-#endif
-
-#ifdef CONFIG_SENSORS_MAX6675
-  ret = stm32_max6675initialize("/dev/temp0");
-  if (ret < 0)
-    {
-      serr("ERROR:  stm32_max6675initialize failed: %d\n", ret);
     }
 #endif
 
@@ -342,16 +344,6 @@ int stm32_bringup(void)
       syslog(LOG_ERR,
              "ERROR: Failed to register the qencoder: %d\n",
              ret);
-    }
-#endif
-
-#ifdef CONFIG_SENSORS_HIH6130
-  /* Configure and initialize the LM75 sensor */
-
-  ret = stm32_hih6130initialize("/dev/hih6130");
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: stm32_hih6130initialize() failed: %d\n", ret);
     }
 #endif
 
