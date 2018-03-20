@@ -235,9 +235,20 @@
 #define GPIO_SPI1_SCK   GPIO_SPI1_SCK_1 /*PA5/ D13*/
 #define GPIO_SPI1_MOSI  GPIO_SPI1_MOSI_2/*PB5/ D11*/
 #define GPIO_SPI1_MISO  GPIO_SPI1_MISO_1/*PA6/ D12*/
-//Declaration of the Chip select pins
+
+/*C/S PIN*/
 #define GPIO_CS_MFRC522 (GPIO_OUTPUT|GPIO_SPEED_50MHz|\
                            GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4) /*PA4/ D10*/
+#define GPIO_XBEE_CS      (GPIO_OUTPUT|GPIO_SPEED_50MHz|\
+                           GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4) /*PA4/ D10*/
+
+/*XBee*/
+//cambiar a otor puerto
+#define GPIO_XBEE_RST  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|\
+                            GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN15)/*PG15/D9*/
+#define GPIO_XBEE_INT   (GPIO_INPUT|GPIO_FLOAT|\
+                            GPIO_EXTI|GPIO_PORTG|GPIO_PIN12)/*PG12/D8*/
+
 
 /* Ethernet *************************************************************************/
 

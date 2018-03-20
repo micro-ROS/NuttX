@@ -109,6 +109,10 @@ void stm32_spidev_initialize(void)
 #ifdef CONFIG_MMCSD_SPI
   stm32_configgpio(GPIO_SDCARD_CS);           /* SD/MMC Card chip select */
 #endif
+
+#ifdef CONFIG_IEEE802154_XBEE
+  stm32_configgpio(GPIO_XBEE_CS);
+#endif
 }
 
 /****************************************************************************
@@ -152,6 +156,13 @@ void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
     {
       stm32_gpiowrite(GPIO_CS_MFRC522, !selected);
     }
+#endif
+
+#if defined(CONFIG_IEEE802154_XBEE)
+  if (devid == SPIDEV_IEEE802154(0))
+  {
+    stm32_gpiowrite(GPIO_XBEE_CS, !selected);
+  }
 #endif
 
 #if defined(CONFIG_SENSORS_MAX6675)

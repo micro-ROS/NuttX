@@ -92,5 +92,9 @@ ifeq ($(CONFIG_SENSORS_HIH6130),y)
   CSRCS += stm32_hih6130.c
 endif
 
+ifeq ($(CONFIG_IEEE802154_XBEE),y)
+  CSRCS += stm32_xbee.c
+endif
+
 
 include $(TOPDIR)/configs/Board.mk

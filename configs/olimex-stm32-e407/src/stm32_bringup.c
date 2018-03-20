@@ -307,6 +307,15 @@ int stm32_bringup(void)
     }
 #endif
 
+#ifdef CONFIG_IEEE802154_XBEE
+
+  ret = stm32_xbee_initialize();
+  if (ret < 0)
+  {
+    syslog(LOG_ERR, "ERROR: stm32_xbee_initialize() failed: %d\n", ret);
+  }
+#endif
+
 #ifdef CONFIG_ONESHOT
   os = oneshot_initialize(1, 10);
   if (os)
