@@ -162,6 +162,13 @@
 #  define GPIO_OTGHS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTF|GPIO_PIN11)
 #endif
 
+
+/*MRF24J40*/
+#define GPIO_MRF24J40_INT   (GPIO_INPUT|GPIO_FLOAT|\
+                            GPIO_EXTI|GPIO_PORTG|GPIO_PIN12)/*PG12/D8*/
+#define GPIO_MRF24J40_RST  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|\
+                            GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN15)/*PG15/D9*/
+
 /* LAN8710 works with LAN8720 driver
  *
  * ---------- ------------- ------------
