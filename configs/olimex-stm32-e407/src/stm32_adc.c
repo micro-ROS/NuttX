@@ -72,13 +72,13 @@
 #endif
 
 #if defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC2) || defined(CONFIG_STM32_ADC3)
-#ifndef CONFIG_STM32_ADC1
-#  warning "Channel information only available for ADC1"
+#ifndef CONFIG_STM32_ADC3
+#  warning "Channel information only available for ADC3"
 #endif
 
 /* The number of ADC channels in the conversion list */
 
-#define ADC1_NCHANNELS 1//14
+#define ADC3_NCHANNELS 1//14
 
 /************************************************************************************
  * Private Data
@@ -87,22 +87,13 @@
  * ADC123_IN10
  */
 
-/* Identifying number of each ADC channel: Variable Resistor.
- *
- * {1,  2,  3, 4,  5,  6, 7,  8,  9, 10, 11, 12, 13, 15};
- */
 
-#ifdef CONFIG_STM32_ADC1
-static const uint8_t  g_chanlist[ADC1_NCHANNELS] = {1};
+#ifdef CONFIG_STM32_ADC3
+static const uint8_t  g_chanlist[ADC3_NCHANNELS] = {14};
 
-/* Configurations of pins used byte each ADC channels
- *
- * {GPIO_ADC1_IN1,  GPIO_ADC1_IN2,  GPIO_ADC1_IN3, GPIO_ADC1_IN4,  GPIO_ADC1_IN5,
- *  GPIO_ADC1_IN6,  GPIO_ADC1_IN7,  GPIO_ADC1_IN8,  GPIO_ADC1_IN9, GPIO_ADC1_IN10,
- *  GPIO_ADC1_IN11, GPIO_ADC1_IN12, GPIO_ADC1_IN13, GPIO_ADC1_IN15};
- */
 
-static const uint32_t g_pinlist[ADC1_NCHANNELS]  = {GPIO_ADC1_IN1};
+
+static const uint32_t g_pinlist[ADC3_NCHANNELS]  = {GPIO_ADC3_IN14};
 #endif
 
 /************************************************************************************
@@ -123,7 +114,7 @@ static const uint32_t g_pinlist[ADC1_NCHANNELS]  = {GPIO_ADC1_IN1};
 
 int stm32_adc_setup(void)
 {
-#ifdef CONFIG_STM32_ADC1
+#ifdef CONFIG_STM32_ADC3
   static bool initialized = false;
   struct adc_dev_s *adc;
   int ret;
@@ -135,17 +126,17 @@ int stm32_adc_setup(void)
     {
       /* Configure the pins as analog inputs for the selected channels */
 
-      for (i = 0; i < ADC1_NCHANNELS; i++)
+      for (i = 0; i < ADC3_NCHANNELS; i++)
         {
           stm32_configgpio(g_pinlist[i]);
         }
 
       /* Call stm32_adcinitialize() to get an instance of the ADC interface */
 
-      adc = stm32_adcinitialize(1, g_chanlist, ADC1_NCHANNELS);
+      adc = stm32_adcinitialize(3, g_chanlist, ADC3_NCHANNELS);
       if (adc == NULL)
         {
-          adbg("ERROR: Failed to get ADC interface\n");
+          printf("ERROR: Failed to get ADC interface\n");
           return -ENODEV;
         }
 
@@ -154,7 +145,7 @@ int stm32_adc_setup(void)
       ret = adc_register("/dev/adc0", adc);
       if (ret < 0)
         {
-          adbg("adc_register failed: %d\n", ret);
+          printf("adc_register failed: %d\n", ret);
           return ret;
         }
 
