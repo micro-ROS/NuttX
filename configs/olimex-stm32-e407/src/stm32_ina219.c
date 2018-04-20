@@ -1,9 +1,9 @@
 /************************************************************************************
- * configs/stm32f103-minimum/src/stm32_hih6130.c
+ * configs/stm32f103-minimum/src/stm32_ina219.c
  *
- *   Copyright (C) 2018 Juan Flores Muñoz. All rights reserved.
- *   Author: Juan Flores Muñoz <jfloresmu92@gmail.com>
- *  Base on BMP180 implementation.
+ *   Copyright (C) 2018 Juan Flores. All rights reserved.
+ *   Author: Juan Flores <jfloresmu92@gmail.com>
+ *  Base on the implementation of BMP180 driver
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,57 +44,57 @@
 #include <debug.h>
 
 #include <nuttx/spi/spi.h>
-#include <nuttx/sensors/hih6130.h>
+#include <nuttx/sensors/ina219.h>
 
 #include "stm32.h"
 #include "stm32_i2c.h"
 #include "olimex-stm32-e407.h"
 
-#if defined(CONFIG_I2C) && defined(CONFIG_SENSORS_HIH6130)
+#if defined(CONFIG_I2C) && defined(CONFIG_SENSORS_INA219)
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
 
-#define HIH6130_I2C_PORTNO 1   /* On I2C1 */
+#define INA219_I2C_PORTNO 1   /* On I2C1 */
 
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_hih6130initialize
+ * Name: stm32_ina219initialize
  *
  * Description:
- *   Initialize and register the hih6130 Pressure/temp Sensor driver.
+ *   Initialize and register the INA219 voltage/current sensor.
  *
  * Input parameters:
- *   devpath - The full path to the driver to register. E.g., "/dev/press0"
+ *   devpath - The full path to the driver to register. E.g., "/dev/ina219"
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
  *
  ************************************************************************************/
 
-int stm32_hih6130initialize(FAR const char *devpath)
+int stm32_ina219initialize(FAR const char *devpath)
 {
   FAR struct i2c_master_s *i2c;
   int ret;
 
-  sninfo("Initializing HIH-6130!\n");
+  sninfo("Initializing INA219!\n");
 
   /* Initialize I2C */
 
-  i2c = stm32_i2cbus_initialize(HIH6130_I2C_PORTNO);
+  i2c = stm32_i2cbus_initialize(INA219_I2C_PORTNO);
 
   if (!i2c)
     {
       return -ENODEV;
     }
 
-  /* Then register the barometer sensor */
+  /* Then register the v sensor */
 
-  ret = hih6130_register(devpath, i2c);
+  ret = ina219_register(devpath, i2c,0x40,100000,0x00);
   if (ret < 0)
     {
       snerr("ERROR: Error registering hih6130\n");
@@ -103,4 +103,4 @@ int stm32_hih6130initialize(FAR const char *devpath)
   return ret;
 }
 
-#endif /* CONFIG_I2C && CONFIG_SENSORS_MPL115A && CONFIG_STM32_I2C1 */
+#endif /* CONFIG_I2C && CONFIG_SENSORS_INA219 && CONFIG_STM32_I2C1 */
