@@ -294,5 +294,18 @@ int stm32_bmp180initialize(FAR const char *devpath);
 int stm32_hih6130initialize(FAR const char *devpath);
 #endif
 
+/****************************************************************************
+ * Name: stm32_ina219initialize
+ *
+ * Description:
+ *  Initialize I2C and register INA219 sensor
+ *
+ ****************************************************************************/
+
+
+#ifdef CONFIG_SENSORS_HIH6130
+int stm32_ina219initialize(FAR const char *devpath);
+#endif
+
 #endif  /* __ASSEMBLY__ */
 #endif /* __CONFIGS_OLIMEX_STM32_E407_SRC_INTERNAL_H */
