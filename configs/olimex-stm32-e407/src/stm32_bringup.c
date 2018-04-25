@@ -178,15 +178,6 @@ int stm32_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_MMCSD
-  ret = stm32_mmcsd_initialize(MMCSD_MINOR);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "Failed to initialize SD slot %d: %d\n", ret);
-      return ret;
-    }
-#endif
-
 #ifdef CONFIG_SENSORS_BMP180
   ret = stm32_bmp180initialize("/dev/press0");
   if (ret < 0)
@@ -306,6 +297,18 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: stm32_mcp2515initialize() failed: %d\n", ret);
+    }
+#endif
+
+#ifdef HAVE_SDIO
+  /* Initialize the SDIO block driver */
+
+  ret = stm32_sdio_initialize();
+  if (ret != OK)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize MMC/SD driver: %d\n",
+             ret);
     }
 #endif
 

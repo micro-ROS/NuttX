@@ -104,5 +104,9 @@ ifeq ($(CONFIG_IEEE802154_MRF24J40),y)
 CSRCS += stm32_mrf24j40.c
 endif
 
+ifeq ($(CONFIG_STM32_SDIO),y)
+CSRCS += stm32_sdio.c
+endif
+
 
 include $(TOPDIR)/configs/Board.mk
