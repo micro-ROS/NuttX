@@ -64,6 +64,14 @@ ifeq ($(CONFIG_STM32_FSMC),y)
 CSRCS += stm32_extmem.c
 endif
 
+ifeq ($(CONFIG_ARCH_CUSTOM_PMINIT),y)
+CSRCS += stm32_pm.c
+endif
+
+ifeq ($(CONFIG_PM_BUTTONS),y)
+CSRCS += stm32_pmbuttons.c
+endif
+
 ifeq ($(CONFIG_STM32_OTGFS),y)
 CSRCS += stm32_usb.c
 endif
