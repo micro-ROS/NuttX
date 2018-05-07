@@ -144,7 +144,7 @@
 
 int stm32_bringup(void)
 {
-  stm32_pmbuttons();
+
 #ifdef CONFIG_ONESHOT
   struct oneshot_lowerhalf_s *os = NULL;
 #endif
