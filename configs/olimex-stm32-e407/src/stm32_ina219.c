@@ -1,8 +1,8 @@
 /************************************************************************************
  * configs/stm32f103-minimum/src/stm32_ina219.c
  *
- *   Copyright (C) 2018 Juan Flores. All rights reserved.
- *   Author: Juan Flores <jfloresmu92@gmail.com>
+ *   Copyright (C) 2018 Erle Robotics (Juan Flores Muñoz). All rights reserved.
+ *   Author: Erle Robotics (Juan Flores Muñoz) <juan@erlerobotics.com>
  *  Base on the implementation of BMP180 driver
  *
  * Redistribution and use in source and binary forms, with or without
