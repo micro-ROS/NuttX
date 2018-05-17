@@ -109,6 +109,10 @@ void stm32_spidev_initialize(void)
 #ifdef CONFIG_MMCSD_SPI
   stm32_configgpio(GPIO_SDCARD_CS);           /* SD/MMC Card chip select */
 #endif
+
+#ifdef CONFIG_IEEE802154_MRF24J40
+  stm32_configgpio(GPIO_MRF24J40_CS);
+#endif
 }
 
 /****************************************************************************
@@ -179,6 +183,13 @@ void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
   if (devid == SPIDEV_DISPLAY(0))
     {
       stm32_gpiowrite(STM32_LCD_CS, !selected);
+    }
+#endif
+
+#ifdef CONFIG_IEEE802154_MRF24J40
+    if (devid == SPIDEV_IEEE802154(0))
+    {
+        stm32_gpiowrite(GPIO_MRF24J40_CS, !selected);
     }
 #endif
 

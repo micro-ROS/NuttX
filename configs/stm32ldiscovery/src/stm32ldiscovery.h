@@ -219,6 +219,10 @@
 #define BOARD_SLCD_NSEG   24
 #define BOARD_SLCD_NGPIOS 28
 
+#define GPIO_MRF24J40_INT   (GPIO_INPUT|GPIO_FLOAT |\
+                            GPIO_EXTI|GPIO_PORTA|GPIO_PIN15)/*PG12/D8*/
+
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/
@@ -269,4 +273,3 @@ int stm32_qencoder_initialize(FAR const char *devpath, int timer);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_STM32F3DISCOVERY_SRC_STM32F3DISCOVERY_H */
-
