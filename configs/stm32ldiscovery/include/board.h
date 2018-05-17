@@ -288,7 +288,9 @@
 
 /*SPI CS*/
 #define GPIO_CS_MFRC522 (GPIO_OUTPUT|GPIO_SPEED_40MHz|\
-                           GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN13) /*PA13/
+                           GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN13) /*PA13*/
+#define GPIO_MRF24J40_CS (GPIO_OUTPUT|GPIO_SPEED_40MHz|\
+                          GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN13) /*PA13/
 /************************************************************************************
  * Public Function Prototypes
  ************************************************************************************/
