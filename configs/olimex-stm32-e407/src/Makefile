@@ -64,6 +64,10 @@ ifeq ($(CONFIG_STM32_FSMC),y)
 CSRCS += stm32_extmem.c
 endif
 
+ifeq ($(CONFIG_TIMER),y)
+CSRCS += stm32_timer.c
+endif
+
 ifeq ($(CONFIG_ARCH_CUSTOM_PMINIT),y)
 CSRCS += stm32_pm.c
 endif
