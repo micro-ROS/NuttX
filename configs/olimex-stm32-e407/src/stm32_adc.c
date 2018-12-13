@@ -89,11 +89,11 @@
 
 
 #ifdef CONFIG_STM32_ADC3
-static const uint8_t  g_chanlist[ADC3_NCHANNELS] = {14};
+static const uint8_t  g_chanlist[ADC3_NCHANNELS] = {4};
 
 
 
-static const uint32_t g_pinlist[ADC3_NCHANNELS]  = {GPIO_ADC3_IN14};
+static const uint32_t g_pinlist[ADC3_NCHANNELS]  = {GPIO_ADC3_IN4};
 #endif
 
 /************************************************************************************
