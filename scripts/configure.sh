@@ -27,6 +27,8 @@ if [ $1 = "olimex-stm32-e407" ]; then
     ./tools/configure.sh olimex-stm32-e407/sd
   elif [ $2 = "timer" ];then
     ./tools/configure.sh olimex-stm32-e407/timer
+  elif [ $2 = "telemetry" ];then
+    ./tools/configure.sh olimex-stm32-e407/telemetry
   else
     echo "Error"
   fi
