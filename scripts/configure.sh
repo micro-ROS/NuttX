@@ -5,6 +5,8 @@ if [ $1 = "olimex-stm32-e407" ]; then
 #Configurations for Olimex Board
   if [ $2 = "nsh" ]; then
     ./tools/configure.sh olimex-stm32-e407/nsh
+  elif [ $2 = "nsh_uart" ]; then
+    ./tools/configure.sh olimex-stm32-e407/nsh_uart
   elif [ $2 = "bmp180" ];then
     ./tools/configure.sh olimex-stm32-e407/bmp180
   elif [ $2 = "hih6130" ];then
