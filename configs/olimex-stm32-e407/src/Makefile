@@ -124,5 +124,9 @@ ifeq ($(CONFIG_STM32_SDIO),y)
 CSRCS += stm32_sdio.c
 endif
 
+ifeq ($(CONFIG_DAC),y)
+CSRCS += stm32_dac.c
+endif
+
 
 include $(TOPDIR)/configs/Board.mk

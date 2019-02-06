@@ -427,7 +427,17 @@ int stm32_bringup(void)
   ret = stm32_adc_setup();
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: stm32_adc_setup failed: %d\n", ret);
+      syslog(LOG_ERR, "ERROR: stm32_dac_setup failed: %d\n", ret);
+    }
+#endif
+
+#ifdef CONFIG_DAC
+  /* Initialize DAC and register the DAC driver. */
+
+  ret = stm32_dac_setup();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: stm32_y_setup failed: %d\n", ret);
     }
 #endif
 
