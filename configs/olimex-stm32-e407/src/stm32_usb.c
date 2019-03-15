@@ -176,7 +176,7 @@ int stm32_usbhost_initialize(void)
    * that we care about:
    */
 
-  uvdbg("Register class drivers\n");
+  uinfo("Register class drivers\n");
 
 #ifdef CONFIG_USBHOST_HUB
   /* Initialize USB hub class support */
