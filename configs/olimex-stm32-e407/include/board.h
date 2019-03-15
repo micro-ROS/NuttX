@@ -253,6 +253,10 @@
 #define GPIO_USART3_RX    GPIO_USART3_RX_1 /* PB11 */
 #define GPIO_USART3_TX    GPIO_USART3_TX_1 /* PB10 */
 
+/* USART6 */
+#define GPIO_USART6_RX	GPIO_USART6_RX_1   /* PC6 */
+#define GPIO_USART6_TX	GPIO_USART6_TX_1   /* PC7 */
+
 /* CAN */
 #define GPIO_CAN1_RX      GPIO_CAN1_RX_2 /* PB8 */
 #define GPIO_CAN1_TX      GPIO_CAN1_TX_2 /* PB9 */
