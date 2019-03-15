@@ -104,3 +104,6 @@ CONFIG_DEBUG_SYMBOLS=y
 # Enable math library
 CONFIG_LIBM=y
 #CONFIG_ARCH_MATH_H=y # arch/math.h does not exist in nuttx/include/arch
+
+# Enable float in printf
+CONFIG_LIBC_FLOATINGPOINT=y
