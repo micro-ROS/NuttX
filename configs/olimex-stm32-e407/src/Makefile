@@ -36,7 +36,7 @@
 -include $(TOPDIR)/Make.defs
 
 ASRCS =
-CSRCS = stm32_boot.c stm32_bringup.c stm32_spi.c
+CSRCS = stm32_boot.c stm32_bringup.c stm32_spi.c libatomic.c
 
 ifeq ($(CONFIG_SENSORS_VL53L1X),y)
 CSRCS += stm32_vl53l1x.c
