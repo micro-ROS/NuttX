@@ -1,10 +1,8 @@
 image: ubuntu:1804
 
 services:
- - docker:dind
+  - docker:dind
  
- nuttx:
-   script:
-     - tools/configure.sh configs/olimex-stm32-e407/uros/defconfig
-     
- 
+nuttx:
+  script:
+    - tools/configure.sh configs/olimex-stm32-e407/uros/defconfig
