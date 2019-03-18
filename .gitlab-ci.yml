@@ -1,8 +1,9 @@
-image: ubuntu:1804
+image: docker:stable
 
 services:
   - docker:dind
  
-nuttx:
+nuttx_bionic:
+  image: ubuntu:bionic
   script:
     - tools/configure.sh configs/olimex-stm32-e407/uros/defconfig
