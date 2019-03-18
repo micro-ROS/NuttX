@@ -6,4 +6,9 @@ services:
 nuttx_bionic:
   image: ubuntu:bionic
   script:
-    - tools/configure.sh configs/olimex-stm32-e407/uros/
+    - apt-get update -y && apt-get install -y build-essential gcc-arm-none-eabi git bison flex autotools-dev gperf libncurses5-dev autoconf libtool libgmp-dev libmpc-dev libmpfr-dev libisl-dev binutils-dev libelf-dev libexpat1-dev zlib1g-dev gettext texinfo gcc-arm-none-eabi gdb-multiarch openocd libusb-1.0-0-dev automake pkg-config
+    - pwd
+    - git clone --depth 1 https://github.com/microROS/apps/ ../apps
+    - git clone --depth 1 https://bitbucket.org/nuttx/tools.git ../tools
+    - ( cd ../tools/kconfig-frontends ; ./configure --enable-mconf ; make ; make install ; ldconfig )
+    - bash -x tools/configure.sh configs/olimex-stm32-e407/uros/
