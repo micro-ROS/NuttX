@@ -1193,6 +1193,15 @@ config ARCH_BOARD_STM32F103_MINIMUM
 	---help---
 		A configuration for the STM32F103 Minimum board.
 
+config ARCH_BOARD_MICROROS_SIM
+	bool "microROS Simulation arch"
+	depends on ARCH_CHIP_STM32F103C8
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		A configuration for microROS Simulation.
+
 config ARCH_BOARD_STM3210E_EVAL
 	bool "STMicro STM3210E-EVAL development board"
 	depends on ARCH_CHIP_STM32F103ZE
@@ -1780,6 +1789,7 @@ config ARCH_BOARD
 	default "stm32f051-discovery"      if ARCH_BOARD_STM32F051_DISCOVERY
 	default "stm32f072-discovery"      if ARCH_BOARD_STM32F072_DISCOVERY
 	default "stm32f103-minimum"        if ARCH_BOARD_STM32F103_MINIMUM
+	default "microros_sim"        	   if ARCH_BOARD_MICROROS_SIM
 	default "stm3210e-eval"            if ARCH_BOARD_STM3210E_EVAL
 	default "stm3220g-eval"            if ARCH_BOARD_STM3220G_EVAL
 	default "stm3240g-eval"            if ARCH_BOARD_STM3240G_EVAL
@@ -2197,6 +2207,9 @@ source "configs/stm32f051-discovery/Kconfig"
 endif
 if ARCH_BOARD_STM32F072_DISCOVERY
 source "configs/stm32f072-discovery/Kconfig"
+endif
+if ARCH_BOARD_MICROROS_SIM
+source "configs/microros_sim/Kconfig"
 endif
 if ARCH_BOARD_STM32F103_MINIMUM
 source "configs/stm32f103-minimum/Kconfig"
