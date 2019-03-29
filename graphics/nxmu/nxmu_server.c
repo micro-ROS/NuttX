@@ -1,7 +1,7 @@
 /****************************************************************************
  * graphics/nxmu/nxmu_server.c
  *
- *   Copyright (C) 2008-2012, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2012, 2017, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@
 #include <nuttx/mqueue.h>
 #include <nuttx/nx/nx.h>
 
-#include "nxfe.h"
+#include "nxmu.h"
 
 /****************************************************************************
  * Private Functions
@@ -62,7 +62,7 @@
  * Name: nxmu_disconnect
  ****************************************************************************/
 
-static inline void nxmu_disconnect(FAR struct nxfe_conn_s *conn)
+static inline void nxmu_disconnect(FAR struct nxmu_conn_s *conn)
 {
   struct nxclimsg_disconnected_s outmsg;
   int ret;
@@ -74,7 +74,7 @@ static inline void nxmu_disconnect(FAR struct nxfe_conn_s *conn)
   ret = nxmu_sendclient(conn, &outmsg, sizeof(struct nxclimsg_disconnected_s));
   if (ret < 0)
     {
-      gerr("ERROR: nxmu_sendclient failed: %d\n", errno);
+      gerr("ERROR: nxmu_sendclient failed: %d\n", ret);
     }
 
   /* Close the outgoing client message queue */
@@ -86,7 +86,7 @@ static inline void nxmu_disconnect(FAR struct nxfe_conn_s *conn)
  * Name: nxmu_connect
  ****************************************************************************/
 
-static inline void nxmu_connect(FAR struct nxfe_conn_s *conn)
+static inline void nxmu_connect(FAR struct nxmu_conn_s *conn)
 {
   char mqname[NX_CLIENT_MXNAMELEN];
   struct nxclimsg_connected_s outmsg;
@@ -111,7 +111,7 @@ static inline void nxmu_connect(FAR struct nxfe_conn_s *conn)
   ret = nxmu_sendclient(conn, &outmsg, sizeof(struct nxclimsg_connected_s));
   if (ret < 0)
     {
-      gerr("ERROR: nxmu_sendclient failed: %d\n", errno);
+      gerr("ERROR: nxmu_sendclient failed: %d\n", ret);
     }
 }
 
@@ -119,7 +119,7 @@ static inline void nxmu_connect(FAR struct nxfe_conn_s *conn)
  * Name: nxmu_shutdown
  ****************************************************************************/
 
-static inline void nxmu_shutdown(FAR struct nxfe_state_s *fe)
+static inline void nxmu_shutdown(FAR struct nxmu_state_s *fe)
 {
   FAR struct nxbe_window_s *wnd;
 
@@ -138,22 +138,25 @@ static inline void nxmu_shutdown(FAR struct nxfe_state_s *fe)
 }
 
 /****************************************************************************
- * Name: nxmu_blocked
+ * Name: nxmu_event
  ****************************************************************************/
 
-static inline void nxmu_blocked(FAR struct nxbe_window_s *wnd, FAR void *arg)
+static void nxmu_event(FAR struct nxbe_window_s *wnd, enum nx_event_e event,
+                       FAR void *arg)
 {
-  struct nxclimsg_blocked_s outmsg;
+  struct nxclimsg_event_s outmsg;
   int ret;
 
-  outmsg.msgid = NX_CLIMSG_BLOCKED;
+  outmsg.msgid = NX_CLIMSG_EVENT;
   outmsg.wnd   = wnd;
   outmsg.arg   = arg;
+  outmsg.event = event;
 
-  ret = nxmu_sendclient(wnd->conn, &outmsg, sizeof(struct nxclimsg_blocked_s));
+  ret = nxmu_sendclient(wnd->conn, &outmsg,
+                        sizeof(struct nxclimsg_event_s));
   if (ret < 0)
     {
-      gerr("ERROR: nxmu_sendclient failed: %d\n", errno);
+      gerr("ERROR: nxmu_sendclient failed: %d\n", ret);
     }
 }
 
@@ -162,30 +165,28 @@ static inline void nxmu_blocked(FAR struct nxbe_window_s *wnd, FAR void *arg)
  ****************************************************************************/
 
 static inline int nxmu_setup(FAR const char *mqname, FAR NX_DRIVERTYPE *dev,
-                             FAR struct nxfe_state_s *fe)
+                             FAR struct nxmu_state_s *fe)
 {
   struct mq_attr attr;
   int            ret;
 
-  memset(fe, 0, sizeof(struct nxfe_state_s));
+  memset(fe, 0, sizeof(struct nxmu_state_s));
 
   /* Configure the framebuffer/LCD device */
 
   ret = nxbe_configure(dev, &fe->be);
   if (ret < 0)
     {
-      gerr("ERROR: nxbe_configure failed: %d\n", -ret);
-      set_errno(-ret);
-      return ERROR;
+      gerr("ERROR: nxbe_configure failed: %d\n", ret);
+      return ret;
     }
 
 #ifdef CONFIG_FB_CMAP
   ret = nxbe_colormap(dev);
   if (ret < 0)
     {
-      gerr("ERROR: nxbe_colormap failed: %d\n", -ret);
-      set_errno(-ret);
-      return ERROR;
+      gerr("ERROR: nxbe_colormap failed: %d\n", ret);
+      return ret;
     }
 #endif /* CONFIG_FB_CMAP */
 
@@ -204,8 +205,9 @@ static inline int nxmu_setup(FAR const char *mqname, FAR NX_DRIVERTYPE *dev,
   fe->conn.crdmq = mq_open(mqname, O_RDONLY | O_CREAT, 0666, &attr);
   if (fe->conn.crdmq == (mqd_t)-1)
     {
-      gerr("ERROR: mq_open(%s) failed: %d\n", mqname, errno);
-      return ERROR; /* mq_open sets errno */
+      int errcode = get_errno();
+      gerr("ERROR: mq_open(%s) failed: %d\n", mqname, errcode);
+      return -errcode;
     }
 
   /* NOTE that the outgoing client MQ (cwrmq) is not initialized.  The
@@ -220,9 +222,10 @@ static inline int nxmu_setup(FAR const char *mqname, FAR NX_DRIVERTYPE *dev,
   fe->conn.swrmq = mq_open(mqname, O_WRONLY);
   if (fe->conn.swrmq == (mqd_t)-1)
     {
-      gerr("ERROR: mq_open(%s) failed: %d\n", mqname, errno);
+      int errcode = get_errno();
+      gerr("ERROR: mq_open(%s) failed: %d\n", mqname, errcode);
       mq_close(fe->conn.crdmq);
-      return ERROR; /* mq_open sets errno */
+      return -errcode;
     }
 
   /* The server is now "connected" to itself via the background window */
@@ -272,13 +275,13 @@ static inline int nxmu_setup(FAR const char *mqname, FAR NX_DRIVERTYPE *dev,
  *
  * Returned Value:
  *   This function usually does not return.  If it does return, it will
- *   return ERROR and errno will be set appropriately.
+ *   return a negated errno value indicating the cause of the failure.
  *
  ****************************************************************************/
 
 int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
 {
-  struct nxfe_state_s    fe;
+  struct nxmu_state_s    fe;
   FAR struct nxsvrmsg_s *msg;
   char                   buffer[NX_MXSVRMSGLEN];
   int                    nbytes;
@@ -293,7 +296,7 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
   ret = nxmu_setup(mqname, dev, &fe);
   if (ret < 0)
     {
-      return ret; /* nxmu_setup sets errno */
+      return ret;
     }
 
   /* Produce the initial, background display */
@@ -362,7 +365,14 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
          case NX_SVRMSG_BLOCKED: /* Block messsages to a window */
            {
              FAR struct nxsvrmsg_blocked_s *blocked = (FAR struct nxsvrmsg_blocked_s *)buffer;
-             nxmu_blocked(blocked->wnd, blocked->arg);
+             nxmu_event(blocked->wnd, NXEVENT_BLOCKED, blocked->arg);
+           }
+           break;
+
+         case NX_SVRMSG_SYNCH: /* Synchronization request */
+           {
+             FAR struct nxsvrmsg_synch_s *synch = (FAR struct nxsvrmsg_synch_s *)buffer;
+             nxmu_event(synch->wnd, NXEVENT_SYNCHED, synch->arg);
            }
            break;
 
@@ -396,7 +406,7 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
          case NX_SVRMSG_GETPOSITION: /* Get the window size/position */
            {
              FAR struct nxsvrmsg_getposition_s *getposmsg = (FAR struct nxsvrmsg_getposition_s *)buffer;
-             nxfe_reportposition(getposmsg->wnd);
+             nxmu_reportposition(getposmsg->wnd);
            }
            break;
 
@@ -502,7 +512,7 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
          case NX_SVRMSG_REDRAWREQ: /* Request re-drawing of rectangular region */
            {
              FAR struct nxsvrmsg_redrawreq_s *redrawmsg = (FAR struct nxsvrmsg_redrawreq_s *)buffer;
-             nxfe_redrawreq(redrawmsg->wnd, &redrawmsg->rect);
+             nxmu_redrawreq(redrawmsg->wnd, &redrawmsg->rect);
            }
            break;
 
@@ -536,6 +546,5 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
 
 errout:
   nxmu_shutdown(&fe);
-  set_errno(-ret);
-  return ERROR;
+  return ret;
 }

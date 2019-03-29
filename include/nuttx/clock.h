@@ -143,7 +143,7 @@
 /* If CONFIG_SCHED_TICKLESS is not defined, then the interrupt interval of
  * the system timer is given by USEC_PER_TICK.  This is the expected number
  * of microseconds between calls from the processor-specific logic to
- * sched_process_timer().  The default value of USEC_PER_TICK is 10000
+ * nxsched_process_timer().  The default value of USEC_PER_TICK is 10000
  * microseconds (100KHz).  However, this default setting can be overridden
  * by defining the interval in microseconds as CONFIG_USEC_PER_TICK in the
  * NuttX configuration file.
@@ -202,7 +202,7 @@
 #define TICK2SEC(tick)        (((tick)+(TICK_PER_SEC/2))/TICK_PER_SEC)   /* Rounds */
 
 #if defined(CONFIG_DEBUG_FEATURES) && defined(CONFIG_SYSTEM_TIME64) && \
-    defined(CONFIG_CLOCK_MONOTONIC)
+    defined(CONFIG_CLOCK_MONOTONIC) && !defined(CONFIG_SCHED_TICKLESS)
 /* Initial system timer ticks value close to maximum 32-bit value, to test
  * 64-bit system-timer after going over 32-bit value. This is to make errors
  * of casting 64-bit system-timer to 32-bit variables more visible.
@@ -335,8 +335,7 @@ void clock_synchronize(void);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_RTC) && !defined(CONFIG_SCHED_TICKLESS) && \
-    !defined(CONFIG_CLOCK_TIMEKEEPING)
+#if defined(CONFIG_RTC) && !defined(CONFIG_SCHED_TICKLESS)
 void clock_resynchronize(FAR struct timespec *rtc_diff);
 #endif
 

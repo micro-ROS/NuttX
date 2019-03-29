@@ -58,7 +58,6 @@
 #include <nuttx/arch.h>
 
 #include "up_arch.h"
-#include "cache.h"
 #include "up_internal.h"
 #include "sched/sched.h"
 
@@ -736,7 +735,7 @@ static int imxrt_error_interrupt(int irq, void *context, FAR void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_dmainitialize
+ * Name: up_dma_initialize
  *
  * Description:
  *   Initialize the DMA subsystem
@@ -746,7 +745,7 @@ static int imxrt_error_interrupt(int irq, void *context, FAR void *arg)
  *
  ****************************************************************************/
 
-void weak_function up_dmainitialize(void)
+void weak_function up_dma_initialize(void)
 {
   uintptr_t regaddr;
   uint32_t regval;
@@ -1105,8 +1104,8 @@ int imxrt_dmach_xfrsetup(DMACH_HANDLE *handle,
 
       /* Clean cache associated with the previous TCD memory */
 
-      arch_clean_dcache((uintptr_t)prev,
-                        (uintptr_t)prev + sizeof(struct imxrt_edmatcd_s));
+      up_clean_dcache((uintptr_t)prev,
+                      (uintptr_t)prev + sizeof(struct imxrt_edmatcd_s));
 
       /* Check if the TCD block in the DMA channel registers is the same as
        * the previous previous TCD.  This can happen if the previous TCD was
@@ -1130,8 +1129,8 @@ int imxrt_dmach_xfrsetup(DMACH_HANDLE *handle,
 
   /* Clean cache associated with the TCD memory */
 
-  arch_clean_dcache((uintptr_t)tcd,
-                    (uintptr_t)tcd + sizeof(struct imxrt_edmatcd_s));
+  up_clean_dcache((uintptr_t)tcd,
+                  (uintptr_t)tcd + sizeof(struct imxrt_edmatcd_s));
 #else
   /* Scatter/gather DMA is NOT supported */
 
@@ -1168,8 +1167,8 @@ int imxrt_dmach_xfrsetup(DMACH_HANDLE *handle,
        * is one.
        */
 
-      arch_invalidate_dcache((uintptr_t)config->daddr,
-                             (uintptr_t)config->daddr + config->nbytes);
+      up_invalidate_dcache((uintptr_t)config->daddr,
+                           (uintptr_t)config->daddr + config->nbytes);
     }
 
   /* Check for an Tx (peripheral-to-memory/memory-to-memory) DMA transfer */
@@ -1183,8 +1182,8 @@ int imxrt_dmach_xfrsetup(DMACH_HANDLE *handle,
        */
 #warning Missing logic
 
-      arch_clean_dcache((uintptr_t)config->saddr,
-                        (uintptr_t)config->saddr + config->nbytes);
+      up_clean_dcache((uintptr_t)config->saddr,
+                      (uintptr_t)config->saddr + config->nbytes);
     }
 
   dmach->state = IMXRT_DMA_CONFIGURED;

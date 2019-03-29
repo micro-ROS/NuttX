@@ -89,6 +89,13 @@
 #  define this_task()            (current_task(this_cpu()))
 #endif
 
+/* This macro returns the running task which may different from this_task()
+ * during interrupt level context switches.
+ */
+
+#define running_task() \
+  (up_interrupt_context() ? g_running_tasks[this_cpu()] : this_task())
+
 /* List attribute flags */
 
 #define TLIST_ATTR_PRIORITIZED   (1 << 0) /* Bit 0: List is prioritized */
@@ -150,7 +157,7 @@ struct tasklist_s
  * Public Data
  ****************************************************************************/
 
-/* Declared in os_start.c ***************************************************/
+/* Declared in nx_start.c ***************************************************/
 
 /* The state of a task is indicated both by the task_state field of the TCB
  * and by a series of task lists.  All of these tasks lists are declared
@@ -201,6 +208,17 @@ extern volatile dq_queue_t g_readytorun;
  */
 
 extern volatile dq_queue_t g_assignedtasks[CONFIG_SMP_NCPUS];
+
+/* g_running_tasks[] holds a references to the running task for each cpu.
+ * It is valid only when up_interrupt_context() returns true.
+ */
+
+extern FAR struct tcb_s *g_running_tasks[CONFIG_SMP_NCPUS];
+
+#else
+
+extern FAR struct tcb_s *g_running_tasks[1];
+
 #endif
 
 /* This is the list of all tasks that are ready-to-run, but cannot be placed
@@ -472,10 +490,19 @@ void sched_tasklist_unlock(irqstate_t lock);
 #  define sched_islocked_tcb(tcb) ((tcb)->lockcount > 0)
 #endif
 
+#if defined(CONFIG_SCHED_CPULOAD) && !defined(CONFIG_SCHED_CPULOAD_EXTCLK)
 /* CPU load measurement support */
 
-#if defined(CONFIG_SCHED_CPULOAD) && !defined(CONFIG_SCHED_CPULOAD_EXTCLK)
-void weak_function sched_process_cpuload(void);
+void weak_function nxsched_process_cpuload(void);
+#endif
+
+/* Critical section monitor */
+
+#ifdef CONFIG_SCHED_CRITMONITOR
+void sched_critmon_preemption(FAR struct tcb_s *tcb, bool state);
+void sched_critmon_csection(FAR struct tcb_s *tcb, bool state);
+void sched_critmon_resume(FAR struct tcb_s *tcb);
+void sched_critmon_suspend(FAR struct tcb_s *tcb);
 #endif
 
 /* TCB operations */

@@ -152,6 +152,24 @@ static inline void rcc_enableahb1(void)
   regval |= RCC_AHB1ENR_DMA2EN;
 #endif
 
+#ifdef CONFIG_STM32H7_OTGFS
+  /* USB OTG FS clock enable */
+
+  regval |= RCC_AHB1ENR_OTGFSEN;
+#endif
+
+#ifdef CONFIG_STM32H7_OTGHS
+#ifdef BOARD_ENABLE_USBOTG_HSULPI
+  /* Enable clocking for USB OTG HS and external PHY */
+
+  regval |= (RCC_AHB1ENR_OTGHSEN | RCC_AHB1ENR_OTGHSULPIEN);
+#else
+  /* Enable only clocking for USB OTG HS */
+
+  regval |= RCC_AHB1ENR_OTGHSEN;
+#endif
+#endif
+
   putreg32(regval, STM32_RCC_AHB1ENR);   /* Enable peripherals */
 }
 
@@ -195,6 +213,12 @@ static inline void rcc_enableahb3(void)
    */
 
   regval = getreg32(STM32_RCC_AHB3ENR);
+
+#ifdef CONFIG_STM32H7_MDMA
+  /* MDMA clock enable */
+
+  regval |= RCC_AHB3ENR_MDMAEN;
+#endif
 
   // TODO: ...
 
@@ -256,6 +280,12 @@ static inline void rcc_enableahb4(void)
     );
 #endif
 
+#ifdef CONFIG_STM32H7_BDMA
+  /* BDMA clock enable */
+
+  regval |= RCC_AHB4ENR_BDMAEN;
+#endif
+
 #ifdef CONFIG_STM32H7_CRC
   /* CRC clock enable */
 
@@ -289,15 +319,45 @@ static inline void rcc_enableapb1(void)
 
   regval = getreg32(STM32_RCC_APB1LENR);
 
+#ifdef CONFIG_STM32H7_SPI2
+  /* SPI2 clock enable */
+
+  regval |= RCC_APB1LENR_SPI2EN;
+#endif
+
+#ifdef CONFIG_STM32H7_SPI3
+  /* SPI3 clock enable */
+
+  regval |= RCC_APB1LENR_SPI3EN;
+#endif
+
+#ifdef CONFIG_STM32H7_I2C1
+  /* I2C1 clock enable */
+
+  regval |= RCC_APB1LENR_I2C1EN;
+#endif
+
+#ifdef CONFIG_STM32H7_I2C2
+  /* I2C2 clock enable */
+
+  regval |= RCC_APB1LENR_I2C2EN;
+#endif
+
+#ifdef CONFIG_STM32H7_I2C3
+  /* I2C3 clock enable */
+
+  regval |= RCC_APB1LENR_I2C3EN;
+#endif
+
   // TODO: ...
 
-  putreg32(regval, STM32_RCC_APB1LENR);   /* Enable peripherals */
+  putreg32(regval, STM32_RCC_APB1LENR);   /* Enable APB1L peripherals */
 
   regval = getreg32(STM32_RCC_APB1HENR);
 
   // TODO: ...
 
-  putreg32(regval, STM32_RCC_APB1HENR);   /* Enable peripherals */
+  putreg32(regval, STM32_RCC_APB1HENR);   /* Enable APB1H peripherals */
 }
 
 /****************************************************************************
@@ -317,6 +377,24 @@ static inline void rcc_enableapb2(void)
    */
 
   regval = getreg32(STM32_RCC_APB2ENR);
+
+#ifdef CONFIG_STM32H7_SPI1
+  /* SPI1 clock enable */
+
+  regval |= RCC_APB2ENR_SPI1EN;
+#endif
+
+#ifdef CONFIG_STM32H7_SPI4
+  /* SPI4 clock enable */
+
+  regval |= RCC_APB2ENR_SPI4EN;
+#endif
+
+#ifdef CONFIG_STM32H7_SPI5
+  /* SPI5 clock enable */
+
+  regval |= RCC_APB2ENR_SPI5EN;
+#endif
 
   // TODO: ...
 
@@ -363,6 +441,24 @@ static inline void rcc_enableapb4(void)
    */
 
   regval = getreg32(STM32_RCC_APB4ENR);
+
+#ifdef CONFIG_STM32H7_SYSCFG
+  /* System configuration controller clock enable */
+
+  regval |= RCC_APB4ENR_SYSCFGEN;
+#endif
+
+#ifdef CONFIG_STM32H7_I2C4
+  /* I2C4 clock enable */
+
+  regval |= RCC_APB4ENR_I2C4EN;
+#endif
+
+#ifdef CONFIG_STM32H7_SPI6
+  /* SPI6 clock enable */
+
+  regval |= RCC_APB4ENR_SPI6EN;
+#endif
 
   // TODO: ...
 
@@ -433,6 +529,21 @@ static void stm32_stdclockconfig(void)
     }
 #endif
 
+#define CONFIG_STM32H7_HSI48
+#ifdef CONFIG_STM32H7_HSI48
+  /* Enable HSI48 */
+
+  regval  = getreg32(STM32_RCC_CR);
+  regval |= RCC_CR_HSI48ON;
+  putreg32(regval, STM32_RCC_CR);
+
+  /* Wait until the HSI48 is ready */
+
+  while ((getreg32(STM32_RCC_CR) & RCC_CR_HSI48RDY) == 0)
+    {
+    }
+#endif
+
   /* Check for a timeout.  If this timeout occurs, then we are hosed.  We
    * have no real back-up plan, although the following logic makes it look
    * as though we do.
@@ -440,12 +551,11 @@ static void stm32_stdclockconfig(void)
 
   if (timeout > 0)
     {
-
-      /* Set the HCLK source/divider */
+      /* Set the D1 domain Core prescaler and the HCLK source/divider */
 
       regval = getreg32(STM32_RCC_D1CFGR);
-      regval &= ~RCC_D1CFGR_HPRE_MASK;
-      regval |= STM32_RCC_D1CFGR_HPRE;
+      regval &= ~(RCC_D1CFGR_HPRE_MASK | RCC_D1CFGR_D1CPRE_MASK);
+      regval |= (STM32_RCC_D1CFGR_HPRE | STM32_RCC_D1CFGR_D1CPRE);
       putreg32(regval, STM32_RCC_D1CFGR);
 
       /* Set PCLK1 */
@@ -500,6 +610,8 @@ static void stm32_stdclockconfig(void)
                 STM32_PLLCFG_PLL3M);
 #endif
       putreg32(regval, STM32_RCC_PLLCKSELR);
+
+      /* Each PLL offers 3 outputs with post-dividers (PLLxP/PLLxQ/PLLxR) */
 
       /* Configure PLL1 dividers */
 
@@ -564,7 +676,7 @@ static void stm32_stdclockconfig(void)
 
       putreg32(regval, STM32_FLASH_ACR);
 
-      /* Select the PLL1 as system clock source */
+      /* Select the PLL1P as system clock source */
 
       regval = getreg32(STM32_RCC_CFGR);
       regval &= ~RCC_CFGR_SW_MASK;
@@ -577,112 +689,52 @@ static void stm32_stdclockconfig(void)
         {
         }
 
-#if defined(CONFIG_STM32H7_LTDC) || defined(CONFIG_STM32H7_PLLSAI)
+      /* Configure I2C source clock */
 
-       /* Configure PLLSAI */
-
-      regval = getreg32(STM32_RCC_PLLSAICFGR);
-      regval &= ~(  RCC_PLLSAICFGR_PLLSAIN_MASK
-                  | RCC_PLLSAICFGR_PLLSAIP_MASK
-                  | RCC_PLLSAICFGR_PLLSAIQ_MASK
-                  | RCC_PLLSAICFGR_PLLSAIR_MASK);
-      regval |= (STM32_RCC_PLLSAICFGR_PLLSAIN
-                 | STM32_RCC_PLLSAICFGR_PLLSAIP
-                 | STM32_RCC_PLLSAICFGR_PLLSAIQ
-                 | STM32_RCC_PLLSAICFGR_PLLSAIR);
-      putreg32(regval, STM32_RCC_PLLSAICFGR);
-
-      regval  = getreg32(STM32_RCC_DCKCFGR1);
-      regval &= ~(RCC_DCKCFGR1_PLLI2SDIVQ_MASK
-                  | RCC_DCKCFGR1_PLLSAIDIVQ_MASK
-                  | RCC_DCKCFGR1_PLLSAIDIVR_MASK
-                  | RCC_DCKCFGR1_SAI1SEL_MASK
-                  | RCC_DCKCFGR1_SAI2SEL_MASK
-                  | RCC_DCKCFGR1_TIMPRESEL);
-
-      regval |= (STM32_RCC_DCKCFGR1_PLLI2SDIVQ
-                 | STM32_RCC_DCKCFGR1_PLLSAIDIVQ
-                 | STM32_RCC_DCKCFGR1_PLLSAIDIVR
-                 | STM32_RCC_DCKCFGR1_SAI1SRC
-                 | STM32_RCC_DCKCFGR1_SAI2SRC
-                 | STM32_RCC_DCKCFGR1_TIMPRESRC);
-
-      putreg32(regval, STM32_RCC_DCKCFGR1);
-
-
-      /* Enable PLLSAI */
-
-      regval = getreg32(STM32_RCC_CR);
-      regval |= RCC_CR_PLLSAION;
-      putreg32(regval, STM32_RCC_CR);
-
-      /* Wait until the PLLSAI is ready */
-
-      while ((getreg32(STM32_RCC_CR) & RCC_CR_PLLSAIRDY) == 0)
-        {
-        }
+#if defined(STM32_RCC_D2CCIP2R_I2C123SRC)
+      regval = getreg32(STM32_RCC_D2CCIP2R);
+      regval &= ~RCC_D2CCIP2R_I2C123SEL_MASK;
+      regval |= STM32_RCC_D2CCIP2R_I2C123SRC;
+      putreg32(regval, STM32_RCC_D2CCIP2R);
 #endif
-#if defined(CONFIG_STM32H7_LTDC) || defined(CONFIG_STM32H7_PLLI2S)
 
-      /* Configure PLLI2S */
+#if defined(STM32_RCC_D3CCIPR_I2C4SRC)
+      regval = getreg32(STM32_RCC_D3CCIPR);
+      regval &= ~RCC_D3CCIPR_I2C4SEL_MASK;
+      regval |= STM32_RCC_D3CCIPR_I2C4SRC;
+      putreg32(regval, STM32_RCC_D3CCIPR);
+#endif
 
-      regval = getreg32(STM32_RCC_PLLI2SCFGR);
-      regval &= ~(  RCC_PLLI2SCFGR_PLLI2SN_MASK
-                  | RCC_PLLI2SCFGR_PLLI2SP_MASK
-                  | RCC_PLLI2SCFGR_PLLI2SQ_MASK
-                  | RCC_PLLI2SCFGR_PLLI2SR_MASK);
-      regval |= (STM32_RCC_PLLI2SCFGR_PLLI2SN
-                 | STM32_RCC_PLLI2SCFGR_PLLI2SP
-                 | STM32_RCC_PLLI2SCFGR_PLLI2SQ
-                 | STM32_RCC_PLLI2SCFGR_PLLI2SR);
-      putreg32(regval, STM32_RCC_PLLI2SCFGR);
+      /* Configure SPI source clock */
 
-      regval  = getreg32(STM32_RCC_DCKCFGR2);
-      regval &= ~(  RCC_DCKCFGR2_USART1SEL_MASK
-                  | RCC_DCKCFGR2_USART2SEL_MASK
-                  | RCC_DCKCFGR2_UART4SEL_MASK
-                  | RCC_DCKCFGR2_UART5SEL_MASK
-                  | RCC_DCKCFGR2_USART6SEL_MASK
-                  | RCC_DCKCFGR2_UART7SEL_MASK
-                  | RCC_DCKCFGR2_UART8SEL_MASK
-                  | RCC_DCKCFGR2_I2C1SEL_MASK
-                  | RCC_DCKCFGR2_I2C2SEL_MASK
-                  | RCC_DCKCFGR2_I2C3SEL_MASK
-                  | RCC_DCKCFGR2_I2C4SEL_MASK
-                  | RCC_DCKCFGR2_LPTIM1SEL_MASK
-                  | RCC_DCKCFGR2_CECSEL_MASK
-                  | RCC_DCKCFGR2_CK48MSEL_MASK
-                  | RCC_DCKCFGR2_SDMMCSEL_MASK);
+#if defined(STM32_RCC_D2CCIP1R_SPI123SRC)
+      regval = getreg32(STM32_RCC_D2CCIP1R);
+      regval &= ~RCC_D2CCIP1R_SPI123SEL_MASK;
+      regval |= STM32_RCC_D2CCIP1R_SPI123SRC;
+      putreg32(regval, STM32_RCC_D2CCIP1R);
+#endif
 
-      regval |= (  STM32_RCC_DCKCFGR2_USART1SRC
-                 | STM32_RCC_DCKCFGR2_USART2SRC
-                 | STM32_RCC_DCKCFGR2_UART4SRC
-                 | STM32_RCC_DCKCFGR2_UART5SRC
-                 | STM32_RCC_DCKCFGR2_USART6SRC
-                 | STM32_RCC_DCKCFGR2_UART7SRC
-                 | STM32_RCC_DCKCFGR2_UART8SRC
-                 | STM32_RCC_DCKCFGR2_I2C1SRC
-                 | STM32_RCC_DCKCFGR2_I2C2SRC
-                 | STM32_RCC_DCKCFGR2_I2C3SRC
-                 | STM32_RCC_DCKCFGR2_I2C4SRC
-                 | STM32_RCC_DCKCFGR2_LPTIM1SRC
-                 | STM32_RCC_DCKCFGR2_CECSRC
-                 | STM32_RCC_DCKCFGR2_CK48MSRC
-                 | STM32_RCC_DCKCFGR2_SDMMCSRC);
+#if defined(STM32_RCC_D2CCIP1R_SPI45SRC)
+      regval = getreg32(STM32_RCC_D2CCIP1R);
+      regval &= ~RCC_D2CCIP1R_SPI45SEL_MASK;
+      regval |= STM32_RCC_D2CCIP1R_SPI45SRC;
+      putreg32(regval, STM32_RCC_D2CCIP1R);
+#endif
 
-      putreg32(regval, STM32_RCC_DCKCFGR2);
+#if defined(STM32_RCC_D3CCIPR_SPI6SRC)
+      regval = getreg32(STM32_RCC_D3CCIPR);
+      regval &= ~RCC_D3CCIPR_SPI6SEL_MASK;
+      regval |= STM32_RCC_D3CCIPR_SPI6SRC;
+      putreg32(regval, STM32_RCC_D3CCIPR);
+#endif
 
-      /* Enable PLLI2S */
+      /* Configure USB source clock */
 
-      regval = getreg32(STM32_RCC_CR);
-      regval |= RCC_CR_PLLI2SON;
-      putreg32(regval, STM32_RCC_CR);
-
-      /* Wait until the PLLI2S is ready */
-
-      while ((getreg32(STM32_RCC_CR) & RCC_CR_PLLI2SRDY) == 0)
-        {
-        }
+#if defined(STM32_RCC_D2CCIP2R_USBSRC)
+      regval = getreg32(STM32_RCC_D2CCIP2R);
+      regval &= ~RCC_D2CCIP2R_USBSEL_MASK;
+      regval |= STM32_RCC_D2CCIP2R_USBSRC;
+      putreg32(regval, STM32_RCC_D2CCIP2R);
 #endif
 
 #if defined(CONFIG_STM32H7_IWDG) || defined(CONFIG_STM32H7_RTC_LSICLOCK)

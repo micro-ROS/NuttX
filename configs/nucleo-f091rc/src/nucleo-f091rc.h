@@ -45,7 +45,7 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include "stm32f0_gpio.h"
+#include "stm32_gpio.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -54,15 +54,15 @@
 /* Configuration ************************************************************/
 /* How many SPI modules does this chip support? */
 
-#if STM32F0_NSPI < 1
-#  undef CONFIG_STM32F0_SPI1
-#  undef CONFIG_STM32F0_SPI2
-#  undef CONFIG_STM32F0_SPI3
-#elif STM32F0_NSPI < 2
-#  undef CONFIG_STM32F0_SPI2
-#  undef CONFIG_STM32F0_SPI3
-#elif STM32F0_NSPI < 3
-#  undef CONFIG_STM32F0_SPI3
+#if STM32_NSPI < 1
+#  undef CONFIG_STM32F0L0_SPI1
+#  undef CONFIG_STM32F0L0_SPI2
+#  undef CONFIG_STM32F0L0_SPI3
+#elif STM32_NSPI < 2
+#  undef CONFIG_STM32F0L0_SPI2
+#  undef CONFIG_STM32F0L0_SPI3
+#elif STM32_NSPI < 3
+#  undef CONFIG_STM32F0L0_SPI3
 #endif
 
 /* Nucleo-F091RC GPIOs ******************************************************/
@@ -74,7 +74,7 @@
  * - When the I/O is LOW, the LED is off.
  */
 
-#define GPIO_LD2        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_10MHz | \
+#define GPIO_LD2        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_MEDIUM | \
                          GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN5)
 
 /* Button definitions *******************************************************/
@@ -88,6 +88,18 @@
 
 #define GPIO_BTN_USER   (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI | \
                          GPIO_PORTC | GPIO_PIN13)
+
+/* Dragino LORA shield (v1.4) - RF98 module (based on SX127X)
+ * RESET - PC7  (D9)
+ * CS    - PB6  (D10)
+ * DIO0  - PA10 (D2)
+ */
+
+#define GPIO_SX127X_RESET (GPIO_PORTC | GPIO_PIN7)
+#define GPIO_SX127X_CS    (GPIO_OUTPUT | GPIO_SPEED_HIGH |        \
+                           GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN6)
+#define GPIO_SX127X_DIO0  (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI |  \
+                           GPIO_PORTA | GPIO_PIN10)
 
 /****************************************************************************
  * Public Types
@@ -109,15 +121,38 @@
  * Description:
  *   Perform architecture-specific initialization
  *
- *   CONFIG_BOARD_INITIALIZE=y :
- *     Called from board_initialize().
+ *   CONFIG_BOARD_LATE_INITIALIZE=y :
+ *     Called from board_late_initialize().
  *
- *   CONFIG_BOARD_INITIALIZE=n && CONFIG_LIB_BOARDCTL=y :
+ *   CONFIG_BOARD_LATE_INITIALIZE=n && CONFIG_LIB_BOARDCTL=y :
  *     Called from the NSH library
  *
  ****************************************************************************/
 
 int stm32_bringup(void);
+
+/****************************************************************************
+ * Name: stm32_spidev_initialize
+ *
+ * Description:
+ *   Called to configure SPI chip select GPIO pins for the Nucleo-H743ZI board.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_STM32F0L0_SPI
+void stm32_spidev_initialize(void);
+#endif
+
+/*****************************************************************************
+ * Name: stm32_lpwaninitialize
+ *
+ * Description:
+ *   Initialize SX127X LPWAN interaface.
+ ****************************************************************************/
+
+#ifdef CONFIG_LPWAN_SX127X
+int stm32_lpwaninitialize(void);
+#endif
 
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_NUCLEO_F091RC_SRC_NUCLEO_F091RC_H */

@@ -1,7 +1,7 @@
 /****************************************************************************
  * graphics/nxmu/nxmu_sendclient.c
  *
- *   Copyright (C) 2012, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012, 2017, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,12 +40,13 @@
 #include <nuttx/config.h>
 
 #include <mqueue.h>
+#include <assert.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/mqueue.h>
 
-#include "nxfe.h"
+#include "nxmu.h"
 
 /****************************************************************************
  * Public Functions
@@ -67,20 +68,12 @@
  *
  ****************************************************************************/
 
-int nxmu_sendclient(FAR struct nxfe_conn_s *conn, FAR const void *msg,
+int nxmu_sendclient(FAR struct nxmu_conn_s *conn, FAR const void *msg,
                     size_t msglen)
 {
   int ret;
 
-  /* Sanity checking */
-
-#ifdef CONFIG_DEBUG_FEATURES
-  if (!conn || !conn->swrmq)
-    {
-      set_errno(EINVAL);
-      return ERROR;
-    }
-#endif
+  DEBUGASSERT(conn != NULL && conn->swrmq != NULL && msg != NULL);
 
   /* Send the message to the client */
 

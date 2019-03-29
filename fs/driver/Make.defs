@@ -33,10 +33,6 @@
 #
 ############################################################################
 
-# Don't build anything if there are no file descriptors
-
-ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
-
 CSRCS += fs_registerdriver.c fs_unregisterdriver.c
 
 # Don't build-in block driver support if there are no mountpoints
@@ -45,6 +41,14 @@ ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
 CSRCS += fs_registerblockdriver.c fs_unregisterblockdriver.c
 CSRCS += fs_findblockdriver.c fs_openblockdriver.c fs_closeblockdriver.c
 CSRCS += fs_blockpartition.c
+
+ifeq ($(CONFIG_MTD),y)
+CSRCS += fs_registermtddriver.c fs_unregistermtddriver.c fs_findmtddriver.c
+CSRCS += fs_mtdproxy.c
+ifeq ($(CONFIG_MTD_PARTITION),y)
+CSRCS += fs_mtdpartition.c
+endif
+endif
 
 ifneq ($(CONFIG_DISABLE_PSEUDOFS_OPERATIONS),y)
 CSRCS += fs_blockproxy.c
@@ -55,4 +59,3 @@ endif # CONFIG_DISABLE_MOUNTPOINT
 
 DEPPATH += --dep-path driver
 VPATH += :driver
-endif

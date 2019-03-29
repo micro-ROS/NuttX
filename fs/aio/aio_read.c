@@ -94,10 +94,9 @@ static void aio_read_worker(FAR void *arg)
 #endif
   aiocbp = aioc_decant(aioc);
 
-#if defined(AIO_HAVE_FILEP) && defined(AIO_HAVE_PSOCK)
+#ifdef AIO_HAVE_PSOCK
   if (aiocbp->aio_fildes < CONFIG_NFILE_DESCRIPTORS)
 #endif
-#ifdef AIO_HAVE_FILEP
     {
       /* Perform the file read using:
        *
@@ -110,11 +109,8 @@ static void aio_read_worker(FAR void *arg)
      nread = file_pread(aioc->u.aioc_filep, (FAR void *)aiocbp->aio_buf,
                         aiocbp->aio_nbytes, aiocbp->aio_offset);
     }
-#endif
-#if defined(AIO_HAVE_FILEP) && defined(AIO_HAVE_PSOCK)
-  else
-#endif
 #ifdef AIO_HAVE_PSOCK
+  else
     {
       /* Perform the socket receive using:
        *
@@ -259,6 +255,7 @@ int aio_read(FAR struct aiocb *aiocbp)
 
   /* The result -EINPROGRESS means that the transfer has not yet completed */
 
+  sigwork_init(&aiocbp->aio_sigwork);
   aiocbp->aio_result = -EINPROGRESS;
   aiocbp->aio_priv   = NULL;
 
@@ -282,6 +279,7 @@ int aio_read(FAR struct aiocb *aiocbp)
     {
       /* The result and the errno have already been set */
 
+      aioc_decant(aioc);
       return ERROR;
     }
 

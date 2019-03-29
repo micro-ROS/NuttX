@@ -46,6 +46,7 @@
 
 #include "irq/irq.h"
 #include "clock/clock.h"
+#include "sched/sched.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -53,34 +54,52 @@
 
 /* INCR_COUNT - Increment the count of interrupts taken on this IRQ number */
 
-#ifdef CONFIG_SCHED_IRQMONITOR
-#  ifdef CONFIG_HAVE_LONG_LONG
-#    define INCR_COUNT(ndx) \
-       do \
-         { \
-           g_irqvector[ndx].count++; \
-         } \
-       while (0)
-#  else
-#    define INCR_COUNT(ndx) \
-       do \
-         { \
-           if (++g_irqvector[ndx].lscount == 0) \
-             { \
-               g_irqvector[ndx].mscount++; \
-             } \
-         } \
-       while (0)
-#  endif
-#else
+#ifndef CONFIG_SCHED_IRQMONITOR
 #  define INCR_COUNT(ndx)
+#elif defined(CONFIG_HAVE_LONG_LONG)
+#  define INCR_COUNT(ndx) \
+     do \
+       { \
+         g_irqvector[ndx].count++; \
+       } \
+     while (0)
+#else
+#  define INCR_COUNT(ndx) \
+     do \
+       { \
+         if (++g_irqvector[ndx].lscount == 0) \
+           { \
+             g_irqvector[ndx].mscount++; \
+           } \
+       } \
+     while (0)
 #endif
 
 /* CALL_VECTOR - Call the interrupt service routine attached to this interrupt
  * request
  */
 
-#if defined(CONFIG_SCHED_IRQMONITOR) && defined(CONFIG_SCHED_TICKLESS)
+#ifndef CONFIG_SCHED_IRQMONITOR
+#  define CALL_VECTOR(ndx, vector, irq, context, arg) \
+     vector(irq, context, arg)
+#elif defined(CONFIG_SCHED_CRITMONITOR)
+#  define CALL_VECTOR(ndx, vector, irq, context, arg) \
+     do \
+       { \
+         struct timespec delta; \
+         uint32_t start; \
+         uint32_t elapsed; \
+         start = up_critmon_gettime(); \
+         vector(irq, context, arg); \
+         elapsed = up_critmon_gettime() - start; \
+         up_critmon_convert(elapsed, &delta); \
+         if (delta.tv_nsec > g_irqvector[ndx].time) \
+           { \
+             g_irqvector[ndx].time = delta.tv_nsec; \
+           } \
+       } \
+     while (0)
+#else
 #  define CALL_VECTOR(ndx, vector, irq, context, arg) \
      do \
        { \
@@ -97,10 +116,7 @@
            } \
        } \
      while (0)
-#else
-#  define CALL_VECTOR(ndx, vector, irq, context, arg) \
-     vector(irq, context, arg)
-#endif
+#endif /* CONFIG_SCHED_IRQMONITOR */
 
 /****************************************************************************
  * Public Functions
@@ -159,4 +175,10 @@ void irq_dispatch(int irq, FAR void *context)
 
   CALL_VECTOR(ndx, vector, irq, context, arg);
   UNUSED(ndx);
+
+  /* Record the new "running" task.  g_running_tasks[] is only used by
+   * assertion logic for reporting crashes.
+   */
+
+  g_running_tasks[this_cpu()] = this_task();
 }

@@ -55,8 +55,8 @@
 #include <debug.h>
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/serial/serial.h>
-#include <arch/serial.h>
 
 #include "chip.h"
 #include "up_arch.h"
@@ -540,12 +540,6 @@ static int up_attach(struct uart_dev_s *dev)
        * UART */
 
       up_enable_irq(priv->irq);
-
-#ifdef CONFIG_ARCH_IRQPRIO
-      /* Set the UART interrupt priority */
-
-      up_prioritize_irq(priv->irq, PRIORITY_HIGHEST);
-#endif
     }
 
   return ret;

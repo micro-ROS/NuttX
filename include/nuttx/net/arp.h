@@ -53,6 +53,7 @@
 #include <stdint.h>
 
 #include <netinet/in.h>
+#include <netinet/arp.h>
 #include <net/ethernet.h>
 
 #include <nuttx/net/netconfig.h>
@@ -70,7 +71,7 @@
  */
 
 #define ARPHRD_ETHER        1    /* Ethernet */
-#define ARPHRD_IEEE80211    801  /* IEEE 802.11 */
+#define ARPHRD_IEEE80211    801  /* IEEE 802.11 */
 #define ARPHRD_IEEE802154   804  /* IEEE 802.15.4 */
 
 /****************************************************************************
@@ -83,28 +84,8 @@ struct arp_entry_s
 {
   in_addr_t         at_ipaddr;   /* IP address */
   struct ether_addr at_ethaddr;  /* Hardware address */
-  uint8_t           at_time;     /* Time of last usage */
+  clock_t           at_time;     /* Time of last usage */
 };
-
-/* Used with the SIOCSARP, SIOCDARP, and SIOCGARP IOCTL commands to set,
- * delete, or get an ARP table entry.
- *
- * SIOCSARP - Both values are inputs a define the new ARP table entry
- * SIOCDARP - Only the protcol address is required as an input.  The ARP
- *            table entry with that matching address will be deleted,
- *            regardless of the hardware address.
- * SIOCGARP - The protocol address is an input an identifies the table
- *            entry to locate; The hardware address is an output and
- *            on a successful lookup, provides the matching hardware
- *            address.
- */
-
-struct arpreq
-{
-  struct sockaddr   arp_pa;      /* Protocol address */
-  struct sockaddr   arp_ha;      /* Hardware address */
-};
-
 
 /****************************************************************************
  * Public Data
@@ -123,6 +104,9 @@ extern "C"
  ****************************************************************************/
 
 #ifdef CONFIG_NET_ARP
+
+struct net_driver_s; /* Forward reference */
+
 /****************************************************************************
  * Name: arp_ipin
  *

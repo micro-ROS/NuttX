@@ -91,7 +91,7 @@ EXTERN const struct sock_intf_s g_netlink_sockif;
  * Name: netlink_initialize()
  *
  * Description:
- *   Initialize the User Socket connection structures.  Called once and only
+ *   Initialize the NetLink connection structures.  Called once and only
  *   from the networking layer.
  *
  ****************************************************************************/

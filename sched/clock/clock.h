@@ -81,15 +81,13 @@ extern volatile uint32_t g_system_timer;
 
 #ifndef CONFIG_CLOCK_TIMEKEEPING
 extern struct timespec   g_basetime;
-
-#ifdef CONFIG_CLOCK_MONOTONIC
-extern struct timespec   g_monotonic_basetime;
-#endif
 #endif
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+int  clock_basetime(FAR struct timespec *tp);
 
 void weak_function clock_initialize(void);
 #ifndef CONFIG_SCHED_TICKLESS

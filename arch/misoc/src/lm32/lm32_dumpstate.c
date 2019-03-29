@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/misoc/src/lm32/lm32_dumpstate.c
  *
- *  Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *  Copyright (C) 2011, 2019 Gregory Nutt. All rights reserved.
  *  Author: Gregory Nutt <gnutt@nuttx.org>
  *          Ramtin Amin <keytwo@gmail.com>
  *
@@ -135,7 +135,7 @@ static inline void up_registerdump(void)
 
 void lm32_dumpstate(void)
 {
-  struct tcb_s *rtcb = this_task();
+  struct tcb_s *rtcb = running_task();
   uint32_t sp = up_getsp();
   uint32_t ustackbase;
   uint32_t ustacksize;
@@ -144,9 +144,13 @@ void lm32_dumpstate(void)
   uint32_t istacksize;
 #endif
 
+  /* Dump the registers (if available) */
+
+  up_registerdump();
+
   /* Get the limits on the user stack memory */
 
-  if (rtcb->pid == 0)
+  if (rtcb->pid == 0) /* Check for CPU0 IDLE thread */
     {
       ustackbase = g_idle_topstack - 4;
       ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
@@ -187,6 +191,11 @@ void lm32_dumpstate(void)
       sp = g_intstackbase;
       _alert("sp:     %08x\n", sp);
     }
+  else if (g_current_regs)
+    {
+      _alert("ERROR: Stack pointer is not within the interrupt stack\n");
+      up_stackdump(istackbase - istacksize, istackbase);
+    }
 
   /* Show user stack info */
 
@@ -205,18 +214,13 @@ void lm32_dumpstate(void)
 
   if (sp > ustackbase || sp <= ustackbase - ustacksize)
     {
-#if !defined(CONFIG_ARCH_INTERRUPTSTACK) || CONFIG_ARCH_INTERRUPTSTACK < 4
       _alert("ERROR: Stack pointer is not within allocated stack\n");
-#endif
+      up_stackdump(ustackbase - ustacksize, ustackbase);
     }
   else
     {
       up_stackdump(sp, ustackbase);
     }
-
-  /* Then dump the registers (if available) */
-
-  up_registerdump();
 }
 
 #endif /* CONFIG_ARCH_STACKDUMP */

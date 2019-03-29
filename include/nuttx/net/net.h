@@ -65,6 +65,11 @@
  * (libuc.a and libunx.a).  The that case, the correct interface must be
  * used for the build context.
  *
+ * REVISIT:  In the flat build, the same functions must be used both by
+ * the OS and by applications.  We have to use the normal user functions
+ * in this case or we will fail to set the errno or fail to create the
+ * cancellation point.
+ *
  * The interfaces accept(), read(), recv(), recvfrom(), write(), send(),
  * sendto() are all cancellation points.
  *
@@ -73,7 +78,7 @@
  * to become a cancellation points!
  */
 
-#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
+#if !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
 #  define _NX_SEND(s,b,l,f)         nx_send(s,b,l,f)
 #  define _NX_RECV(s,b,l,f)         nx_recv(s,b,l,f)
 #  define _NX_RECVFROM(s,b,l,f,a,n) nx_recvfrom(s,b,l,f,a,n)
@@ -92,11 +97,7 @@
  * socket descriptors
  */
 
-#ifdef CONFIG_NFILE_DESCRIPTORS
-# define __SOCKFD_OFFSET CONFIG_NFILE_DESCRIPTORS
-#else
-# define __SOCKFD_OFFSET 0
-#endif
+#define __SOCKFD_OFFSET CONFIG_NFILE_DESCRIPTORS
 
 /* Capabilities of a socket */
 
@@ -107,7 +108,7 @@
  * Public Types
  ****************************************************************************/
 
-/* Data link layer type.  This type is used with netdev_register in order to
+/* Link layer type.  This type is used with netdev_register in order to
  * identify the type of the network driver.
  */
 
@@ -143,6 +144,7 @@ typedef uint8_t sockcaps_t;
  * a given address family.
  */
 
+struct file;    /* Forward reference */
 struct socket;  /* Forward reference */
 struct pollfd;  /* Forward reference */
 
@@ -225,7 +227,7 @@ struct socket
 
 /* This defines a list of sockets indexed by the socket descriptor */
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
+#ifdef CONFIG_NET
 struct socketlist
 {
   sem_t         sl_sem;      /* Manage access to the socket list */
@@ -250,7 +252,7 @@ extern "C"
  ****************************************************************************/
 
 /****************************************************************************
- * Name: net_setup
+ * Name: net_initialize
  *
  * Description:
  *   This is called from the OS initialization logic at power-up reset in
@@ -263,25 +265,6 @@ extern "C"
  *   facilities such as semaphores are available but this logic cannot
  *   depend upon OS resources such as interrupts or timers which are not
  *   yet available.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void net_setup(void);
-
-/****************************************************************************
- * Name: net_initialize
- *
- * Description:
- *   This function is called from the OS initialization logic at power-up
- *   reset AFTER initialization of hardware facilities such as timers and
- *   interrupts.   This logic completes the initialization started by
- *   net_setup().
  *
  * Input Parameters:
  *   None

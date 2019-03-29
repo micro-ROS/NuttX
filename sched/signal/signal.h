@@ -68,13 +68,14 @@
  * Public Type Definitions
  ****************************************************************************/
 
+/* This enumeration identifies the type of signal data allocation */
+
 enum sigalloc_e
 {
   SIG_ALLOC_FIXED = 0,  /* pre-allocated; never freed */
   SIG_ALLOC_DYN,        /* dynamically allocated; free when unused */
   SIG_ALLOC_IRQ         /* Preallocated, reserved for interrupt handling */
 };
-typedef enum sigalloc_e sigalloc_t;
 
 /* The following defines the sigaction queue entry */
 
@@ -206,14 +207,9 @@ FAR sigq_t        *nxsig_alloc_pendingsigaction(void);
 void               nxsig_deliver(FAR struct tcb_s *stcb);
 FAR sigactq_t     *nxsig_find_action(FAR struct task_group_s *group, int signo);
 int                nxsig_lowest(FAR sigset_t *set);
-#ifdef CONFIG_CAN_PASS_STRUCTS
-int                nxsig_mqnotempty(int tid, int signo, union sigval value);
-#else
-int                nxsig_mqnotempty(int tid, int signo, FAR void *sival_ptr);
-#endif
 void               nxsig_release_pendingsigaction(FAR sigq_t *sigq);
 void               nxsig_release_pendingsignal(FAR sigpendq_t *sigpend);
 FAR sigpendq_t    *nxsig_remove_pendingsignal(FAR struct tcb_s *stcb, int signo);
-void               nxsig_unmask_pendingsignal(void);
+bool               nxsig_unmask_pendingsignal(void);
 
 #endif /* __SCHED_SIGNAL_SIGNAL_H */

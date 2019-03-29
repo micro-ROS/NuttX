@@ -48,6 +48,8 @@
 #include "chip.h"
 #include "up_internal.h"
 
+#ifndef CONFIG_PAGING
+
 	.file	"arm_head.S"
 
 /**********************************************************************************
@@ -665,7 +667,7 @@ __start:
 	/* Finally branch to the OS entry point */
 
 	mov		lr, #0				/* LR = return address (none) */
-	b		os_start			/* Branch to os_start */
+	b		nx_start			/* Branch to nx_start */
 	.size	.Lvstart, .-.Lvstart
 
 /***************************************************************************
@@ -673,6 +675,7 @@ __start:
  ***************************************************************************/
 
 	.global	arm_data_initialize
+	.weak	arm_data_initialize
 	.type	arm_data_initialize, #function
 
 arm_data_initialize:
@@ -799,4 +802,5 @@ g_idle_topstack:
 	.long	_ebss+CONFIG_IDLETHREAD_STACKSIZE
 #endif
 	.size	g_idle_topstack, .-g_idle_topstack
+#endif
 	.end

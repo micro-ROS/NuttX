@@ -59,7 +59,9 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+
 /* Configuration ********************************************************************/
+
 /* Per the data sheet, MX35 parts can be driven with either SPI mode 0 (CPOL=0 and
  * CPHA=0) or mode 3 (CPOL=1 and CPHA=1). If CONFIG_MX35_SPIMODE is not defined,
  * mode 0 will be used.
@@ -176,7 +178,7 @@
 #define MX35_BP_BP1                (1 << 4)  /* Bit 4: Block Protection 1 */
 #define MX35_BP_BP2                (1 << 5)  /* Bit 5: Block Protection 2 */
 #define MX35_BP_BPRWD              (1 << 7)  /* Bit 7: Block Protection Register
-                                                 Write Disable */
+                                              *        Write Disable */
 
 /* ECC Status register */
 
@@ -628,7 +630,7 @@ static ssize_t mx35_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
 
   mx35_waitstatus(priv, MX35_SR_OIP, false);
 
-  while(bytesleft)
+  while (bytesleft)
     {
       const uint32_t pageaddress = (position >> priv->pageshift) << priv->pageshift;
       const uint32_t spaceleft = pageaddress + (1 << priv->pageshift) - position;
@@ -645,7 +647,6 @@ static ssize_t mx35_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
       buffer += chunklength;
       bytesleft -= chunklength;
     }
-
 
   mx35_unlock(priv->dev);
 
@@ -727,7 +728,7 @@ static ssize_t mx35_write(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes
 
   mx35_waitstatus(priv, MX35_SR_OIP, false);
 
-  while(bytesleft)
+  while (bytesleft)
     {
       const uint32_t pageaddress = (position >> priv->pageshift) << priv->pageshift;
       const uint32_t spaceleft = pageaddress + (1 << priv->pageshift) - position;
@@ -793,6 +794,7 @@ static int mx35_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
       case MTDIOC_BULKERASE:
         {
           /* Erase the entire device */
+
           ret = mx35_erase(dev, 0, priv->nsectors);
         }
         break;
@@ -910,6 +912,7 @@ FAR struct mtd_dev_s *mx35_initialize(FAR struct spi_dev_s *dev)
       priv->mtd.read   = mx35_read;
       priv->mtd.write  = mx35_write;
       priv->mtd.ioctl  = mx35_ioctl;
+      priv->mtd.name   = "mx35";
       priv->dev        = dev;
 
       /* Deselect the FLASH */
@@ -936,15 +939,6 @@ FAR struct mtd_dev_s *mx35_initialize(FAR struct spi_dev_s *dev)
           mx35err("ERROR: Unrecognized\n");
           kmm_free(priv);
           return NULL;
-        }
-      else
-        {
-
-#ifdef CONFIG_MTD_REGISTRATION
-       /* Register the MTD with the procfs system if enabled */
-
-       mtd_register(&priv->mtd, "mx35");
-#endif
         }
 
       mx35_enableECC(priv);

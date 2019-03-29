@@ -193,17 +193,6 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
   (void)enter_cancellation_point();
 
-  /* None of the options are supported */
-
-#ifdef CONFIG_DEBUG_FEATURES
-  if (options != 0)
-    {
-      set_errno(ENOSYS);
-      leave_cancellation_point();
-      return ERROR;
-    }
-#endif
-
   /* Disable pre-emption so that nothing changes in the following tests */
 
   sched_lock();
@@ -518,7 +507,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
       if (rtcb->group->tg_nchildren == 0 ||
           (pid != (pid_t)-1 && (ret = nxsig_kill(pid, 0)) < 0))
         {
-          /* We know that the child task was running okay we started,
+          /* We know that the child task was running okay when we started,
            * so we must have lost the signal.  What can we do?
            * Let's return ECHILD.. that is at least informative.
            */

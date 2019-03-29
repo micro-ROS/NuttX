@@ -1,7 +1,7 @@
-/************************************************************************************
+/****************************************************************************
  * configs/photon/src/stm32_wdt.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Simon Piriou <spiriou31@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,11 +31,11 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 #include <sys/types.h>
@@ -48,15 +48,16 @@
 #include <fcntl.h>
 
 #include <nuttx/signal.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/timers/watchdog.h>
 #include <arch/board/board.h>
 
 #include <nuttx/kthread.h>
 #include <nuttx/clock.h>
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 /* Watchdog daemon thread */
 
@@ -64,37 +65,34 @@
 
 static int wdog_daemon(int argc, char *argv[])
 {
-  int fd;
+  FAR struct file filestruct;
   int ret;
 
   /* Open watchdog device */
 
-  fd = open(CONFIG_WATCHDOG_DEVPATH, O_RDONLY);
-
-  if (fd < 0)
+  ret = file_open(&filestruct, CONFIG_WATCHDOG_DEVPATH, O_RDONLY);
+  if (ret < 0)
     {
-      wderr("ERROR: open %s failed: %d\n", CONFIG_WATCHDOG_DEVPATH, errno);
-      return ERROR;
+      wderr("ERROR: open %s failed: %d\n", CONFIG_WATCHDOG_DEVPATH, ret);
+      return ret;
     }
 
   /* Start watchdog timer */
 
-  ret = ioctl(fd, WDIOC_START, 0);
-
+  ret = file_ioctl(&filestruct, WDIOC_START, 0);
   if (ret < 0)
     {
         wderr("ERROR: ioctl(WDIOC_START) failed: %d\n", errno);
         goto exit_close_dev;
     }
 
-  while(1)
+  while (1)
     {
       nxsig_usleep((CONFIG_PHOTON_WDG_THREAD_INTERVAL)*1000);
 
       /* Send keep alive ioctl */
 
-      ret = ioctl(fd, WDIOC_KEEPALIVE, 0);
-
+      ret = file_ioctl(&filestruct, WDIOC_KEEPALIVE, 0);
       if (ret < 0)
         {
           wderr("ERROR: ioctl(WDIOC_KEEPALIVE) failed: %d\n", errno);
@@ -103,9 +101,9 @@ static int wdog_daemon(int argc, char *argv[])
     }
 
 exit_close_dev:
-
   /* Close watchdog device and exit. */
-  close(fd);
+
+  file_close(&filestruct);
   return ret;
 }
 
@@ -123,30 +121,31 @@ exit_close_dev:
 
 int photon_watchdog_initialize(void)
 {
-  int fd;
+  FAR struct file filestruct;
   int ret = 0;
 
   /* Open the watchdog device */
 
-  fd = open(CONFIG_WATCHDOG_DEVPATH, O_RDONLY);
-  if (fd < 0)
+  ret = file_open(&filestruct, CONFIG_WATCHDOG_DEVPATH, O_RDONLY);
+  if (ret < 0)
     {
-      wderr("ERROR: open %s failed: %d\n", CONFIG_WATCHDOG_DEVPATH, errno);
-      return ERROR;
+      wderr("ERROR: open %s failed: %d\n", CONFIG_WATCHDOG_DEVPATH, ret);
+      return ret;
     }
 
   /* Set the watchdog timeout */
 
 #ifdef CONFIG_PHOTON_IWDG
   wdinfo("Timeout = %d.\n", CONFIG_PHOTON_IWDG_TIMEOUT);
-  ret = ioctl(fd, WDIOC_SETTIMEOUT, (unsigned long)CONFIG_PHOTON_IWDG_TIMEOUT);
+  ret = file_ioctl(&filestruct, WDIOC_SETTIMEOUT,
+                   (unsigned long)CONFIG_PHOTON_IWDG_TIMEOUT);
 #else
 # error "No watchdog configured"
 #endif
 
   /*  Close watchdog as it is not needed here anymore */
 
-  close(fd);
+  (void)file_close(&filestruct);
 
   if (ret < 0)
     {
@@ -156,7 +155,7 @@ int photon_watchdog_initialize(void)
 
 #if defined(CONFIG_PHOTON_WDG_THREAD)
 
-  /* Spawn wdog deamon thread */
+  /* Spawn wdog daemon thread */
 
   int taskid = kthread_create(CONFIG_PHOTON_WDG_THREAD_NAME,
                               CONFIG_PHOTON_WDG_THREAD_PRIORITY,

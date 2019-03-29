@@ -92,13 +92,20 @@
 /* When the PLL is active, the system clock frequency (SysClk) is calculated using
  * the following equation:
  *
- *   SysClk = Fvco/ (sysdiv + 1)
+ *   SysClk = Fvco / (sysdiv + 1)
  *
  * The following setup generates Sysclk = 120MHz:
  */
 
 #define BOARD_PLL_SYSDIV     4         /* Sysclk = Fvco / 4 = 120MHz */
 #define SYSCLK_FREQUENCY     120000000 /* Resulting SysClk frequency */
+
+/* Peripheral Clock (PCLK)
+ *
+ * Same frequency as the SYSCLK
+ */
+
+#define PCLK_FREQUENCY       SYSCLK_FREQUENCY
 
 /* Alternate Clock (ALTCLK)
  *

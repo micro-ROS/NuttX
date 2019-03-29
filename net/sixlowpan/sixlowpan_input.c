@@ -708,7 +708,8 @@ static int sixlowpan_dispatch(FAR struct radio_driver_s *radio)
  *               must apply to all of the frames in the list.
  *
  * Returned Value:
- *   Ok is returned on success; Othewise a negated errno value is returned.
+ *   Zero (OK) is returned if the the frame was consumed; Othewise a negated
+ *   errno value is returned.
  *
  ****************************************************************************/
 
@@ -716,8 +717,15 @@ int sixlowpan_input(FAR struct radio_driver_s *radio,
                     FAR struct iob_s *framelist,  FAR const void *metadata)
 {
   int ret = -EINVAL;
+  uint8_t *d_buf_backup;
 
   DEBUGASSERT(radio != NULL && framelist != NULL);
+
+  /* Sixlowpan modifies the d_buf to process fragments using reassembly buffers.
+   * Save the value of d_buf on entry and set it back before returning
+   */
+
+  d_buf_backup = radio->r_dev.d_buf;
 
   /* Verify that an frame has been provided. */
 
@@ -829,7 +837,6 @@ int sixlowpan_input(FAR struct radio_driver_s *radio,
                         {
                           nwarn("WARNING: Unsupported protoype: %u\n",
                                 ipv6hdr->proto);
-                          ret = -EPROTO;
                           goto drop;
                         }
                     }
@@ -838,7 +845,6 @@ int sixlowpan_input(FAR struct radio_driver_s *radio,
                     {
                       nwarn("WARNING: Packet too small: Have %u need >%u\n",
                             radio->r_dev.d_len, hdrlen);
-                      ret = -ENOBUFS;
                       goto drop;
                     }
 
@@ -851,10 +857,18 @@ int sixlowpan_input(FAR struct radio_driver_s *radio,
                                                &destmac);
 drop:
                   radio->r_dev.d_len = 0;
+
+                  /* We consumed the frame, so we must return 0. */
+
+                  ret = 0;
                 }
             }
         }
     }
+
+  /* Restore the d_buf back to it's original state */
+
+  radio->r_dev.d_buf = d_buf_backup;
 
   return ret;
 }

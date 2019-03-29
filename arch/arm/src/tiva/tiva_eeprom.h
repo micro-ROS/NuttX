@@ -41,7 +41,7 @@
  * Included Files
  ****************************************************************************/
 
-#include "chip/tiva_eeprom.h"
+#include "hardware/tiva_eeprom.h"
 
 /****************************************************************************
  * Public Function Prototypes

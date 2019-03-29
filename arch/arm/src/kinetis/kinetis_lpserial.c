@@ -51,13 +51,13 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/serial/serial.h>
 
 #ifdef CONFIG_SERIAL_TERMIOS
 #  include <termios.h>
 #endif
 
-#include <arch/serial.h>
 #include <arch/board/board.h>
 
 #include "up_arch.h"
@@ -72,6 +72,7 @@
  ****************************************************************************/
 
 /* Some sanity checks *******************************************************/
+
 /* Is there at least one LPUART enabled and configured as a RS-232 device? */
 
 #ifndef HAVE_LPUART_DEVICE
@@ -202,7 +203,6 @@
 #define LPUART_STAT_ERRORS      (LPUART_STAT_OR | LPUART_STAT_FE | \
                                  LPUART_STAT_PF | LPUART_STAT_NF)
 
-
 /* The LPUART does not have an common set of aligned bits for the interrupt
  * enable and the status. So map the ctrl to the stat bits
  */
@@ -222,7 +222,6 @@ struct kinetis_dev_s
   uint32_t  clock;     /* Clocking frequency of the LPUART module */
   uint32_t  ie;        /* Interrupts enabled */
   uint8_t   irq;       /* IRQ associated with this LPUART (for enable) */
-  uint8_t   irqprio;   /* Interrupt priority */
   uint8_t   parity;    /* 0=none, 1=odd, 2=even */
   uint8_t   bits;      /* Number of bits (8 or 9) */
   uint8_t   stop2;     /* Use 2 stop bits */
@@ -254,8 +253,8 @@ static int  kinetis_receive(struct uart_dev_s *dev, uint32_t *status);
 static void kinetis_rxint(struct uart_dev_s *dev, bool enable);
 static bool kinetis_rxavailable(struct uart_dev_s *dev);
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
-static bool kinetis_rxflowcontrol(struct uart_dev_s *dev, unsigned int nbuffered,
-                             bool upper);
+static bool kinetis_rxflowcontrol(struct uart_dev_s *dev,
+                                  unsigned int nbuffered, bool upper);
 #endif
 static void kinetis_send(struct uart_dev_s *dev, int ch);
 static void kinetis_txint(struct uart_dev_s *dev, bool enable);
@@ -316,7 +315,6 @@ static struct kinetis_dev_s g_lpuart0priv =
   .clock          = BOARD_LPUART0_FREQ,
   .baud           = CONFIG_LPUART0_BAUD,
   .irq            = KINETIS_IRQ_LPUART0,
-  .irqprio        = CONFIG_KINETIS_LPUART0PRIO,
   .parity         = CONFIG_LPUART0_PARITY,
   .bits           = CONFIG_LPUART0_BITS,
   .stop2          = CONFIG_LPUART0_2STOP,
@@ -356,7 +354,6 @@ static struct kinetis_dev_s g_lpuart1priv =
   .clock          = BOARD_CORECLK_FREQ,
   .baud           = BOARD_LPUART1_FREQ,
   .irq            = KINETIS_IRQ_LPUART1,
-  .irqprio        = CONFIG_KINETIS_LPUART1PRIO,
   .parity         = CONFIG_LPUART1_PARITY,
   .bits           = CONFIG_LPUART1_BITS,
   .stop2          = CONFIG_LPUART1_2STOP,
@@ -396,7 +393,6 @@ static struct kinetis_dev_s g_lpuart2priv =
   .clock          = BOARD_CORECLK_FREQ,
   .baud           = BOARD_LPUART2_FREQ,
   .irq            = KINETIS_IRQ_LPUART2,
-  .irqprio        = CONFIG_KINETIS_LPUART2PRIO,
   .parity         = CONFIG_LPUART2_PARITY,
   .bits           = CONFIG_LPUART2_BITS,
   .stop2          = CONFIG_LPUART2_2STOP,
@@ -436,7 +432,6 @@ static struct kinetis_dev_s g_lpuart3priv =
   .clock          = BOARD_CORECLK_FREQ,
   .baud           = BOARD_LPUART3_FREQ,
   .irq            = KINETIS_IRQ_LPUART3,
-  .irqprio        = CONFIG_KINETIS_LPUART3PRIO,
   .parity         = CONFIG_LPUART3_PARITY,
   .bits           = CONFIG_LPUART3_BITS,
   .stop2          = CONFIG_LPUART3_2STOP,
@@ -476,7 +471,6 @@ static struct kinetis_dev_s g_lpuart4priv =
   .clock          = BOARD_CORECLK_FREQ,
   .baud           = BOARD_LPUART4_FREQ,
   .irq            = KINETIS_IRQ_LPUART4,
-  .irqprio        = CONFIG_KINETIS_LPUART4PRIO,
   .parity         = CONFIG_LPUART4_PARITY,
   .bits           = CONFIG_LPUART4_BITS,
   .stop2          = CONFIG_LPUART4_2STOP,
@@ -620,13 +614,6 @@ static int kinetis_setup(struct uart_dev_s *dev)
   /* Make sure that all interrupts are disabled */
 
   kinetis_restoreuartint(priv, 0);
-
-#ifdef CONFIG_ARCH_IRQPRIO
-  /* Set up the interrupt priority */
-
-  up_prioritize_irq(priv->irq, priv->irqprio);
-#endif
-
   return OK;
 }
 
@@ -764,7 +751,8 @@ static int kinetis_interrupt(int irq, void *context, void *arg)
 
           /* Reset any Errors */
 
-          kinetis_serialout(priv, KINETIS_LPUART_STAT_OFFSET, stat & LPUART_STAT_ERRORS);
+          kinetis_serialout(priv, KINETIS_LPUART_STAT_OFFSET,
+                            stat & LPUART_STAT_ERRORS);
           return OK;
         }
 
@@ -799,7 +787,8 @@ static int kinetis_interrupt(int irq, void *context, void *arg)
       stat = kinetis_serialin(priv, KINETIS_LPUART_STAT_OFFSET);
       ctrl = kinetis_serialin(priv, KINETIS_LPUART_CTRL_OFFSET);
       stat &= LPUART_CTRL2STAT(ctrl);
-    } while(stat != 0);
+    }
+  while (stat != 0);
 
   return OK;
 }
@@ -928,7 +917,7 @@ static int kinetis_ioctl(struct file *filep, int cmd, unsigned long arg)
         /* Perform some sanity checks before accepting any changes */
 
         if (((termiosp->c_cflag & CSIZE) != CS8)
-#  ifdef CONFIG_SERIAL_IFLOWCONTROL
+#  ifdef CONFIG_SERIAL_OFLOWCONTROL
             || ((termiosp->c_cflag & CCTS_OFLOW) && (priv->cts_gpio == 0))
 #  endif
 #  ifdef CONFIG_SERIAL_IFLOWCONTROL
@@ -1060,9 +1049,9 @@ static int kinetis_ioctl(struct file *filep, int cmd, unsigned long arg)
  * Name: kinetis_receive
  *
  * Description:
- *   Called (usually) from the interrupt level to receive one
- *   character from the LPUART.  Error bits associated with the
- *   receipt are provided in the return 'status'.
+ *   Called (usually) from the interrupt level to receive one character from
+ *   the LPUART.  Error bits associated with the receipt are provided in the
+ *   return 'status'.
  *
  ****************************************************************************/
 
@@ -1153,10 +1142,10 @@ static bool kinetis_rxavailable(struct uart_dev_s *dev)
 {
   struct kinetis_dev_s *priv = (struct kinetis_dev_s *)dev->priv;
 
-  /* Return true if the receive data register is full (RDRF).
-   */
+  /* Return true if the receive data register is full (RDRF). */
 
-  return (kinetis_serialin(priv, KINETIS_LPUART_STAT_OFFSET) & LPUART_STAT_RDRF) != 0;
+  return (kinetis_serialin(priv, KINETIS_LPUART_STAT_OFFSET) &
+          LPUART_STAT_RDRF) != 0;
 }
 
 /****************************************************************************
@@ -1219,8 +1208,8 @@ static bool kinetis_rxflowcontrol(struct uart_dev_s *dev,
       else
         {
           /* We might leave Rx interrupt disabled if full recv buffer was
-           * read empty.  Enable Rx interrupt to make sure that more input is
-           * received.
+           * read empty.  Enable Rx interrupt to make sure that more input
+           * is received.
            */
 
           kinetis_rxint(dev, true);
@@ -1300,7 +1289,8 @@ static bool kinetis_txready(struct uart_dev_s *dev)
 
   /* Return true if the transmit data register is "empty." */
 
-  return (kinetis_serialin(priv, KINETIS_LPUART_STAT_OFFSET) & LPUART_STAT_TDRE) != 0;
+  return (kinetis_serialin(priv, KINETIS_LPUART_STAT_OFFSET) &
+          LPUART_STAT_TDRE) != 0;
 }
 
 /****************************************************************************
@@ -1314,8 +1304,8 @@ static bool kinetis_txready(struct uart_dev_s *dev)
  *   Performs the low level LPUART initialization early in debug so that the
  *   serial console will be available during bootup.  This must be called
  *   before up_serialinit.  NOTE:  This function depends on GPIO pin
- *   configuration performed in kinetis_lowsetup() and main clock initialization
- *   performed in up_clkinitialize().
+ *   configuration performed in kinetis_lowsetup() and main clock
+ *   initialization performed in up_clkinitialize().
  *
  ****************************************************************************/
 

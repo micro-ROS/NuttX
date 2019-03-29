@@ -138,7 +138,7 @@ void pm_activity(int domain, int priority)
           pdom->stime = now;
           pdom->accum = 0;
 
-          (void)pm_update(domain, tmp, elapsed);
+          (void)pm_update(domain, tmp);
         }
 
       leave_critical_section(flags);
@@ -220,6 +220,36 @@ void pm_relax(int domain, enum pm_state_e state)
   DEBUGASSERT(pdom->stay[state] > 0);
   pdom->stay[state]--;
   leave_critical_section(flags);
+}
+
+/****************************************************************************
+ * Name: pm_staycount
+ *
+ * Description:
+ *   This function is called to get current stay count.
+ *
+ * Input Parameters:
+ *   domain - The domain of the PM activity
+ *   state - The state want to relax.
+ *
+ * Returned Value:
+ *   Current pm stay count
+ *
+ * Assumptions:
+ *   This function may be called from an interrupt handler.
+ *
+ ****************************************************************************/
+
+uint32_t pm_staycount(int domain, enum pm_state_e state)
+{
+  FAR struct pm_domain_s *pdom;
+
+  /* Get a convenience pointer to minimize all of the indexing */
+
+  DEBUGASSERT(domain >= 0 && domain < CONFIG_PM_NDOMAINS);
+  pdom = &g_pmglobals.domain[domain];
+
+  return pdom->stay[state];
 }
 
 #endif /* CONFIG_PM */

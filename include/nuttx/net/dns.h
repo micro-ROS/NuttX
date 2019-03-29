@@ -2,7 +2,8 @@
  * include/nuttx/net/dns.h
  * DNS resolver code header file.
  *
- *   Copyright (C) 2007-2009, 2011-2012, 2014-2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012, 2014-2015, 2018 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Inspired by/based on uIP logic by Adam Dunkels:
@@ -53,13 +54,14 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* DNS classes */
 
-#define DNS_CLASS_IN                1 /* RFC 1035 Internet */
-#define DNS_CLASS_CH                3 /* N/A      Chaos */
-#define DNS_CLASS_HS                4 /* N/A      Hesiod */
-#define DNS_CLASS_QNONE           254 /* RFC 2136 QCLASS NONE */
-#define DNS_CLASS_QANY            255 /* RFC 1035 QCLASS ANY */
+#define DNS_CLASS_IN                 1 /* RFC 1035 Internet */
+#define DNS_CLASS_CH                 3 /* N/A      Chaos */
+#define DNS_CLASS_HS                 4 /* N/A      Hesiod */
+#define DNS_CLASS_QNONE            254 /* RFC 2136 QCLASS NONE */
+#define DNS_CLASS_QANY             255 /* RFC 1035 QCLASS ANY */
 
 /* DNS resource record types */
 
@@ -88,10 +90,12 @@
 #define DNS_RECTYPE_NSEC            47 /* RFC 4034 Next-Secure record */
 #define DNS_RECTYPE_NSEC3           50 /* RFC 5155 NSEC record version 3 */
 #define DNS_RECTYPE_NSEC3PARAM      51 /* RFC 5155 NSEC3 parameters */
+#define DNS_RECTYPE_OPENPGPKEY      61 /* RFC 7929 OpenPGP public key record */
 #define DNS_RECTYPE_PTR             12 /* RFC 1035 Pointer record */
 #define DNS_RECTYPE_RRSIG           46 /* RFC 4034 DNSSEC signature */
 #define DNS_RECTYPE_RP              17 /* RFC 1183 Responsible person */
 #define DNS_RECTYPE_SIG             24 /* RFC 2535 Signature */
+#define DNS_RECTYPE_SMIMEA          53 /* RFC 8162 S/MIME cert association */
 #define DNS_RECTYPE_SOA              6 /* RFC 1035 and RFC 2308 Start of [a zone of] authority record */
 #define DNS_RECTYPE_SRV             33 /* RFC 2782 Service locator */
 #define DNS_RECTYPE_SSHFP           44 /* RFC 4255 SSH Public Key Fingerprint */
@@ -99,7 +103,8 @@
 #define DNS_RECTYPE_TKEY           249 /* RFC 2930 Secret key record */
 #define DNS_RECTYPE_TLSA            52 /* RFC 6698 TLSA certificate association */
 #define DNS_RECTYPE_TSIG           250 /* RFC 2845 Transaction Signature */
-#define DNS_RECTYPE_TXT             16 /* RFC 1035[1] Text record */
+#define DNS_RECTYPE_TXT             16 /* RFC 1035 Text record */
+#define DNS_RECTYPE_URI            256 /* RFC 7553 Uniform Resource Identifier */
 
 #define DNS_RECTYPE_ALL            255 /* RFC 1035 All cached records */
 #define DNS_RECTYPE_AXFR           252 /* RFC 1035 Authoritative Zone Transfer */
@@ -144,9 +149,17 @@ struct dns_header_s
   uint16_t numextrarr;
 };
 
+/* The DNS question message structure */
+
+struct dns_question_s
+{
+  uint16_t type;
+  uint16_t class;
+};
+
 /* The DNS answer message structure */
 
-struct dns_answer_s
+begin_packed_struct struct dns_answer_s
 {
   uint16_t type;
   uint16_t class;
@@ -162,7 +175,7 @@ struct dns_answer_s
     struct in6_addr ipv6;
 #endif
   } u;
-};
+} end_packed_struct;
 
 /* The type of the callback from dns_foreach_nameserver() */
 
@@ -214,9 +227,30 @@ int dns_add_nameserver(FAR const struct sockaddr *addr, socklen_t addrlen);
 
 int dns_foreach_nameserver(dns_callback_t callback, FAR void *arg);
 
+/****************************************************************************
+ * Name: dns_register_notify
+ *
+ * Description:
+ *   This function is called in order to receive the nameserver change.
+ *
+ ****************************************************************************/
+
+int dns_register_notify(dns_callback_t callback, FAR void *arg);
+
+/****************************************************************************
+ * Name: dns_unregister_notify
+ *
+ * Description:
+ *   This function is called in order to unsubscribe the notification.
+ *
+ ****************************************************************************/
+
+int dns_unregister_notify(dns_callback_t callback, FAR void *arg);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }
 #endif
 
 #endif /* __INCLUDE_NUTTX_NET_DNS_H */
+

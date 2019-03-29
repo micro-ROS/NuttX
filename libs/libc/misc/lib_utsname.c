@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <sys/utsname.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <nuttx/version.h>
@@ -98,7 +99,6 @@ int uname(FAR struct utsname *name)
 
   strncpy(name->sysname, "NuttX", SYS_NAMELEN);
 
-#ifdef CONFIG_LIBC_NETDB
   /* Get the hostname */
 
   if (-1 == gethostname(name->nodename, HOST_NAME_MAX))
@@ -106,20 +106,21 @@ int uname(FAR struct utsname *name)
       ret = -1;
     }
 
-  name->nodename[HOST_NAME_MAX-1] = '\0';
-
-#else
-  strncpy(name->nodename, "", HOST_NAME_MAX);
-#endif
+  name->nodename[HOST_NAME_MAX - 1] = '\0';
 
   strncpy(name->release,  CONFIG_VERSION_STRING, SYS_NAMELEN);
-  name->release[SYS_NAMELEN-1] = '\0';
+  name->release[SYS_NAMELEN - 1] = '\0';
 
+#if defined(__DATE__) && defined(__TIME__)
+  snprintf(name->version, VERSION_NAMELEN, "%s %s %s",
+           CONFIG_VERSION_BUILD, __DATE__, __TIME__);
+#else
   strncpy(name->version,  CONFIG_VERSION_BUILD, VERSION_NAMELEN);
-  name->version[VERSION_NAMELEN-1] = '\0';
+#endif
+  name->version[VERSION_NAMELEN - 1] = '\0';
 
   strncpy(name->machine,  CONFIG_ARCH, SYS_NAMELEN);
-  name->machine[SYS_NAMELEN-1] = '\0';
+  name->machine[SYS_NAMELEN - 1] = '\0';
 
   return ret;
 }

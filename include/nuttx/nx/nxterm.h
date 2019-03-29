@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/nx/nxterm.h
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,9 @@
 /****************************************************************************
  * Pre-processor definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+
 /* Nx Console prerequistes */
 
 #ifndef CONFIG_NX
@@ -129,6 +131,17 @@
 
 /* Pixel depth */
 
+#if defined(CONFIG_NXTERM_BPP) && \
+    CONFIG_NXTERM_BPP != 1 && \
+    CONFIG_NXTERM_BPP != 2 && \
+    CONFIG_NXTERM_BPP != 4 && \
+    CONFIG_NXTERM_BPP != 8 && \
+    CONFIG_NXTERM_BPP != 16 && \
+    CONFIG_NXTERM_BPP != 32
+#  error Invalid selection for CONFIG_NXTERM_BPP
+#  undef CONFIG_NXTERM_BPP
+#endif
+
 #ifndef CONFIG_NXTERM_BPP
 #  if !defined(CONFIG_NX_DISABLE_1BPP)
 #    define CONFIG_NXTERM_BPP 1
@@ -187,13 +200,16 @@
 
 typedef FAR void *NXTERM;
 
-/* This structure describes the window and font characteristics */
+/* This structure describes the window and font characteristics.
+ * For raw windows, wsize if the full size of the window.  For
+ * NxTK windows, wsize is the size of the sub-window.
+ */
 
 struct nxterm_window_s
 {
   nxgl_mxpixel_t wcolor[CONFIG_NX_NPLANES]; /* Window background color */
   nxgl_mxpixel_t fcolor[CONFIG_NX_NPLANES]; /* Font color */
-  struct nxgl_size_s wsize;                 /* Window size */
+  struct nxgl_size_s wsize;                 /* Window/Sub-window size */
   int fontid;                               /* The ID of the font to use */
 };
 
@@ -221,6 +237,10 @@ extern "C"
  *   Register a console device on a raw NX window.  The device will be
  *   registered at /dev/nxtermN where N is the provided minor number.
  *
+ *   This is an internal NuttX interface and should not be called directly
+ *   from applications.  Application access is supported only indirectly via
+ *   the boardctl(BOARDIOC_NXTERM) interface.
+ *
  * Input Parameters:
  *   hwnd - A handle that will be used to access the window.  The window must
  *     persist and this handle must be valid for the life of the NX console.
@@ -244,6 +264,10 @@ NXTERM nx_register(NXWINDOW hwnd, FAR struct nxterm_window_s *wndo,
  *   Register a console device on a framed NX window.  The device will be
  *   registered at /dev/nxtermN where N is the provided minor number.
  *
+ *   This is an internal NuttX interface and should not be called directly
+ *   from applications.  Application access is supported only indirectly via
+ *   the boardctl(BOARDIOC_NXTERM) interface.
+ *
  * Input Parameters:
  *   hfwnd - A handle that will be used to access the window.  The window must
  *     persist and this handle must be valid for the life of the NX console.
@@ -266,7 +290,12 @@ NXTERM nxtk_register(NXTKWINDOW hfwnd, FAR struct nxterm_window_s *wndo,
  * Description:
  *   Register a console device on a toolbar of a framed NX window.  The
  *   device will be registered at /dev/nxtermN where N is the provided minor
- *   number.
+ *   number.  Application access is supported only indirectly via
+ *   the boardctl(BOARDIOC_NXTERM) interface.
+ *
+ *   This is an internal NuttX interface and should not be called directly
+ *   from applications.  Application access is supported only indirectly via
+ *   the boardctl(BOARDIOC_NXTERM) interface.
  *
  * Input Parameters:
  *   hfwnd - A handle that will be used to access the toolbar.  The toolbar
@@ -286,28 +315,15 @@ NXTERM nxtool_register(NXTKWINDOW hfwnd, FAR struct nxterm_window_s *wndo,
                        int minor);
 
 /****************************************************************************
- * Name: nxterm_unregister
- *
- * Description:
- *   Un-register to NX console device.
- *
- * Input Parameters:
- *   handle - A handle previously returned by nx_register, nxtk_register, or
- *     nxtool_register.
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void nxterm_unregister(NXTERM handle);
-
-/****************************************************************************
  * Name: nxterm_redraw
  *
  * Description:
  *   Re-draw a portion of the NX console.  This function should be called
  *   from the appropriate window callback logic.
+ *
+ *   This is an internal NuttX interface and should not be called directly
+ *   from applications.  Application access is supported only indirectly via
+ *   the boardctl(BOARDIOC_REDRAW) interface.
  *
  * Input Parameters:
  *   handle - A handle previously returned by nx_register, nxtk_register, or
@@ -328,16 +344,20 @@ void nxterm_redraw(NXTERM handle, FAR const struct nxgl_rect_s *rect,
  * Name: nxterm_kbdin
  *
  * Description:
- *  This function should be driven by the window kbdin callback function
- *  (see nx.h).  When the NxTerm is the top window and keyboard input is
- *  received on the top window, that window callback should be directed to
- *  this function.  This function will buffer the keyboard data and make
- *  it available to the NxTerm as stdin.
+ *   This function should be driven by the window kbdin callback function
+ *   (see nx.h).  When the NxTerm is the top window and keyboard input is
+ *   received on the top window, that window callback should be directed to
+ *   this function.  This function will buffer the keyboard data and make
+ *   it available to the NxTerm as stdin.
  *
- *  If CONFIG_NXTERM_NXKBDIN is not selected, then the NxTerm will
- *  receive its input from stdin (/dev/console).  This works great but
- *  cannot be shared between different windows.  Chaos will ensue if you
- *  try to support multiple NxTerm windows without CONFIG_NXTERM_NXKBDIN
+ *   If CONFIG_NXTERM_NXKBDIN is not selected, then the NxTerm will
+ *   receive its input from stdin (/dev/console).  This works great but
+ *   cannot be shared between different windows.  Chaos will ensue if you
+ *   try to support multiple NxTerm windows without CONFIG_NXTERM_NXKBDIN
+ *
+ *   This is an internal NuttX interface and should not be called directly
+ *   from applications.  Application access is supported only indirectly via
+ *   the boardctl(BOARDIOC_KBDIN) interface.
  *
  * Input Parameters:
  *   handle - A handle previously returned by nx_register, nxtk_register, or

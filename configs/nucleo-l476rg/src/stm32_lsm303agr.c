@@ -70,7 +70,7 @@ int stm32l4_lsm303agr_initialize(char *devpath)
 {
   FAR struct i2c_master_s *i2c;
   int ret = OK;
- 
+
   sninfo("INFO: Initializing LMS303AGR sensor over I2C\n");
 
 #if defined(CONFIG_STM32L4_I2C1)
@@ -79,7 +79,7 @@ int stm32l4_lsm303agr_initialize(char *devpath)
     {
       return -ENODEV;
     }
-  
+
   ret = lsm303agr_sensor_register("/dev/lsm303mag0", i2c, LSM303AGRMAGNETO_ADDR);
   if (ret < 0)
     {

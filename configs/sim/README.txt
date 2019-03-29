@@ -502,8 +502,7 @@ configdata
 
 cxxtest
 
-
-  The C++ standard libary test at apps/examples/cxxtest configuration.  This
+  The C++ standard libary test at apps/testing/cxxtest configuration.  This
   test is used to verify the uClibc++ port to NuttX.
 
   NOTES
@@ -785,8 +784,8 @@ nx11
 
 nxffs
 
-  This is the apps/examples/nxffs test using a MTD RAM driver to
-  simulate the FLASH part.
+  This is a test of the NXFFS file system using the apps/testing/nxffs
+  test with an MTD RAM driver to simulate the FLASH part.
 
 nxlines
 
@@ -797,15 +796,11 @@ nxwm
   This is a special configuration setup for the NxWM window manager
   UnitTest.  The NxWM window manager can be found here:
 
-    nuttx-code/NxWidgets/nxwm
+    apps/graphics/NxWidgets/nxwm
 
   The NxWM unit test can be found at:
 
-    nuttx-code/NxWidgets/UnitTests/nxwm
-
-  Documentation for installing the NxWM unit test can be found here:
-
-    nuttx-code/NxWidgets/UnitTests/READEM.txt
+    apps/graphics/NxWidgets/UnitTests/nxwm
 
   NOTES
 
@@ -895,6 +890,11 @@ sixlowpan
   returned packet.
 
   See also the 'pktradio' configuration.
+
+spiffs
+
+  This is a test of the SPIFFS file system using the apps/testing/fstest
+  test with an MTD RAM driver to simulate the FLASH part.
 
 touchscreen
 

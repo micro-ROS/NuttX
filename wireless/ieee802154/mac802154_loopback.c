@@ -1,7 +1,7 @@
 /****************************************************************************
  * wireless/iee802154/mac802154_loopback.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,15 +71,18 @@
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error Worker thread support is required (CONFIG_SCHED_WORKQUEUE)
-#else
-#  if defined(CONFIG_IEEE802154_LOOPBACK_HPWORK)
-#    define LPBKWORK HPWORK
-#  elif defined(CONFIG_IEEE802154_LOOPBACK_LPWORK)
-#    define LPBKWORK LPWORK
-#  else
-#    error Neither CONFIG_IEEE802154_LOOPBACK_HPWORK nor CONFIG_IEEE802154_LOOPBACK_LPWORK defined
-#  endif
 #endif
+
+/* The low priority work queue is preferred.  If it is not enabled, LPWORK
+ * will be the same as HPWORK.
+ *
+ * NOTE:  However, the network should NEVER run on the high priority work
+ * queue!  That queue is intended only to service short back end interrupt
+ * processing that never suspends.  Suspending the high priority work queue
+ * may bring the system to its knees!
+ */
+
+#define LPBKWORK LPWORK
 
 /* Preferred address size */
 
@@ -174,7 +177,7 @@ static int  lo_ifup(FAR struct net_driver_s *dev);
 static int  lo_ifdown(FAR struct net_driver_s *dev);
 static void lo_txavail_work(FAR void *arg);
 static int  lo_txavail(FAR struct net_driver_s *dev);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 static int  lo_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
@@ -222,13 +225,16 @@ static void lo_addr2ip(FAR struct net_driver_s *dev)
   dev->d_ipv6addr[1]  = 0;
   dev->d_ipv6addr[2]  = 0;
   dev->d_ipv6addr[3]  = 0;
-  dev->d_ipv6addr[4]  = (uint16_t)g_eaddr[0] << 8 | (uint16_t)g_eaddr[1];
-  dev->d_ipv6addr[5]  = (uint16_t)g_eaddr[2] << 8 | (uint16_t)g_eaddr[3];
-  dev->d_ipv6addr[6]  = (uint16_t)g_eaddr[4] << 8 | (uint16_t)g_eaddr[5];
-  dev->d_ipv6addr[7]  = (uint16_t)g_eaddr[6] << 8 | (uint16_t)g_eaddr[7];
-  dev->d_ipv6addr[4] ^= 0x200;
-}
+  dev->d_ipv6addr[4]  = HTONS((uint16_t)g_eaddr[7] << 8 | (uint16_t)g_eaddr[6]);
+  dev->d_ipv6addr[5]  = HTONS((uint16_t)g_eaddr[5] << 8 | (uint16_t)g_eaddr[4]);
+  dev->d_ipv6addr[6]  = HTONS((uint16_t)g_eaddr[3] << 8 | (uint16_t)g_eaddr[2]);
+  dev->d_ipv6addr[7]  = HTONS((uint16_t)g_eaddr[1] << 8 | (uint16_t)g_eaddr[0]);
+
+  /* Invert the U/L bit */
+
+  dev->d_ipv6addr[4] ^= HTONS(0x0200);
 #endif
+}
 #else
 static void lo_addr2ip(FAR struct net_driver_s *dev)
 {
@@ -247,8 +253,7 @@ static void lo_addr2ip(FAR struct net_driver_s *dev)
   dev->d_ipv6addr[4]  = 0;
   dev->d_ipv6addr[5]  = HTONS(0x00ff);
   dev->d_ipv6addr[6]  = HTONS(0xfe00);
-  dev->d_ipv6addr[7]  = (uint16_t)g_saddr[0] << 8 | (uint16_t)g_saddr[1];
-  dev->d_ipv6addr[7] ^= 0x200;
+  dev->d_ipv6addr[7]  = HTONS((uint16_t)g_saddr[1] << 8 |  (uint16_t)g_saddr[0]);
 #endif
 }
 #endif
@@ -722,7 +727,7 @@ static int lo_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
 #ifdef CONFIG_NET_6LOWPAN_EXTENDEDADDR
@@ -757,7 +762,7 @@ static int lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lo_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
 #ifdef CONFIG_NET_6LOWPAN_EXTENDEDADDR
@@ -1075,7 +1080,7 @@ int ieee8021514_loopback(void)
   dev->d_ifup         = lo_ifup;          /* I/F up (new IP address) callback */
   dev->d_ifdown       = lo_ifdown;        /* I/F down callback */
   dev->d_txavail      = lo_txavail;       /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   dev->d_addmac       = lo_addmac;        /* Add multicast MAC address */
   dev->d_rmmac        = lo_rmmac;         /* Remove multicast MAC address */
 #endif

@@ -51,8 +51,12 @@
 
 #include <sys/ioctl.h>
 #include <stdint.h>
-#include <net/if.h>
 
+#ifdef CONFIG_NET_MCASTGROUP
+#  include <queue.h>
+#endif
+
+#include <net/if.h>
 #include <net/ethernet.h>
 #include <arpa/inet.h>
 
@@ -61,6 +65,10 @@
 
 #ifdef CONFIG_NET_IGMP
 #  include <nuttx/net/igmp.h>
+#endif
+
+#ifdef CONFIG_NET_MLD
+#  include <nuttx/net/mld.h>
 #endif
 
 /****************************************************************************
@@ -204,8 +212,8 @@ struct netdev_maxaddr_s
 
 struct netdev_varaddr_s
 {
-  uint8_t nv_addrlen;
   uint8_t nv_addr[RADIO_MAX_ADDRLEN];
+  uint8_t nv_addrlen;
 };
 #endif
 
@@ -222,7 +230,7 @@ struct net_driver_s
    * Must be the first field in the structure due to blink type casting.
    */
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
+#ifdef CONFIG_NET
   FAR struct net_driver_s *flink;
 
   /* This is the name of network device assigned when netdev_register was called.
@@ -237,7 +245,7 @@ struct net_driver_s
 
   uint8_t d_flags;
 
-  /* Multi network devices using multiple data links protocols are selected */
+  /* Multi network devices using multiple link layer protocols are supported */
 
   uint8_t d_lltype;             /* See enum net_lltype_e */
   uint8_t d_llhdrlen;           /* Link layer header size */
@@ -246,9 +254,6 @@ struct net_driver_s
 #endif
 
   uint16_t d_pktsize;           /* Maximum packet size */
-
-#if defined(CONFIG_NET_ETHERNET) || defined(CONFIG_NET_6LOWPAN) || \
-    defined(CONFIG_NET_BLUETOOTH) || defined(CONFIG_NET_IEEE802154)
 
   /* Link layer address */
 
@@ -267,7 +272,6 @@ struct net_driver_s
     struct netdev_varaddr_s radio;
 #endif
   } d_mac;
-#endif /* CONFIG_NET_ETHERNET || CONFIG_NET_6LOWPAN ... || CONFIG_NET_IEEE802154 */
 
   /* Network identity */
 
@@ -284,15 +288,18 @@ struct net_driver_s
 #endif
 
   /* The d_buf array is used to hold incoming and outgoing packets. The
-   * device driver should place incoming data into this buffer. When sending
+   * device driver should place incoming data into this buffer.  When sending
    * data, the device driver should read the link level headers and the
-   * TCP/IP headers from this buffer. The size of the link level headers is
+   * TCP/IP headers from this buffer.  The size of the link level headers is
    * configured by the NET_LL_HDRLEN(dev) define.
    *
    * The network will handle only a single buffer for both incoming and
    * outgoing packets.  However, the driver design may be concurrently
    * sending and filling separate, break-off buffers.  That buffer
    * management must be controlled by the driver.
+   *
+   * The d_buf array must be aligned to two-byte, 16-bit address boundaries
+   * in order to support aligned 16-bit accesses performed by the network.
    */
 
   FAR uint8_t *d_buf;
@@ -336,10 +343,13 @@ struct net_driver_s
 
   uint16_t d_sndlen;
 
-#ifdef CONFIG_NET_IGMP
-  /* IGMP group list */
+  /* Multicast group support */
 
-  sq_queue_t grplist;
+#ifdef CONFIG_NET_IGMP
+  sq_queue_t d_igmp_grplist;    /* IGMP group list */
+#endif
+#ifdef CONFIG_NET_MLD
+  struct mld_netdev_s d_mld;    /* MLD state information */
 #endif
 
 #ifdef CONFIG_NETDEV_STATISTICS
@@ -380,7 +390,7 @@ struct net_driver_s
   int (*d_ifup)(FAR struct net_driver_s *dev);
   int (*d_ifdown)(FAR struct net_driver_s *dev);
   int (*d_txavail)(FAR struct net_driver_s *dev);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   int (*d_addmac)(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
   int (*d_rmmac)(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
@@ -543,24 +553,23 @@ int devif_timer(FAR struct net_driver_s *dev, devif_poll_callback_t callback);
  * Description:
  *   This function should be called before sending out an IPv6 packet. The
  *   function checks the destination IPv6 address of the IPv6 packet to see
- *   what Ethernet MAC address that should be used as a destination MAC
- *   address on the Ethernet.
+ *   what L2 address that should be used as a destination L2 address.
  *
  *   If the destination IPv6 address is in the local network (determined
  *   by logical ANDing of netmask and our IPv6 address), the function
  *   checks the Neighbor Table to see if an entry for the destination IPv6
- *   address is found.  If so, an Ethernet header is pre-pended at the
- *   beginning of the packet and the function returns.
+ *   address is found.  If so, an L2 header is pre-pended at the beginning
+ *   of the packet and the function returns.
  *
  *   If no Neighbor Table entry is found for the destination IPv6 address,
- *   the packet in the d_buf[] is replaced by an ICMPv6 Neighbor Solict
+ *   the packet in the d_buf is replaced by an ICMPv6 Neighbor Solicit
  *   request packet for the IPv6 address. The IPv6 packet is dropped and
  *   it is assumed that the higher level protocols (e.g., TCP) eventually
  *   will retransmit the dropped packet.
  *
  *   Upon return in either the case, a packet to be sent is present in the
- *   d_buf[] buffer and the d_len field holds the length of the Ethernet
- *   frame that should be transmitted.
+ *   d_buf buffer and the d_len field holds the length of the L2 frame that
+ *   should be transmitted.
  *
  ****************************************************************************/
 
@@ -737,5 +746,21 @@ uint16_t ipv6_chksum(FAR struct net_driver_s *dev);
 #ifdef CONFIG_NET_IPv6
 #  define netdev_ipv6_hdrlen(dev) dev->d_llhdrlen
 #endif /* CONFIG_NET_IPv6 */
+
+/****************************************************************************
+ * Name: netdev_lladdrsize
+ *
+ * Description:
+ *   Returns the size of the MAC address associated with a network device.
+ *
+ * Input Parameters:
+ *   dev - A reference to the device of interest
+ *
+ * Returned Value:
+ *   The size of the MAC address associated with this device
+ *
+ ****************************************************************************/
+
+int netdev_lladdrsize(FAR struct net_driver_s *dev);
 
 #endif /* __INCLUDE_NUTTX_NET_NETDEV_H */

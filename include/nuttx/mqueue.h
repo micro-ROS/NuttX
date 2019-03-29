@@ -43,13 +43,13 @@
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
+#include <nuttx/signal.h>
 
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <mqueue.h>
 #include <queue.h>
-#include <signal.h>
 
 #if CONFIG_MQ_MAXMSGSIZE > 0
 
@@ -68,15 +68,13 @@
  * (libuc.a and libunx.a).  The that case, the correct interface must be
  * used for the build context.
  *
- * The interfaces sigtimedwait(), sigwait(), sigwaitinfo(), sleep(),
- * nanosleep(), and usleep()  are cancellation points.
- *
- * REVISIT:  The fact that these interfaces are cancellation points is an
- * issue and may cause violations:  It use of these internally will cause
- * the calling function to become a cancellation points!
+ * REVISIT:  In the flat build, the same functions must be used both by
+ * the OS and by applications.  We have to use the normal user functions
+ * in this case or we will fail to set the errno or fail to create the
+ * cancellation point.
  */
 
-#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
+#if !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
 #  define _MQ_SEND(d,m,l,p)           nxmq_send(d,m,l,p)
 #  define _MQ_TIMEDSEND(d,m,l,p,t)    nxmq_timedsend(d,m,l,p,t)
 #  define _MQ_RECEIVE(d,m,l,p)        nxmq_receive(d,m,l,p)
@@ -119,6 +117,7 @@ struct mqueue_inode_s
   FAR struct mq_des *ntmqdes; /* Notification: Owning mqdes (NULL if none) */
   pid_t ntpid;                /* Notification: Receiving Task's PID */
   struct sigevent ntevent;    /* Notification description */
+  struct sigwork_s ntwork;    /* Notification work */
 #endif
 };
 
@@ -182,7 +181,8 @@ struct task_group_s;  /* Forward reference */
  *
  ****************************************************************************/
 
-int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen, int prio);
+int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen,\
+              unsigned int prio);
 
 /****************************************************************************
  * Name: nxmq_timedsend
@@ -226,8 +226,8 @@ int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen, int prio);
  *
  ****************************************************************************/
 
-int nxmq_timedsend(mqd_t mqdes, FAR const char *msg, size_t msglen, int prio,
-                   FAR const struct timespec *abstime);
+int nxmq_timedsend(mqd_t mqdes, FAR const char *msg, size_t msglen, 
+                   unsigned int prio, FAR const struct timespec *abstime);
 
 /****************************************************************************
  * Name: nxmq_receive
@@ -258,7 +258,7 @@ int nxmq_timedsend(mqd_t mqdes, FAR const char *msg, size_t msglen, int prio,
  ****************************************************************************/
 
 ssize_t nxmq_receive(mqd_t mqdes, FAR char *msg, size_t msglen,
-                     FAR int *prio);
+                     FAR unsigned int *prio);
 
 /****************************************************************************
  * Name: nxmq_timedreceive
@@ -294,7 +294,8 @@ ssize_t nxmq_receive(mqd_t mqdes, FAR char *msg, size_t msglen,
  ****************************************************************************/
 
 ssize_t nxmq_timedreceive(mqd_t mqdes, FAR char *msg, size_t msglen,
-                        FAR int *prio, FAR const struct timespec *abstime);
+                          FAR unsigned int *prio,
+                          FAR const struct timespec *abstime);
 
 /****************************************************************************
  * Name: nxmq_free_msgq

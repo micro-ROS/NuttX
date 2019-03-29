@@ -51,8 +51,6 @@
 
 #include "socket/socket.h"
 
-#if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -258,13 +256,11 @@ int accept(int sockfd, FAR struct sockaddr *addr, FAR socklen_t *addrlen)
        * in the wrong context.
        */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
       if ((unsigned int)sockfd < CONFIG_NFILE_DESCRIPTORS)
         {
           errcode = ENOTSOCK;
         }
       else
-#endif
         {
           errcode = EBADF;
         }
@@ -310,4 +306,3 @@ errout:
   return ERROR;
 }
 
-#endif /* CONFIG_NET && CONFIG_NSOCKET_DESCRIPTORS */

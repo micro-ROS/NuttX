@@ -46,7 +46,7 @@
 #include <nuttx/arch.h>
 
 #include <arch/irq.h>
-#include <arch/stm32f7/chip.h>
+#include <arch/armv7-m/nvicpri.h>
 
 #include "nvic.h"
 #include "ram_vectors.h"
@@ -408,11 +408,11 @@ void up_irqinitialize(void)
    * registers.
    */
 
-  for (i = nintlines, regaddr = NVIC_IRQ0_31_ENABLE;
+  for (i = nintlines, regaddr = NVIC_IRQ0_31_CLEAR;
        i > 0;
        i--, regaddr += 4)
     {
-      putreg32(0, regaddr);
+      putreg32(0xffffffff, regaddr);
     }
 
   /* Make sure that we are using the correct vector table.  The default

@@ -85,18 +85,18 @@
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error Work queue support is required
-#else
-
-  /* Select work queue */
-
-#  if defined(CONFIG_KINETIS_EMAC_HPWORK)
-#    define ETHWORK HPWORK
-#  elif defined(CONFIG_KINETIS_EMAC_LPWORK)
-#    define ETHWORK LPWORK
-#  else
-#    error Neither CONFIG_KINETIS_EMAC_HPWORK nor CONFIG_KINETIS_EMAC_LPWORK defined
-#  endif
 #endif
+
+/* The low priority work queue is preferred.  If it is not enabled, LPWORK
+ * will be the same as HPWORK.
+ *
+ * NOTE:  However, the network should NEVER run on the high priority work
+ * queue!  That queue is intended only to service short back end interrupt
+ * processing that never suspends.  Suspending the high priority work queue
+ * may bring the system to its knees!
+ */
+
+#define ETHWORK LPWORK
 
 /* CONFIG_KINETIS_ENETNETHIFS determines the number of physical interfaces
  * that will be supported.
@@ -306,7 +306,7 @@ static int  kinetis_ifdown(struct net_driver_s *dev);
 static void kinetis_txavail_work(FAR void *arg);
 static int  kinetis_txavail(struct net_driver_s *dev);
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  kinetis_addmac(struct net_driver_s *dev,
               FAR const uint8_t *mac);
 static int  kinetis_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac);
@@ -1393,7 +1393,7 @@ static int kinetis_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int kinetis_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct kinetis_driver_s *priv =
@@ -1423,7 +1423,7 @@ static int kinetis_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int kinetis_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct kinetis_driver_s *priv =
@@ -2075,15 +2075,6 @@ int kinetis_netinitialize(int intf)
   kinetis_pinconfig(PIN_RMII0_TXEN);
 #endif
 
-#ifdef CONFIG_ARCH_IRQPRIO
-  /* Set interrupt priority levels */
-
-  up_prioritize_irq(KINETIS_IRQ_EMACTMR, CONFIG_KINETIS_EMACTMR_PRIO);
-  up_prioritize_irq(KINETIS_IRQ_EMACTX, CONFIG_KINETIS_EMACTX_PRIO);
-  up_prioritize_irq(KINETIS_IRQ_EMACRX, CONFIG_KINETIS_EMACRX_PRIO);
-  up_prioritize_irq(KINETIS_IRQ_EMACMISC, CONFIG_KINETIS_EMACMISC_PRIO);
-#endif
-
   /* Attach the Ethernet MAC IEEE 1588 timer interrupt handler */
 
 #if 0
@@ -2132,7 +2123,7 @@ int kinetis_netinitialize(int intf)
   priv->dev.d_ifup    = kinetis_ifup;     /* I/F up (new IP address) callback */
   priv->dev.d_ifdown  = kinetis_ifdown;   /* I/F down callback */
   priv->dev.d_txavail = kinetis_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = kinetis_addmac;   /* Add multicast MAC address */
   priv->dev.d_rmmac   = kinetis_rmmac;    /* Remove multicast MAC address */
 #endif
@@ -2191,7 +2182,7 @@ int kinetis_netinitialize(int intf)
  *
  ****************************************************************************/
 
-#if CONFIG_KINETIS_ENETNETHIFS == 1
+#if CONFIG_KINETIS_ENETNETHIFS == 1 && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void)
 {
   (void)kinetis_netinitialize(0);

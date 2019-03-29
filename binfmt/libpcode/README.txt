@@ -12,7 +12,6 @@ the NuttX apps/ package and that you have named the directory apps/).
 
 Other required configuration settings:
 
-  CONFIG_NFILE_DESCRIPTORS > 3
   CONFIG_BINFMT_DISABLE=n
   CONFIG_BINFMT_PCODE=y
 
@@ -71,7 +70,7 @@ Here is a simple test configuration using the NuttX simulator:
    This enables general BINFMT support:
 
      CONFIG_DEBUG_BINFMT=y
-     CONFIG_BINFMT_EXEPATH=y
+     CONFIG_LIB_ENVPATH=y
 
    This enables building of the P-Code virtual machine:
 

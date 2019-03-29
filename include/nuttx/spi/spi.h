@@ -225,6 +225,10 @@
    *          condition. (see spi_exchange)
    *   Bit 4: HWFEAT_LSBFIRST
    *          Data transferred LSB first (default is MSB first)
+   *   Bit 5: Turn deferred trigger mode on or off.  Primarily used for DMA
+   *          mode.  If a transfer is deferred then the DMA will not actually
+   *          be triggered until a subsequent call to SPI_TRIGGER to set it
+   *          off.
    */
 
 #  ifdef CONFIG_SPI_CRCGENERATION
@@ -241,6 +245,10 @@
 #  ifdef CONFIG_SPI_BITORDER
 #    define HWFEAT_MSBFIRST                          (0 << 4)
 #    define HWFEAT_LSBFIRST                          (1 << 4)
+#  endif
+
+#  ifdef CONFIG_SPI_TRIGGER
+#    define HWFEAT_TRIGGER                           (1 << 5)
 #  endif
 
 #else
@@ -420,6 +428,25 @@
 #define SPI_REGISTERCALLBACK(d,c,a) \
   ((d)->ops->registercallback ? (d)->ops->registercallback(d,c,a) : -ENOSYS)
 
+/****************************************************************************
+ * Name: SPI_TRIGGER
+ *
+ * Description:
+ *   Trigger a previously configured DMA transfer.
+ *
+ * Input Parameters:
+ *   dev      - Device-specific state data
+ *
+ * Returned Value:
+ *   OK       - Trigger was fired
+ *   -ENOSYS  - Trigger not fired due to lack of DMA or low level support
+ *   -EIO     - Trigger not fired because not previously primed
+ *
+ ****************************************************************************/
+
+#  define SPI_TRIGGER(d) \
+  (((d)->ops->trigger) ? ((d)->ops->trigger(d)) : -ENOSYS)
+
 /* SPI Device Macros ********************************************************/
 
 /* This builds a SPI devid from its type and index */
@@ -458,6 +485,7 @@
 #define SPIDEV_CONTACTLESS(n)   SPIDEV_ID(SPIDEVTYPE_CONTACTLESS,   (n))
 #define SPIDEV_CANBUS(n)        SPIDEV_ID(SPIDEVTYPE_CANBUS,        (n))
 #define SPIDEV_USBHOST(n)       SPIDEV_ID(SPIDEVTYPE_USBHOST,       (n))
+#define SPIDEV_LPWAN(n)         SPIDEV_ID(SPIDEVTYPE_LPWAN,         (n))
 #define SPIDEV_USER(n)          SPIDEV_ID(SPIDEVTYPE_USER,          (n))
 
 /****************************************************************************
@@ -495,6 +523,7 @@ enum spi_devtype_e
   SPIDEVTYPE_CONTACTLESS,   /* Select SPI Contactless device */
   SPIDEVTYPE_CANBUS,        /* Select SPI CAN bus controller over SPI */
   SPIDEVTYPE_USBHOST,       /* Select SPI USB host controller over SPI */
+  SPIDEVTYPE_LPWAN,         /* Select SPI LPWAN controller over SPI */
   SPIDEVTYPE_USER           /* Board-specific values start here
                              * This must always be the last definition. */
 };
@@ -549,6 +578,9 @@ struct spi_ops_s
                   FAR const void *buffer, size_t nwords);
   CODE void     (*recvblock)(FAR struct spi_dev_s *dev, FAR void *buffer,
                   size_t nwords);
+#endif
+#ifdef CONFIG_SPI_TRIGGER
+  CODE int      (*trigger)(FAR struct spi_dev_s *dev);
 #endif
   CODE int      (*registercallback)(FAR struct spi_dev_s *dev,
                   spi_mediachange_t callback, void *arg);

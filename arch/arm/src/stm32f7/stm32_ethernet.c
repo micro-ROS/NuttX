@@ -61,8 +61,8 @@
 #  include <nuttx/net/pkt.h>
 #endif
 
-#include "cache.h"
 #include "up_internal.h"
+#include "barriers.h"
 
 #include "chip/stm32_syscfg.h"
 #include "chip/stm32_pinmap.h"
@@ -102,18 +102,18 @@
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error Work queue support is required
-#else
-
-  /* Select work queue */
-
-#  if defined(CONFIG_STM32F7_ETHMAC_HPWORK)
-#    define ETHWORK HPWORK
-#  elif defined(CONFIG_STM32F7_ETHMAC_LPWORK)
-#    define ETHWORK LPWORK
-#  else
-#    error Neither CONFIG_STM32F7_ETHMAC_HPWORK nor CONFIG_STM32F7_ETHMAC_LPWORK defined
-#  endif
 #endif
+
+/* The low priority work queue is preferred.  If it is not enabled, LPWORK
+ * will be the same as HPWORK.
+ *
+ * NOTE:  However, the network should NEVER run on the high priority work
+ * queue!  That queue is intended only to service short back end interrupt
+ * processing that never suspends.  Suspending the high priority work queue
+ * may bring the system to its knees!
+ */
+
+#define ETHWORK LPWORK
 
 #ifndef CONFIG_STM32F7_PHYADDR
 #  error "CONFIG_STM32F7_PHYADDR must be defined in the NuttX configuration"
@@ -726,10 +726,10 @@ static int  stm32_ifdown(struct net_driver_s *dev);
 static void stm32_txavail_work(void *arg);
 static int  stm32_txavail(struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int  stm32_addmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  stm32_rmmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
 #ifdef CONFIG_NETDEV_IOCTL
@@ -1067,8 +1067,8 @@ static int stm32_transmit(struct stm32_ethmac_s *priv)
 
   /* Flush the contents of the TX buffer into physical memory */
 
-  arch_clean_dcache((uintptr_t)priv->dev.d_buf,
-                    (uintptr_t)priv->dev.d_buf + priv->dev.d_len);
+  up_clean_dcache((uintptr_t)priv->dev.d_buf,
+                  (uintptr_t)priv->dev.d_buf + priv->dev.d_len);
 
   /* Is the size to be sent greater than the size of the Ethernet buffer? */
 
@@ -1140,8 +1140,8 @@ static int stm32_transmit(struct stm32_ethmac_s *priv)
            * memory.
            */
 
-          arch_clean_dcache((uintptr_t)txdesc,
-                            (uintptr_t)txdesc + sizeof(struct eth_txdesc_s));
+          up_clean_dcache((uintptr_t)txdesc,
+                          (uintptr_t)txdesc + sizeof(struct eth_txdesc_s));
 
           /* Get the next descriptor in the link list */
 
@@ -1176,8 +1176,8 @@ static int stm32_transmit(struct stm32_ethmac_s *priv)
        * memory.
        */
 
-      arch_clean_dcache((uintptr_t)txdesc,
-                        (uintptr_t)txdesc + sizeof(struct eth_txdesc_s));
+      up_clean_dcache((uintptr_t)txdesc,
+                      (uintptr_t)txdesc + sizeof(struct eth_txdesc_s));
 
       /* Point to the next available TX descriptor */
 
@@ -1528,8 +1528,8 @@ static void stm32_freesegment(struct stm32_ethmac_s *priv,
        * memory.
        */
 
-      arch_clean_dcache((uintptr_t)rxdesc,
-                        (uintptr_t)rxdesc + sizeof(struct eth_rxdesc_s));
+      up_clean_dcache((uintptr_t)rxdesc,
+                      (uintptr_t)rxdesc + sizeof(struct eth_rxdesc_s));
 
       /* Get the next RX descriptor in the chain (cache coherency should not
        * be an issue because the link address is constant.
@@ -1614,8 +1614,8 @@ static int stm32_recvframe(struct stm32_ethmac_s *priv)
 
   /* Forces the first RX descriptor to be re-read from physical memory */
 
-  arch_invalidate_dcache((uintptr_t)rxdesc,
-                         (uintptr_t)rxdesc + sizeof(struct eth_rxdesc_s));
+  up_invalidate_dcache((uintptr_t)rxdesc,
+                       (uintptr_t)rxdesc + sizeof(struct eth_rxdesc_s));
 
   for (i = 0;
        (rxdesc->rdes0 & ETH_RDES0_OWN) == 0 &&
@@ -1693,8 +1693,8 @@ static int stm32_recvframe(struct stm32_ethmac_s *priv)
                * physical memory.
                */
 
-              arch_clean_dcache((uintptr_t)rxcurr,
-                                (uintptr_t)rxdesc + sizeof(struct eth_rxdesc_s));
+              up_clean_dcache((uintptr_t)rxcurr,
+                              (uintptr_t)rxdesc + sizeof(struct eth_rxdesc_s));
 
               /* Remember where we should re-start scanning and reset the segment
                * scanning logic
@@ -1707,8 +1707,8 @@ static int stm32_recvframe(struct stm32_ethmac_s *priv)
                * physical memory.
                */
 
-              arch_invalidate_dcache((uintptr_t)dev->d_buf,
-                                     (uintptr_t)dev->d_buf + dev->d_len);
+              up_invalidate_dcache((uintptr_t)dev->d_buf,
+                                   (uintptr_t)dev->d_buf + dev->d_len);
 
               ninfo("rxhead: %p d_buf: %p d_len: %d\n",
                     priv->rxhead, dev->d_buf, dev->d_len);
@@ -1734,8 +1734,8 @@ static int stm32_recvframe(struct stm32_ethmac_s *priv)
 
       /* Force the next RX descriptor to be re-read from physical memory */
 
-      arch_invalidate_dcache((uintptr_t)rxdesc,
-                             (uintptr_t)rxdesc + sizeof(struct eth_rxdesc_s));
+      up_invalidate_dcache((uintptr_t)rxdesc,
+                           (uintptr_t)rxdesc + sizeof(struct eth_rxdesc_s));
     }
 
   /* We get here after all of the descriptors have been scanned or when rxdesc points
@@ -1946,8 +1946,8 @@ static void stm32_freeframe(struct stm32_ethmac_s *priv)
 
       /* Force re-reading of the TX descriptor for physical memory */
 
-      arch_invalidate_dcache((uintptr_t)txdesc,
-                             (uintptr_t)txdesc + sizeof(struct eth_txdesc_s));
+      up_invalidate_dcache((uintptr_t)txdesc,
+                           (uintptr_t)txdesc + sizeof(struct eth_txdesc_s));
 
       for (i = 0; (txdesc->tdes0 & ETH_TDES0_OWN) == 0; i++)
         {
@@ -1977,8 +1977,8 @@ static void stm32_freeframe(struct stm32_ethmac_s *priv)
            * physical memory.
            */
 
-          arch_clean_dcache((uintptr_t)txdesc,
-                            (uintptr_t)txdesc + sizeof(struct eth_txdesc_s));
+          up_clean_dcache((uintptr_t)txdesc,
+                          (uintptr_t)txdesc + sizeof(struct eth_txdesc_s));
 
           /* Check if this is the last segment of a TX frame */
 
@@ -2010,8 +2010,8 @@ static void stm32_freeframe(struct stm32_ethmac_s *priv)
 
           /* Force re-reading of the TX descriptor for physical memory */
 
-          arch_invalidate_dcache((uintptr_t)txdesc,
-                                 (uintptr_t)txdesc + sizeof(struct eth_txdesc_s));
+          up_invalidate_dcache((uintptr_t)txdesc,
+                               (uintptr_t)txdesc + sizeof(struct eth_txdesc_s));
         }
 
       /* We get here if (1) there are still frames "in-flight". Remember
@@ -2603,7 +2603,7 @@ static int stm32_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static uint32_t stm32_calcethcrc(const uint8_t *data, size_t length)
 {
   uint32_t crc = 0xffffffff;
@@ -2648,7 +2648,7 @@ static uint32_t stm32_calcethcrc(const uint8_t *data, size_t length)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int stm32_addmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   uint32_t crc;
@@ -2675,17 +2675,17 @@ static int stm32_addmac(struct net_driver_s *dev, const uint8_t *mac)
       registeraddress = STM32_ETH_MACHTLR;
     }
 
-  temp = stm32_getreg(registeraddress);
+  temp  = stm32_getreg(registeraddress);
   temp |= 1 << hashindex;
   stm32_putreg(temp, registeraddress);
 
-  temp = stm32_getreg(STM32_ETH_MACFFR);
+  temp  = stm32_getreg(STM32_ETH_MACFFR);
   temp |= (ETH_MACFFR_HM | ETH_MACFFR_HPF);
   stm32_putreg(temp, STM32_ETH_MACFFR);
 
   return OK;
 }
-#endif /* CONFIG_NET_IGMP || CONFIG_NET_ICMPv6 */
+#endif /* CONFIG_NET_MCASTGROUP || CONFIG_NET_ICMPv6 */
 
 /****************************************************************************
  * Function: stm32_rmmac
@@ -2705,7 +2705,7 @@ static int stm32_addmac(struct net_driver_s *dev, const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int stm32_rmmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   uint32_t crc;
@@ -2833,9 +2833,9 @@ static void stm32_txdescinit(struct stm32_ethmac_s *priv,
 
   /* Flush all of the initialized TX descriptors to physical memory */
 
-  arch_clean_dcache((uintptr_t)txtable,
-                    (uintptr_t)txtable +
-                      TXTABLE_SIZE * sizeof(union stm32_txdesc_u));
+  up_clean_dcache((uintptr_t)txtable,
+                  (uintptr_t)txtable +
+                  TXTABLE_SIZE * sizeof(union stm32_txdesc_u));
 
   /* Set Transmit Descriptor List Address Register */
 
@@ -2923,9 +2923,9 @@ static void stm32_rxdescinit(struct stm32_ethmac_s *priv,
 
   /* Flush all of the initialized RX descriptors to physical memory */
 
-  arch_clean_dcache((uintptr_t)rxtable,
-                    (uintptr_t)rxtable +
-                      RXTABLE_SIZE * sizeof(union stm32_rxdesc_u));
+  up_clean_dcache((uintptr_t)rxtable,
+                  (uintptr_t)rxtable +
+                  RXTABLE_SIZE * sizeof(union stm32_rxdesc_u));
 
   /* Set Receive Descriptor List Address Register */
 
@@ -2975,9 +2975,9 @@ static int stm32_ioctl(struct net_driver_s *dev, int cmd, unsigned long arg)
 #ifdef CONFIG_ARCH_PHY_INTERRUPT
   case SIOCMIINOTIFY: /* Set up for PHY event notifications */
     {
-      struct mii_iotcl_notify_s *req = (struct mii_iotcl_notify_s *)((uintptr_t)arg);
+      struct mii_ioctl_notify_s *req = (struct mii_ioctl_notify_s *)((uintptr_t)arg);
 
-      ret = phy_notify_subscribe(dev->d_ifname, req->pid, req->signo, req->arg);
+      ret = phy_notify_subscribe(dev->d_ifname, req->pid, &req->event);
       if (ret == OK)
         {
           /* Enable PHY link up/down interrupts */
@@ -4075,10 +4075,9 @@ static int stm32_ethconfig(struct stm32_ethmac_s *priv)
  *
  ****************************************************************************/
 
-#if STM32F7_NETHERNET == 1
+#if STM32F7_NETHERNET == 1 || defined(CONFIG_NETDEV_LATEINIT)
 static inline
 #endif
-
 int stm32_ethinitialize(int intf)
 {
   struct stm32_ethmac_s *priv;
@@ -4096,7 +4095,7 @@ int stm32_ethinitialize(int intf)
   priv->dev.d_ifup    = stm32_ifup;     /* I/F up (new IP address) callback */
   priv->dev.d_ifdown  = stm32_ifdown;   /* I/F down callback */
   priv->dev.d_txavail = stm32_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = stm32_addmac;   /* Add multicast MAC address */
   priv->dev.d_rmmac   = stm32_rmmac;    /* Remove multicast MAC address */
 #endif
@@ -4154,7 +4153,7 @@ int stm32_ethinitialize(int intf)
  *
  ****************************************************************************/
 
-#if STM32F7_NETHERNET == 1
+#if STM32F7_NETHERNET == 1 && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void)
 {
   (void)stm32_ethinitialize(0);

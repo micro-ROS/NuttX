@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmpv6/icmpv6.h
  *
- *   Copyright (C) 2015, 2017-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2017-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,18 +52,20 @@
 #include <nuttx/net/ip.h>
 #include <nuttx/net/netdev.h>
 
-#ifdef CONFIG_NET_ICMPv6
+#if defined(CONFIG_NET_ICMPv6) && !defined(CONFIG_NET_ICMPv6_NO_STACK)
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
+ #define NET_ICMPv6_HAVE_STACK 1
+
 /* Allocate a new ICMPv6 data callback */
 
-#define icmpv6_callback_alloc(dev) \
-  devif_callback_alloc((dev), &(dev)->d_conncb)
-#define icmpv6_callback_free(dev,cb) \
-  devif_dev_callback_free((dev), (cb))
+#define icmpv6_callback_alloc(dev, conn) \
+  devif_callback_alloc((dev), &(conn)->list)
+#define icmpv6_callback_free(dev, conn, cb) \
+  devif_conn_callback_free((dev), (cb), &(conn)->list)
 
 /****************************************************************************
  * Public Type Definitions
@@ -93,6 +95,10 @@ struct icmpv6_conn_s
 
   struct iob_queue_s readahead;  /* Read-ahead buffering */
 #endif
+
+  /* Defines the list of ICMPV6 callbacks */
+
+  FAR struct devif_callback_s *list;
 };
 #endif
 
@@ -155,8 +161,11 @@ struct pollfd;       /* Forward reference */
  *   Handle incoming ICMPv6 input
  *
  * Input Parameters:
- *   dev - The device driver structure containing the received ICMPv6
- *         packet
+ *   dev   - The device driver structure containing the received ICMPv6
+ *           packet
+ *   iplen - The size of the IPv6 header.  This may be larger than
+ *           IPv6_HDRLEN the IPv6 header if IPv6 extension headers are
+ *           present.
  *
  * Returned Value:
  *   None
@@ -166,7 +175,7 @@ struct pollfd;       /* Forward reference */
  *
  ****************************************************************************/
 
-void icmpv6_input(FAR struct net_driver_s *dev);
+void icmpv6_input(FAR struct net_driver_s *dev, unsigned int iplen);
 
 /****************************************************************************
  * Name: icmpv6_neighbor
@@ -223,7 +232,8 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr);
  ****************************************************************************/
 
 #if defined(CONFIG_NET_ICMPv6_SOCKET) || defined(CONFIG_NET_ICMPv6_NEIGHBOR)
-void icmpv6_poll(FAR struct net_driver_s *dev);
+void icmpv6_poll(FAR struct net_driver_s *dev,
+                 FAR struct icmpv6_conn_s *conn);
 #endif
 
 /****************************************************************************
@@ -233,7 +243,7 @@ void icmpv6_poll(FAR struct net_driver_s *dev);
  *   Set up to send an ICMPv6 Neighbor Solicitation message
  *
  * Input Parameters:
- *   dev - Reference to an Ethernet device driver structure
+ *   dev    - Reference to a device driver structure
  *   ipaddr - IP address of Neighbor to be solicited
  *
  * Returned Value:
@@ -251,7 +261,6 @@ void icmpv6_solicit(FAR struct net_driver_s *dev,
  *   Set up to send an ICMPv6 Router Solicitation message.  This version
  *   is for a standalone solicitation.  If formats:
  *
- *   - The Ethernet header
  *   - The IPv6 header
  *   - The ICMPv6 Neighbor Router Message
  *
@@ -259,7 +268,7 @@ void icmpv6_solicit(FAR struct net_driver_s *dev,
  *   prior to calling this function.
  *
  * Input Parameters:
- *   dev - Reference to an Ethernet device driver structure
+ *   dev - Reference to a device driver structure
  *
  * Returned Value:
  *   None
@@ -404,7 +413,8 @@ void icmpv6_notify(net_ipv6addr_t ipaddr);
  *   device.
  *
  * Input Parameters:
- *   dev - The device driver structure to assign the address to
+ *   dev   - The device driver structure to assign the address to
+ *   psock - A pointer to a NuttX-specific, internal socket structure
  *
  * Returned Value:
  *   Zero (OK) is returned on success; A negated errno value is returned on
@@ -413,7 +423,8 @@ void icmpv6_notify(net_ipv6addr_t ipaddr);
  ****************************************************************************/
 
 #ifdef CONFIG_NET_ICMPv6_AUTOCONF
-int icmpv6_autoconfig(FAR struct net_driver_s *dev);
+int icmpv6_autoconfig(FAR struct net_driver_s *dev,
+                      FAR struct socket *psock);
 #endif
 
 /****************************************************************************
@@ -487,9 +498,6 @@ int icmpv6_rwait(FAR struct icmpv6_rnotify_s *notify,
  *   Called each time that a Router Advertisement is received in order to
  *   wake-up any threads that may be waiting for this particular Router
  *   Advertisement.
- *
- *   NOTE:  On success the network has the new address applied and is in
- *   the down state.
  *
  * Assumptions:
  *   This function is called from the MAC device driver indirectly through
@@ -698,10 +706,34 @@ int icmpv6_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds);
 int icmpv6_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds);
 #endif
 
+/****************************************************************************
+ * Name: icmpv6_linkipaddr
+ *
+ * Description:
+ *   Generate the device link scope ipv6 address as below:
+ *    128  112  96   80    64   48   32   16
+ *    ---- ---- ---- ----  ---- ---- ---- ----
+ *    fe80 0000 0000 0000  0000 00ff fe00 xx00 1-byte short address IEEE 48-bit MAC
+ *    fe80 0000 0000 0000  0000 00ff fe00 xxxx 2-byte short address IEEE 48-bit MAC
+ *    fe80 0000 0000 0000  xxxx xxff fexx xxxx 6-byte normal address IEEE 48-bit MAC
+ *    fe80 0000 0000 0000  xxxx xxxx xxxx xxxx 8-byte extended address IEEE EUI-64
+ *
+ * Input Parameters:
+ *   dev    - The device driver structure containing the link layer address
+ *   ipaddr - Receive the device link scope ipv6 address
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void icmpv6_linkipaddr(FAR struct net_driver_s *dev, net_ipv6addr_t ipaddr);
+
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CONFIG_NET_ICMPv6 */
+#endif /* CONFIG_NET_ICMPv6 && !CONFIG_NET_ICMPv6_NO_STACK */
 #endif /* __NET_ICMPv6_ICMPv6_H */
+

@@ -47,7 +47,8 @@
 #include <arch/samv7/chip.h>
 
 #include "up_arch.h"
-#include "cache.h"
+#include "barriers.h"
+
 #include "chip/sam_memorymap.h"
 
 #include "sam_progmem.h"
@@ -370,14 +371,14 @@ void sam_progmem_initialize(void)
 }
 
 /****************************************************************************
- * Name: up_progmem_npages
+ * Name: up_progmem_neraseblocks
  *
  * Description:
  *   Return number of clusters in the available FLASH memory.
  *
  ****************************************************************************/
 
-size_t up_progmem_npages(void)
+size_t up_progmem_neraseblocks(void)
 {
   return SAMV7_PROGMEM_NCLUSTERS;
 }
@@ -479,7 +480,7 @@ size_t up_progmem_getaddress(size_t cluster)
 }
 
 /****************************************************************************
- * Name: up_progmem_erasepage
+ * Name: up_progmem_eraseblock
  *
  * Description:
  *   Erase selected cluster.
@@ -500,7 +501,7 @@ size_t up_progmem_getaddress(size_t cluster)
  *
  ****************************************************************************/
 
-ssize_t up_progmem_erasepage(size_t cluster)
+ssize_t up_progmem_eraseblock(size_t cluster)
 {
   uint32_t page;
   uint32_t arg;
@@ -593,7 +594,7 @@ ssize_t up_progmem_ispageerased(size_t cluster)
   /* Flush and invalidate D-Cache for this address range */
 
   address = (cluster << SAMV7_CLUSTER_SHIFT) + SAMV7_PROGMEM_START;
-  arch_flush_dcache(address, address + SAMV7_CLUSTER_SIZE);
+  up_flush_dcache(address, address + SAMV7_CLUSTER_SIZE);
 
   /* Verify that the cluster is erased (i.e., all 0xff) */
 
@@ -731,7 +732,7 @@ ssize_t up_progmem_write(size_t address, const void *buffer, size_t buflen)
 
       /* Flush the data cache to memory */
 
-      arch_clean_dcache(address, address + SAMV7_PAGE_SIZE);
+      up_clean_dcache(address, address + SAMV7_PAGE_SIZE);
 
       /* Send the write command */
 

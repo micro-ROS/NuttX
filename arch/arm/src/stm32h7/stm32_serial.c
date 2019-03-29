@@ -51,6 +51,7 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/serial/serial.h>
 #include <nuttx/power/pm.h>
 
@@ -58,9 +59,6 @@
 #  include <termios.h>
 #endif
 
-#include <arch/serial.h>
-
-#include "cache.h"
 #include "up_arch.h"
 #include "up_internal.h"
 
@@ -1603,7 +1601,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
         /* Perform some sanity checks before accepting any changes */
 
         if (((termiosp->c_cflag & CSIZE) != CS8)
-#ifdef CONFIG_SERIAL_IFLOWCONTROL
+#ifdef CONFIG_SERIAL_OFLOWCONTROL
             || ((termiosp->c_cflag & CCTS_OFLOW) && (priv->cts_gpio == 0))
 #endif
 #ifdef CONFIG_SERIAL_IFLOWCONTROL

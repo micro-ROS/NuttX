@@ -732,8 +732,11 @@ static int stm32_tim_setmode(FAR struct stm32_tim_dev_s *dev, stm32_tim_mode_t m
 #if STM32_NATIM > 0
   /* Advanced registers require Main Output Enable */
 
-    if (((struct stm32_tim_priv_s *)dev)->base == STM32_TIM1_BASE ||
-        ((struct stm32_tim_priv_s *)dev)->base == STM32_TIM8_BASE)
+    if (((struct stm32_tim_priv_s *)dev)->base == STM32_TIM1_BASE
+#ifdef STM32_TIM8_BASE
+        || ((struct stm32_tim_priv_s *)dev)->base == STM32_TIM8_BASE
+#endif
+      )
       {
         stm32_modifyreg16(dev, STM32_ATIM_BDTR_OFFSET, 0, ATIM_BDTR_MOE);
       }
@@ -771,87 +774,87 @@ static int stm32_tim_setclock(FAR struct stm32_tim_dev_s *dev, uint32_t freq)
     {
 #ifdef CONFIG_STM32_TIM1
       case STM32_TIM1_BASE:
-        freqin = BOARD_TIM1_FREQUENCY;
+        freqin = STM32_APB2_TIM1_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM2
       case STM32_TIM2_BASE:
-        freqin = BOARD_TIM2_FREQUENCY;
+        freqin = STM32_APB1_TIM2_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM3
       case STM32_TIM3_BASE:
-        freqin = BOARD_TIM3_FREQUENCY;
+        freqin = STM32_APB1_TIM3_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM4
       case STM32_TIM4_BASE:
-        freqin = BOARD_TIM4_FREQUENCY;
+        freqin = STM32_APB1_TIM4_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM5
       case STM32_TIM5_BASE:
-        freqin = BOARD_TIM5_FREQUENCY;
+        freqin = STM32_APB1_TIM5_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM6
       case STM32_TIM6_BASE:
-        freqin = BOARD_TIM6_FREQUENCY;
+        freqin = STM32_APB1_TIM6_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM7
       case STM32_TIM7_BASE:
-        freqin = BOARD_TIM7_FREQUENCY;
+        freqin = STM32_APB1_TIM7_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM8
       case STM32_TIM8_BASE:
-        freqin = BOARD_TIM8_FREQUENCY;
+        freqin = STM32_APB2_TIM8_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM9
       case STM32_TIM9_BASE:
-        freqin = BOARD_TIM9_FREQUENCY;
+        freqin = STM32_APB2_TIM9_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM10
       case STM32_TIM10_BASE:
-        freqin = BOARD_TIM10_FREQUENCY;
+        freqin = STM32_APB2_TIM10_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM11
       case STM32_TIM11_BASE:
-        freqin = BOARD_TIM11_FREQUENCY;
+        freqin = STM32_APB2_TIM11_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM12
       case STM32_TIM12_BASE:
-        freqin = BOARD_TIM12_FREQUENCY;
+        freqin = STM32_APB1_TIM12_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM13
       case STM32_TIM13_BASE:
-        freqin = BOARD_TIM13_FREQUENCY;
+        freqin = STM32_APB1_TIM13_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM14
       case STM32_TIM14_BASE:
-        freqin = BOARD_TIM14_FREQUENCY;
+        freqin = STM32_APB1_TIM14_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM15
       case STM32_TIM15_BASE:
-        freqin = BOARD_TIM15_FREQUENCY;
+        freqin = STM32_APB2_TIM15_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM16
       case STM32_TIM16_BASE:
-        freqin = BOARD_TIM16_FREQUENCY;
+        freqin = STM32_APB2_TIM16_CLKIN;
         break;
 #endif
 #ifdef CONFIG_STM32_TIM17
       case STM32_TIM17_BASE:
-        freqin = BOARD_TIM17_FREQUENCY;
+        freqin = STM32_APB2_TIM17_CLKIN;
         break;
 #endif
 
@@ -1656,12 +1659,6 @@ static int stm32_tim_setisr(FAR struct stm32_tim_dev_s *dev, xcpt_t handler,
   irq_attach(vectorno, handler ,arg);
   up_enable_irq(vectorno);
 
-#ifdef CONFIG_ARCH_IRQPRIO
-  /* Set the interrupt priority */
-
-  up_prioritize_irq(vectorno, NVIC_SYSH_PRIORITY_DEFAULT);
-#endif
-
   return OK;
 }
 
@@ -1672,7 +1669,7 @@ static int stm32_tim_setisr(FAR struct stm32_tim_dev_s *dev, xcpt_t handler,
 static void stm32_tim_enableint(FAR struct stm32_tim_dev_s *dev, int source)
 {
   DEBUGASSERT(dev != NULL);
-  stm32_modifyreg16(dev, STM32_BTIM_DIER_OFFSET, 0, ATIM_DIER_UIE);
+  stm32_modifyreg16(dev, STM32_BTIM_DIER_OFFSET, 0, source);
 }
 
 /************************************************************************************
@@ -1682,7 +1679,7 @@ static void stm32_tim_enableint(FAR struct stm32_tim_dev_s *dev, int source)
 static void stm32_tim_disableint(FAR struct stm32_tim_dev_s *dev, int source)
 {
   DEBUGASSERT(dev != NULL);
-  stm32_modifyreg16(dev, STM32_BTIM_DIER_OFFSET, ATIM_DIER_UIE, 0);
+  stm32_modifyreg16(dev, STM32_BTIM_DIER_OFFSET, source, 0);
 }
 
 /************************************************************************************
@@ -1691,7 +1688,7 @@ static void stm32_tim_disableint(FAR struct stm32_tim_dev_s *dev, int source)
 
 static void stm32_tim_ackint(FAR struct stm32_tim_dev_s *dev, int source)
 {
-  stm32_putreg16(dev, STM32_BTIM_SR_OFFSET, ~ATIM_SR_UIF);
+  stm32_putreg16(dev, STM32_BTIM_SR_OFFSET, ~source);
 }
 
 /************************************************************************************
@@ -1701,7 +1698,7 @@ static void stm32_tim_ackint(FAR struct stm32_tim_dev_s *dev, int source)
 static int stm32_tim_checkint(FAR struct stm32_tim_dev_s *dev, int source)
 {
   uint16_t regval = stm32_getreg16(dev, STM32_BTIM_SR_OFFSET);
-  return (regval & ATIM_SR_UIF) ? 1 : 0;
+  return (regval & source) ? 1 : 0;
 }
 
 /************************************************************************************

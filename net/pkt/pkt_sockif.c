@@ -167,7 +167,7 @@ static int pkt_sockif_alloc(FAR struct socket *psock)
  *   protocol (see sys/socket.h)
  *
  * Returned Value:
- *   Zero (OK) is returned on success.  Otherwise, a negater errno value is
+ *   Zero (OK) is returned on success.  Otherwise, a negated errno value is
  *   returned.
  *
  ****************************************************************************/
@@ -368,7 +368,7 @@ static int pkt_bind(FAR struct socket *psock, FAR const struct sockaddr *addr,
 
       /* Look at the addr and identify network interface */
 
-      ifindex = ((struct sockaddr_ll*)addr)->sll_ifindex;
+      ifindex = ((FAR struct sockaddr_ll *)addr)->sll_ifindex;
 
       /* Get the MAC address of that interface */
 

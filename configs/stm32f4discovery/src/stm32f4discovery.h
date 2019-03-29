@@ -123,7 +123,6 @@
 #define SDIO_SLOTNO 0  /* Only one slot */
 
 #ifdef HAVE_SDIO
-
 #  if !defined(CONFIG_NSH_MMCSDSLOTNO)
 #    define CONFIG_NSH_MMCSDSLOTNO SDIO_SLOTNO
 #  elif CONFIG_NSH_MMCSDSLOTNO != 0
@@ -136,18 +135,6 @@
 #    define SDIO_MINOR CONFIG_NSH_MMCSDMINOR
 #  else
 #    define SDIO_MINOR 0
-#  endif
-
-  /* SD card bringup does not work if performed on the IDLE thread because it
-   * will cause waiting.  Use either:
-   *
-   *  CONFIG_LIB_BOARDCTL=y, OR
-   *  CONFIG_BOARD_INITIALIZE=y && CONFIG_BOARD_INITTHREAD=y
-   */
-
-#  if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_BOARD_INITTHREAD)
-#    warning "SDIO initialization cannot be perfomed on the IDLE thread"
-#    undef HAVE_SDIO
 #  endif
 #endif
 
@@ -416,10 +403,10 @@
  * Description:
  *   Perform architecture-specific initialization
  *
- *   CONFIG_BOARD_INITIALIZE=y :
- *     Called from board_initialize().
+ *   CONFIG_BOARD_LATE_INITIALIZE=y :
+ *     Called from board_late_initialize().
  *
- *   CONFIG_BOARD_INITIALIZE=y && CONFIG_LIB_BOARDCTL=y :
+ *   CONFIG_BOARD_LATE_INITIALIZE=y && CONFIG_LIB_BOARDCTL=y :
  *     Called from the NSH library
  *
  ****************************************************************************/
@@ -510,6 +497,16 @@ int nunchuck_initialize(FAR char *devname);
 #ifdef CONFIG_LEDS_MAX7219
 int stm32_max7219init(FAR const char *devpath);
 #endif
+
+/****************************************************************************
+ * Name: stm32_st7032init
+ *
+ * Description:
+ *   Initialize and register the Sitronix ST7032i
+ *
+ ****************************************************************************/
+
+int stm32_st7032init(FAR const char *devpath);
 
 /****************************************************************************
  * Name: stm32_usbinitialize
@@ -716,6 +713,19 @@ int stm32_zerocross_initialize(void);
 #ifdef CONFIG_SENSORS_MAX31855
 int stm32_max31855initialize(FAR const char *devpath, int bus,
                              uint16_t devid);
+#endif
+
+/***********************************************************************************
+ * Name: stm32_mlx90614init
+ *
+ * Description:
+ *   Called to configure an I2C and to register MLX90614 for the stm32f103-minimum
+ *   board.
+ *
+ ***********************************************************************************/
+
+#ifdef CONFIG_SENSORS_MLX90614
+int stm32_mlx90614init(FAR const char *devpath);
 #endif
 
 /****************************************************************************

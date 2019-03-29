@@ -240,7 +240,7 @@
 #define NVIC_MVFR2_OFFSET               0x0f48 /* Media and VFP Feature Register 2 */
 #define NVIC_ICIALLU_OFFSET             0x0f50 /* I-Cache Invalidate All to PoU (Cortex-M7) */
 #define NVIC_ICIMVAU_OFFSET             0x0f58 /* I-Cache Invalidate by MVA to PoU (Cortex-M7) */
-#define NVIC_DCIMVAU_OFFSET             0x0f5c /* D-Cache Invalidate by MVA to PoC (Cortex-M7) */
+#define NVIC_DCIMVAC_OFFSET             0x0f5c /* D-Cache Invalidate by MVA to PoC (Cortex-M7) */
 #define NVIC_DCISW_OFFSET               0x0f60 /* D-Cache Invalidate by Set-way (Cortex-M7) */
 #define NVIC_DCCMVAU_OFFSET             0x0f64 /* D-Cache Clean by MVA to PoU (Cortex-M7) */
 #define NVIC_DCCMVAC_OFFSET             0x0f68 /* D-Cache Clean by MVA to PoC (Cortex-M7) */
@@ -429,6 +429,7 @@
 #define NVIC_ICIALLU                    (ARMV7M_NVIC_BASE + NVIC_ICIALLU_OFFSET)
 #define NVIC_ICIMVAU                    (ARMV7M_NVIC_BASE + NVIC_ICIMVAU_OFFSET)
 #define NVIC_DCIMVAU                    (ARMV7M_NVIC_BASE + NVIC_DCIMVAU_OFFSET)
+#define NVIC_DCIMVAC                    (ARMV7M_NVIC_BASE + NVIC_DCIMVAC_OFFSET)
 #define NVIC_DCISW                      (ARMV7M_NVIC_BASE + NVIC_DCISW_OFFSET)
 #define NVIC_DCCMVAU                    (ARMV7M_NVIC_BASE + NVIC_DCCMVAU_OFFSET)
 #define NVIC_DCCMVAC                    (ARMV7M_NVIC_BASE + NVIC_DCCMVAC_OFFSET)
@@ -553,13 +554,6 @@
 #define NVIC_SYSH_PRIORITY_PR14_MASK    (0xff << NVIC_SYSH_PRIORITY_PR14_SHIFT)
 #define NVIC_SYSH_PRIORITY_PR15_SHIFT   24
 #define NVIC_SYSH_PRIORITY_PR15_MASK    (0xff << NVIC_SYSH_PRIORITY_PR15_SHIFT)
-
-/* Vector Table Offset Register (VECTAB).  This mask seems to vary among
- * ARMv7-M implementations.  It may need to be redefined in some
- * architecture-specific header file.
- */
-
-#define NVIC_VECTAB_TBLOFF_MASK         (0xffffff80)
 
 /* Application Interrupt and Reset Control Register (AIRCR) */
 

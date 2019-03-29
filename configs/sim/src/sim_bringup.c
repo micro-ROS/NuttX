@@ -139,7 +139,7 @@ int sim_bringup(void)
 #ifdef CONFIG_RAMMTD
   /* Create a RAM MTD device if configured */
 
-  ramstart = (FAR uint8_t *)kmm_malloc(32 * 1024);
+  ramstart = (FAR uint8_t *)kmm_malloc(128 * 1024);
   if (ramstart == NULL)
     {
       syslog(LOG_ERR, "ERROR: Allocation for RAM MTD failed\n");
@@ -148,7 +148,7 @@ int sim_bringup(void)
     {
       /* Initialized the RAM MTD */
 
-      FAR struct mtd_dev_s *mtd = rammtd_initialize(ramstart, 32 * 1024);
+      FAR struct mtd_dev_s *mtd = rammtd_initialize(ramstart, 128 * 1024);
       if (mtd == NULL)
         {
           syslog(LOG_ERR, "ERROR: rammtd_initialize failed\n");
@@ -170,6 +170,27 @@ int sim_bringup(void)
            */
 
           smart_initialize(0, mtd, NULL);
+
+#elif defined(CONFIG_FS_SPIFFS)
+          /* Register the MTD driver so that it can be accessed from the VFS */
+
+          ret = register_mtddriver("/dev/rammtd", mtd, 0755, NULL);
+          if (ret < 0)
+            {
+              syslog(LOG_ERR, "ERROR: Failed to register MTD driver: %d\n",
+                     ret);
+            }
+
+          /* Mount the SPIFFS file system */
+
+          ret = mount("/dev/rammtd", "/mnt/spiffs", "spiffs", 0, NULL);
+          if (ret < 0)
+            {
+              syslog(LOG_ERR,
+                     "ERROR: Failed to mount SPIFFS at /mnt/spiffs: %d\n",
+                     ret);
+            }
+
 #elif defined(CONFIG_FS_NXFFS)
           /* Initialize to provide NXFFS on the MTD interface */
 

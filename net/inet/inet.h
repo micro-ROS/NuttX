@@ -91,14 +91,33 @@ EXTERN uint16_t g_ipid;
 /* Well-known IPv6 addresses */
 
 #ifdef CONFIG_NET_IPv6
-EXTERN const net_ipv6addr_t g_ipv6_unspecaddr;  /* An address of all zeroes */
-EXTERN const net_ipv6addr_t g_ipv6_allnodes;    /* All link local nodes */
-#if defined(CONFIG_NET_ICMPv6_AUTOCONF) || defined(CONFIG_NET_ICMPv6_ROUTER)
-EXTERN const net_ipv6addr_t g_ipv6_allrouters;  /* All link local routers */
+EXTERN const net_ipv6addr_t g_ipv6_unspecaddr;       /* An address of all zeroes */
+EXTERN const net_ipv6addr_t g_ipv6_allnodes;         /* All link local nodes */
+
+#if defined(CONFIG_NET_ICMPv6_AUTOCONF) || defined(CONFIG_NET_ICMPv6_ROUTER) || \
+    defined(CONFIG_NET_MLD)
+/* IPv6 Multi-cast IP addresses.  See RFC 2375 */
+
+EXTERN const net_ipv6addr_t g_ipv6_allrouters;       /* All link local routers */
 #ifdef CONFIG_NET_ICMPv6_AUTOCONF
-EXTERN const net_ipv6addr_t g_ipv6_llnetmask;   /* Netmask for local link address */
+EXTERN const net_ipv6addr_t g_ipv6_llnetmask;        /* Netmask for local link address */
 #endif
+#ifdef CONFIG_NET_MLD
+EXTERN const net_ipv6addr_t g_ipv6_allmldv2routers;  /* All MLDv2 link local routers */
 #endif
+#ifdef CONFIG_NET_ETHERNET
+/* IPv6 Multi-cast Ethernet addresses.  Formed from the 16-bit prefix:
+ *
+ *   0x33:0x33:xx:xx:xx:xx:
+ *
+ * and the last 32-bits of the IPv6 IP address
+ */
+
+EXTERN const struct ether_addr g_ipv6_ethallnodes;    /* All link local nodes */
+EXTERN const struct ether_addr g_ipv6_ethallrouters;  /* All link local routers */
+
+#endif /* CONFIG_NET_ETHERNET */
+#endif /* CONFIG_NET_ICMPv6_AUTOCONF || CONFIG_NET_ICMPv6_ROUTER || CONFIG_NET_MLD */
 #endif /* CONFIG_NET_IPv6 */
 
 /****************************************************************************
@@ -143,10 +162,43 @@ FAR const struct sock_intf_s *
   inet_sockif(sa_family_t family, int type, int protocol);
 
 /****************************************************************************
+ * Name: ipv4_setsockopt and ipv6_setsockopt
+ *
+ * Description:
+ *   ipv4/6_setsockopt() sets the IPv4- or IPv6-protocol socket option
+ *   specified by the 'option' argument to the value pointed to by the
+ *   'value' argument for the socket specified by the 'psock' argument.
+ *
+ *   See <netinet/in.h> for the a complete list of values of IPv4 and IPv6
+ *   protocol socket options.
+ *
+ * Input Parameters:
+ *   psock     Socket structure of socket to operate on
+ *   option    identifies the option to set
+ *   value     Points to the argument value
+ *   value_len The length of the argument value
+ *
+ * Returned Value:
+ *   Returns zero (OK) on success.  On failure, it returns a negated errno
+ *   value to indicate the nature of the error.  See psock_setcockopt() for
+ *   the list of possible error values.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_IPv4
+int ipv4_setsockopt(FAR struct socket *psock, int option,
+                    FAR const void *value, socklen_t value_len);
+#endif
+#ifdef CONFIG_NET_IPv6
+int ipv6_setsockopt(FAR struct socket *psock, int option,
+                    FAR const void *value, socklen_t value_len);
+#endif
+
+/****************************************************************************
  * Name: ipv4_getsockname and ipv6_sockname
  *
  * Description:
- *   The ipv4_getsockname() and ipv6_getsocknam() function retrieve the
+ *   The ipv4_getsockname() and ipv6_getsockname() function retrieve the
  *   locally-bound name of the specified INET socket.
  *
  * Input Parameters:
@@ -175,7 +227,7 @@ int ipv6_getsockname(FAR struct socket *psock, FAR struct sockaddr *addr,
  * Name: ipv4_getpeername and ipv6_peername
  *
  * Description:
- *   The ipv4_getpeername() and ipv6_getsocknam() function retrieve the
+ *   The ipv4_getpeername() and ipv6_peername() function retrieve the
  *   remote-connected name of the specified INET socket.
  *
  * Parameters:

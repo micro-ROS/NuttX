@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmpv6/icmpv6_recvfrom.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -172,18 +172,18 @@ static uint16_t recvfrom_eventhandler(FAR struct net_driver_s *dev,
           goto end_wait;
         }
 
-       /* Is this a response on the same device that we sent the request out
-        * on?
-        */
+      /* Is this a response on the same device that we sent the request out
+       * on?
+       */
 
-       psock = pstate->recv_sock;
-       DEBUGASSERT(psock != NULL && psock->s_conn != NULL);
-       conn  = psock->s_conn;
-       if (dev != conn->dev)
-         {
-           ninfo("Wrong device\n");
-           return flags;
-         }
+      psock = pstate->recv_sock;
+      DEBUGASSERT(psock != NULL && psock->s_conn != NULL);
+      conn  = psock->s_conn;
+      if (dev != conn->dev)
+        {
+          ninfo("Wrong device\n");
+          return flags;
+        }
 
       /* Check if we have just received a ICMPv6 ECHO reply. */
 
@@ -191,7 +191,9 @@ static uint16_t recvfrom_eventhandler(FAR struct net_driver_s *dev,
         {
           unsigned int recvsize;
 
-          /* Check if it is for us */
+          /* Check if it is for us.
+           * REVISIT:  What if there are IPv6 extension headers present?
+           */
 
           icmpv6 = ICMPv6_BUF;
           if (conn->id != icmpv6->id)
@@ -213,7 +215,9 @@ static uint16_t recvfrom_eventhandler(FAR struct net_driver_s *dev,
               recvsize = pstate->recv_buflen;
             }
 
-          /* Copy the ICMPv6 ECHO reply to the user provided buffer */
+          /* Copy the ICMPv6 ECHO reply to the user provided buffer
+           * REVISIT:  What if there are IPv6 extension headers present?
+           */
 
           memcpy(pstate->recv_buf, ICMPv6_BUF, recvsize);
 
@@ -491,7 +495,7 @@ ssize_t icmpv6_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
 
   /* Set up the callback */
 
-  state.recv_cb = icmpv6_callback_alloc(dev);
+  state.recv_cb = icmpv6_callback_alloc(dev, conn);
   if (state.recv_cb)
     {
       state.recv_cb->flags = (ICMPv6_ECHOREPLY | NETDEV_DOWN);
@@ -509,7 +513,7 @@ ssize_t icmpv6_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
       ninfo("Start time: 0x%08x\n", state.recv_time);
       net_lockedwait(&state.recv_sem);
 
-      icmpv6_callback_free(dev, state.recv_cb);
+      icmpv6_callback_free(dev, conn, state.recv_cb);
     }
 
   net_unlock();

@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmpv6/icmpv6_sendto.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,6 @@
 #include "netdev/netdev.h"
 #include "devif/devif.h"
 #include "inet/inet.h"
-#include "arp/arp.h"
 #include "icmpv6/icmpv6.h"
 
 #ifdef CONFIG_NET_ICMPv6_SOCKET
@@ -198,7 +197,7 @@ static void sendto_request(FAR struct net_driver_s *dev,
   /* Calculate the ICMPv6 checksum over the ICMPv6 header and payload. */
 
   icmpv6->chksum = 0;
-  icmpv6->chksum = ~icmpv6_chksum(dev);
+  icmpv6->chksum = ~icmpv6_chksum(dev, IPv6_HDRLEN);
   if (icmpv6->chksum == 0)
     {
       icmpv6->chksum = 0xffff;
@@ -389,7 +388,7 @@ ssize_t icmpv6_sendto(FAR struct socket *psock, FAR const void *buf, size_t len,
 
   /* Get the device that will be used to route this ICMPv6 ECHO request */
 
-  dev = netdev_findby_ipv6addr(g_ipv6_unspecaddr,
+  dev = netdev_findby_ripv6addr(g_ipv6_unspecaddr,
                                inaddr->sin6_addr.s6_addr16);
   if (dev == NULL)
     {
@@ -450,7 +449,7 @@ ssize_t icmpv6_sendto(FAR struct socket *psock, FAR const void *buf, size_t len,
 
   /* Set up the callback */
 
-  state.snd_cb = icmpv6_callback_alloc(dev);
+  state.snd_cb = icmpv6_callback_alloc(dev, conn);
   if (state.snd_cb)
     {
       state.snd_cb->flags   = (ICMPv6_POLL | NETDEV_DOWN);
@@ -479,7 +478,7 @@ ssize_t icmpv6_sendto(FAR struct socket *psock, FAR const void *buf, size_t len,
       ninfo("Start time: 0x%08x\n", state.snd_time);
       net_lockedwait(&state.snd_sem);
 
-      icmpv6_callback_free(dev, state.snd_cb);
+      icmpv6_callback_free(dev, conn, state.snd_cb);
     }
 
   net_unlock();

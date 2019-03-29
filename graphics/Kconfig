@@ -23,14 +23,50 @@ config NX_LCDDRIVER
 		this this option is provide to select, instead, the LCD driver interface
 		defined in include/nuttx/lcd/lcd.h.
 
+config NX_NDISPLAYS
+	int "Maximum number of displays supported"
+	default 1
+	range 1 9
+	---help---
+		The maximum number of displays that can be supported by the NX server.
+		Normally this takes the value one but may be increased to support systems
+		with multiple displays.
+
 config NX_NPLANES
 	int "Number of Color Planes"
 	default 1
+	range 1 8
 	---help---
 		Some YUV color formats requires support for multiple planes, one for
 		each color component.  Unless you have such special hardware (and
 		are willing to debug a lot of untested logic), this value should be
 		set to 1.
+
+config NX_RAMBACKED
+	bool "RAM backed windows"
+	default n
+	---help---
+		If this option is selected, then windows may be optionally created
+		with a RAM frambuffer backing up the window content.  Rending into
+		the window will result in rending into the backup framebuffer, then
+		updating the physical display from the framebuffer.
+
+		The advantage of this option is that the application that manages
+		window will no longer receive redraw() callbacks.  Those calls
+		normally occur when a window "above" moves exposing a portion of the
+		window below.  If this option is selected, then the system will
+		redraw the exposed portion of the window from the backup framebuffer
+		without intervention of the window applications.  This greatly
+		reduces the complexity of the application and performance of the
+		window at the expense of increased memory usage.
+
+		Redraw requests in other cases are also suppressed:  Changes to window
+		position, size, etc.  As a consequence, some manual updates will be
+		required when certain events occurr (like removing a toolbar from a
+		window).
+
+		NOTE:  A significant amount of RAM, usually external SDRAM, may be
+		required to use per-window framebuffers.
 
 config NX_BGCOLOR
 	hex "Initial background color"
@@ -394,10 +430,10 @@ config NXSTART_EXTERNINIT
 	select LCD_EXTERNINIT if LCD && LCD_FRAMEBUFFER && NX_LCDDRIVER
 	---help---
 		Define to support external display initialization by platform-
-		specific code.  This this option is defined, then nx_start() will
-		call board_graphics_setup(CONFIG_NXSTART_DEVNO) to initialize the
-		graphics device.  This option is necessary if display is used that
-		cannot be initialized using the standard LCD or framebuffer
+		specific code.  This this option is defined, then nxmu_start()
+		will call board_graphics_setup(CONFIG_NXSTART_DEVNO) to initialize
+		the graphics device.  This option is necessary if display is used
+		that cannot be initialized using the standard LCD or framebuffer
 		interfaces.
 
 config NXSTART_SERVERPRIO
@@ -422,22 +458,6 @@ config NXSTART_DEVNO
 	---help---
 		LCD device number (in case there are more than one LCDs connected).
 		Default: 0
-
-config NXSTART_DISPLAYNO
-	int "Display Number"
-	default 0
-	depends on !NX_LCDDRIVER && !NXSTART_EXTERNINIT
-	---help---
-		Framebuffer display number (in case there are more than one framebuffers).
-		Default: 0
-
-config NXSTART_VPLANE
-	int "Plane Number"
-	default 0
-	depends on !NX_LCDDRIVER && !NXSTART_EXTERNINIT
-	---help---
-		Only a single video plane is supported. Default: 0
-
 source "graphics/vnc/Kconfig"
 
 endif # NX

@@ -49,6 +49,10 @@ config TELNET_CHARACTER_MODE
 		will echo a character which telnet client sent. By default, it works
 		in line mode.
 
+config TELNET_SUPPORT_NAWS
+	bool "Support NAWS (Negotiate About Window Size)"
+	default n
+
 endif # NETDEV_TELNET
 
 config ARCH_HAVE_NETDEV_STATISTICS
@@ -61,35 +65,6 @@ config NETDEV_STATISTICS
 	---help---
 		Enable to collect statistics from the network drivers (if supported
 		by the network driver).
-
-config NETDEV_LATEINIT
-	bool "Late driver initialization"
-	default n
-	---help---
-		Normally, networking initialization occur in the later phase of the
-		boot process in the function up_initialize() when it calls the
-		driver initialization function, up_netintialize().  This
-		initialization occurs after a sufficient about of the OS has been
-		initialized so that driver registration can be performed, but
-		before the completion of OS initialization and before the first
-		application is started.
-
-		In a few situations, however, you may want to suppress this early
-		network driver initialization.  As examples:
-
-			- If you are using SLIP or PPPD, then there will be no network
-			  driver to be initialized,
-			- Certain multi-network configurations where a simple call to
-			  up_netinitialize() may be insufficient, and
-			- Situations where there are other board-level hardware
-			  dependencies so that the hardware is not in an appropriate
-			  state for up_netinitialize() to be called.
-
-		Examples of this latter situation includes such things as network
-		drivers that required some setup via an I2C I/O expander, or network
-		drivers that depend on USB, SPI, I2C, PCI, serial, or other
-		interfaces that may not be ready when up_netiniailize() is normally
-		called.
 
 config NET_DUMPPACKET
 	bool "Enable packet dumping"
@@ -170,26 +145,6 @@ config DM9X_NINTERFACES
 	default 1
 	depends on EXPERIMENTAL
 
-choice
-	prompt "Work queue"
-	default DM9X_LPWORK if SCHED_LPWORK
-	default DM9X_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
-	depends on SCHED_WORKQUEUE
-	---help---
-		Work queue support is required to use the Ethernet driver.  If the
-		low priority work queue is available, then it should be used by the
-		driver.
-
-config DM9X_HPWORK
-	bool "High priority"
-	depends on SCHED_HPWORK
-
-config DM9X_LPWORK
-	bool "Low priority"
-	depends on SCHED_LPWORK
-
-endchoice # Work queue
-
 endif # NET_DM90x0
 
 menuconfig ENC28J60
@@ -227,26 +182,6 @@ config ENC28J60_FREQUENCY
 	default 20000000
 	---help---
 		Define to use a different bus frequency
-
-choice
-	prompt "Work queue"
-	default ENC28J60_LPWORK if SCHED_LPWORK
-	default ENC28J60_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
-	depends on SCHED_WORKQUEUE
-	---help---
-		Work queue support is required to use the ENC28J60 driver.  If the
-		low priority work queue is available, then it should be used by the
-		ENC28J60 driver.
-
-config ENC28J60_HPWORK
-	bool "High priority"
-	depends on SCHED_HPWORK
-
-config ENC28J60_LPWORK
-	bool "Low priority"
-	depends on SCHED_LPWORK
-
-endchoice # Work queue
 
 config ENC28J60_HALFDUPPLEX
 	bool "Enable half dupplex"
@@ -315,26 +250,6 @@ config ENCX24J600_NRXDESCR
 		transmission and reception queues.
 		The ENC has a relative large packet buffer of 24kB which can
 		be used to buffer multiple packets simutaneously
-
-choice
-	prompt "Work queue"
-	default ENCX24J600_LPWORK if SCHED_LPWORK
-	default ENCX24J600_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
-	depends on SCHED_WORKQUEUE
-	---help---
-		Work queue support is required to use the ENCX24J600 driver.  If the
-		low priority work queue is available, then it should be used by the
-		ENCX24J600 driver.
-
-config ENCX24J600_HPWORK
-	bool "High priority"
-	depends on SCHED_HPWORK
-
-config ENCX24J600_LPWORK
-	bool "Low priority"
-	depends on SCHED_LPWORK
-
-endchoice # Work queue
 
 config ENCX24J600_DUMPPACKET
 	bool "Dump Packets"
@@ -410,26 +325,6 @@ config FTMAC100_MAC0_ENV_ADDR
 	hex "MAC0 address location"
 	default 0
 
-choice
-	prompt "Work queue"
-	default FTMAC100_LPWORK if SCHED_LPWORK
-	default FTMAC100_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
-	depends on SCHED_WORKQUEUE
-	---help---
-		Work queue support is required to use the FTMAC100 driver.  If the
-		low priority work queue is available, then it should be used by the
-		FTMAC100 driver.
-
-config FTMAC100_HPWORK
-	bool "High priority"
-	depends on SCHED_HPWORK
-
-config FTMAC100_LPWORK
-	bool "Low priority"
-	depends on SCHED_LPWORK
-
-endchoice # Work queue
-
 endif # NET_FTMAC100
 
 menuconfig NET_LAN91C111
@@ -441,27 +336,6 @@ menuconfig NET_LAN91C111
 		DS00002276A, 2016 Microchip Technology Inc.
 
 if NET_LAN91C111
-
-choice
-	prompt "Work queue"
-	default LAN91C111_LPWORK if SCHED_LPWORK
-	default LAN91C111_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
-	depends on SCHED_WORKQUEUE
-	---help---
-		Work queue support is required to use the Ethernet driver. If the
-		low priority work queue is available, then it should be used by the
-		driver.
-
-config LAN91C111_HPWORK
-	bool "High priority"
-	depends on SCHED_HPWORK
-
-config LAN91C111_LPWORK
-	bool "Low priority"
-	depends on SCHED_LPWORK
-
-endchoice # Work queue
-
 endif # NET_LAN91C111
 
 if ARCH_HAVE_PHY

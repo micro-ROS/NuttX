@@ -120,10 +120,14 @@
 #  error "Callback support requires CONFIG_SCHED_WORKQUEUE"
 #endif
 
-/* Timing */
+#ifndef CONFIG_SDIO_BLOCKSETUP
+#  error "Driver requires CONFIG_SDIO_BLOCKSETUP to be set"
+#endif
 
-#define SDCARD_CMDTIMEOUT       (10000)
-#define SDCARD_LONGTIMEOUT      (0x7fffffff)
+/* Timing : 100mS short timeout, 2 seconds for long one */
+
+#define SDCARD_CMDTIMEOUT       MSEC2TICK(100)
+#define SDCARD_LONGTIMEOUT      MSEC2TICK(2000)
 
 /* Type of Card Bus Size */
 
@@ -135,6 +139,10 @@
 
 #define LPC43_TXFIFO_SIZE       (LPC43_TXFIFO_DEPTH | LPC43_TXFIFO_WIDTH)
 #define LPC43_RXFIFO_SIZE       (LPC43_RXFIFO_DEPTH | LPC43_RXFIFO_WIDTH)
+
+/* Number of DMA Descriptors */
+
+#define NUM_DMA_DESCRIPTORS     (1 + (0x10000 / MCI_DMADES1_MAXTR))
 
 /* Data transfer interrupt mask bits */
 
@@ -192,7 +200,7 @@
  * Eg. Fsd = 44MHz, ticks = 660,000
  */
 
-#define DEBOUNCE_TICKS          (15 * BOARD_SDMMC_FREQUENCY / 1000)
+#define DEBOUNCE_TICKS          (15 * (BOARD_SDMMC_FREQUENCY / 1000))
 
 /****************************************************************************
  * Private Types
@@ -308,6 +316,10 @@ static int  lpc43_attach(FAR struct sdio_dev_s *dev);
 
 static int  lpc43_sendcmd(FAR struct sdio_dev_s *dev, uint32_t cmd,
               uint32_t arg);
+#ifdef CONFIG_SDIO_BLOCKSETUP
+static void lpc43_blocksetup(FAR struct sdio_dev_s *dev,
+              unsigned int blocklen, unsigned int nblocks);
+#endif
 static int  lpc43_recvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
               size_t nbytes);
 static int  lpc43_sendsetup(FAR struct sdio_dev_s *dev,
@@ -363,6 +375,9 @@ struct lpc43_dev_s g_scard_dev =
     .clock            = lpc43_clock,
     .attach           = lpc43_attach,
     .sendcmd          = lpc43_sendcmd,
+#ifdef CONFIG_SDIO_BLOCKSETUP
+    .blocksetup       = lpc43_blocksetup,
+#endif
     .recvsetup        = lpc43_recvsetup,
     .sendsetup        = lpc43_sendsetup,
     .cancel           = lpc43_cancel,
@@ -386,7 +401,7 @@ struct lpc43_dev_s g_scard_dev =
 };
 
 #ifdef CONFIG_LPC43_SDMMC_DMA
-static struct sdmmc_dma_s g_sdmmc_dmadd[1 + (0x10000 / MCI_DMADES1_MAXTR)];
+static struct sdmmc_dma_s g_sdmmc_dmadd[NUM_DMA_DESCRIPTORS];
 #endif
 
 /****************************************************************************
@@ -606,28 +621,36 @@ static inline void lpc43_sdcard_clock(bool enable)
  *   arg - The argument to use with the command.
  *
  * Returned Value:
- *   None
+ *   Returns zero on success.  One will be returned on a timeout.
  *
  ****************************************************************************/
 
 static int lpc43_ciu_sendcmd(uint32_t cmd, uint32_t arg)
 {
-  volatile int32_t tmo = SDCARD_CMDTIMEOUT;
+  clock_t watchtime;
 
   mcinfo("cmd=%04lx arg=%04lx\n", (unsigned long)cmd, (unsigned long)arg);
+  DEBUGASSERT((lpc43_getreg(LPC43_SDMMC_CMD) & SDMMC_CMD_STARTCMD) == 0);
 
   /* Set command arg reg */
 
   lpc43_putreg(arg, LPC43_SDMMC_CMDARG);
   lpc43_putreg(SDMMC_CMD_STARTCMD | cmd, LPC43_SDMMC_CMD);
 
-  /* Poll until command is accepted by the CIU */
+  /* Poll until command is accepted by the CIU, or we timeout */
 
-  while (--tmo > 0 && (lpc43_getreg(LPC43_SDMMC_CMD) & SDMMC_CMD_STARTCMD) != 0)
+  watchtime = clock_systimer();
+
+  while ((lpc43_getreg(LPC43_SDMMC_CMD) & SDMMC_CMD_STARTCMD) != 0)
     {
+      if (watchtime - clock_systimer() > SDCARD_CMDTIMEOUT)
+        {
+          mcerr("TMO Timed out (%08X)\n",lpc43_getreg(LPC43_SDMMC_CMD));
+          return 1;
+        }
     }
 
-  return (tmo < 1) ? 1 : 0;
+  return 0;
 }
 
 /****************************************************************************
@@ -1003,7 +1026,7 @@ static int lpc43_sdmmc_interrupt(int irq, void *context, FAR void *arg)
         }
 #endif
 
-      /* Handle idata transfer events ***************************************/
+      /* Handle data transfer events ****************************************/
 
       pending = enabled & priv->xfrmask;
       if (pending != 0)
@@ -1016,7 +1039,6 @@ static int lpc43_sdmmc_interrupt(int irq, void *context, FAR void *arg)
 
               /* Transfer data to the TX FIFO */
 
-              mcinfo("Write FIFO\n");
               DEBUGASSERT(priv->wrdir);
 
               for (status = lpc43_getreg(LPC43_SDMMC_STATUS);
@@ -1028,20 +1050,6 @@ static int lpc43_sdmmc_interrupt(int irq, void *context, FAR void *arg)
                   priv->buffer++;
                   priv->remaining -= 4;
                 }
-
-              /* If all of the data has been transferred to the FIFO, then
-               * disable further TX data requests and wait for the data end
-               * event.
-               */
-
-              if (priv->remaining <= 0)
-                {
-                  uint32_t intmask = lpc43_getreg(LPC43_SDMMC_INTMASK);
-                  intmask &= ~SDMMC_INT_TXDR;
-                  lpc43_putreg(intmask, LPC43_SDMMC_INTMASK);
-
-                  priv->xfrmask &= ~SDMMC_INT_TXDR;
-                }
             }
           else if ((pending & SDMMC_INT_RXDR) != 0)
             {
@@ -1049,7 +1057,6 @@ static int lpc43_sdmmc_interrupt(int irq, void *context, FAR void *arg)
 
               /* Transfer data from the RX FIFO */
 
-              mcinfo("Read from FIFO\n");
               DEBUGASSERT(!priv->wrdir);
 
               for (status = lpc43_getreg(LPC43_SDMMC_STATUS);
@@ -1060,18 +1067,6 @@ static int lpc43_sdmmc_interrupt(int irq, void *context, FAR void *arg)
                   *priv->buffer = lpc43_getreg(LPC43_SDMMC_DATA);
                   priv->buffer++;
                   priv->remaining -= 4;
-                }
-
-              /* If all of the data has been transferred to the FIFO, then
-               * just force DTO event processing (the DTO interrupt is not
-               * actually even enabled in this use case).
-               */
-
-              if (priv->remaining <= 0)
-                {
-                  /* Force the DTO event */
-
-                  pending |= SDMMC_INT_DTO;
                 }
             }
 
@@ -1333,7 +1328,7 @@ static void lpc43_reset(FAR struct sdio_dev_s *dev)
 
   /* Define MAX Timeout */
 
-  lpc43_putreg(SDCARD_LONGTIMEOUT, LPC43_SDMMC_TMOUT);
+  lpc43_putreg(0x7fffffff, LPC43_SDMMC_TMOUT);
 
   /* Disable clock to CIU (needs latch) */
 
@@ -1394,6 +1389,17 @@ static sdio_capset_t lpc43_capabilities(FAR struct sdio_dev_s *dev)
 static sdio_statset_t lpc43_status(FAR struct sdio_dev_s *dev)
 {
   struct lpc43_dev_s *priv = (struct lpc43_dev_s *)dev;
+
+#ifdef CONFIG_MMCSD_HAVE_CARDDETECT
+  if ((lpc43_getreg(LPC43_SDMMC_CDETECT) & SDMMC_CDETECT_NOTPRESENT) == 0)
+    {
+      priv->cdstatus |= SDIO_STATUS_PRESENT;
+    }
+  else
+    {
+      priv->cdstatus &= ~SDIO_STATUS_PRESENT;
+    }
+#endif
 
   mcinfo("cdstatus=%02x\n", priv->cdstatus);
 
@@ -1649,6 +1655,36 @@ static int lpc43_sendcmd(FAR struct sdio_dev_s *dev, uint32_t cmd,
 }
 
 /****************************************************************************
+ * Name: lpc43_blocksetup
+ *
+ * Description:
+ *   Configure block size and the number of blocks for next transfer
+ *
+ * Input Parameters:
+ *   dev       - An instance of the SDIO device interface
+ *   blocklen  - The selected block size.
+ *   nblocklen - The number of blocks to transfer
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SDIO_BLOCKSETUP
+static void lpc43_blocksetup(FAR struct sdio_dev_s *dev,
+                             unsigned int blocklen, unsigned int nblocks)
+{
+  mcinfo("blocklen=%ld, total transfer=%ld (%ld blocks)\n",
+         blocklen, blocklen * nblocks, nblocks);
+
+  /* Configure block size for next transfer */
+
+  lpc43_putreg(blocklen, LPC43_SDMMC_BLKSIZ);
+  lpc43_putreg(blocklen * nblocks, LPC43_SDMMC_BYTCNT);
+}
+#endif
+
+/****************************************************************************
  * Name: lpc43_recvsetup
  *
  * Description:
@@ -1673,8 +1709,6 @@ static int lpc43_recvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
                            size_t nbytes)
 {
   struct lpc43_dev_s *priv = (struct lpc43_dev_s *)dev;
-  uint32_t blocksize;
-  uint32_t bytecnt;
 #ifdef CONFIG_LPC43_SDMMC_DMA
   uint32_t regval;
 #endif
@@ -1693,23 +1727,6 @@ static int lpc43_recvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
   priv->dmamode   = false;
 #endif
 
-  /* Then set up the SD card data path */
-
-  if (nbytes < 64)
-    {
-      blocksize = nbytes;
-      bytecnt   = nbytes;
-    }
-  else
-    {
-      blocksize = 64;
-      bytecnt   = nbytes;
-      DEBUGASSERT((nbytes & 0x3f) == 0);
-    }
-
-  lpc43_putreg(blocksize, LPC43_SDMMC_BLKSIZ);
-  lpc43_putreg(bytecnt, LPC43_SDMMC_BYTCNT);
-
   /* Configure the FIFO so that we will receive the RXDR interrupt whenever
    * there are more than 1 words (at least 8 bytes) in the RX FIFO.
    */
@@ -1725,6 +1742,10 @@ static int lpc43_recvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
   regval &= ~SDMMC_CTRL_INTDMA;
   lpc43_putreg(regval, LPC43_SDMMC_CTRL);
 #endif
+
+  /* Flush ints before we start */
+
+  lpc43_putreg(SDCARD_TRANSFER_ALL, LPC43_SDMMC_RINTSTS);
 
   /* Configure the transfer interrupts */
 
@@ -1789,6 +1810,10 @@ static int lpc43_sendsetup(FAR struct sdio_dev_s *dev, FAR const uint8_t *buffer
   regval &= ~SDMMC_CTRL_INTDMA;
   lpc43_putreg(regval, LPC43_SDMMC_CTRL);
 #endif
+
+  /* Flush ints before we start */
+
+  lpc43_putreg(SDCARD_TRANSFER_ALL, LPC43_SDMMC_RINTSTS);
 
   /* Configure the transfer interrupts */
 
@@ -1857,6 +1882,7 @@ static int lpc43_cancel(FAR struct sdio_dev_s *dev)
 static int lpc43_waitresponse(FAR struct sdio_dev_s *dev, uint32_t cmd)
 {
   volatile int32_t timeout;
+  clock_t watchtime;
   uint32_t events;
 
   mcinfo("cmd=%04x\n", cmd);
@@ -1896,13 +1922,15 @@ static int lpc43_waitresponse(FAR struct sdio_dev_s *dev, uint32_t cmd)
 
   /* Then wait for the response (or timeout or error) */
 
+  watchtime = clock_systimer();
   while ((lpc43_getreg(LPC43_SDMMC_RINTSTS) & events) != events)
     {
-      if (--timeout <= 0)
+      if (clock_systimer() - watchtime > timeout)
         {
           mcerr("ERROR: Timeout cmd: %04x events: %04x STA: %08x RINTSTS: %08x\n",
                 cmd, events, lpc43_getreg(LPC43_SDMMC_STATUS),
                 lpc43_getreg(LPC43_SDMMC_RINTSTS));
+
           return -ETIMEDOUT;
         }
       else if ((lpc43_getreg(LPC43_SDMMC_RINTSTS) & SDCARD_INT_RESPERR) != 0)
@@ -1910,6 +1938,7 @@ static int lpc43_waitresponse(FAR struct sdio_dev_s *dev, uint32_t cmd)
           mcerr("ERROR: SDMMC failure cmd: %04x events: %04x STA: %08x RINTSTS: %08x\n",
                 cmd, events, lpc43_getreg(LPC43_SDMMC_STATUS),
                 lpc43_getreg(LPC43_SDMMC_RINTSTS));
+
           return -EIO;
         }
     }
@@ -2420,7 +2449,7 @@ static int lpc43_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
       return lpc43_recvsetup(dev, buffer, buflen);
     }
 
-  mcinfo("buflen=%lu\n", (unsigned long)buflen);
+  mcinfo("buffer=%p buflen=%lu\n", buffer, (unsigned long)buflen, buffer);
   DEBUGASSERT(buffer != NULL && buflen > 0 && ((uint32_t)buffer & 3) == 0);
 
   /* Reset DMA controller internal registers.  The SWR bit automatically
@@ -2442,7 +2471,7 @@ static int lpc43_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
   regval |= SDMMC_CTRL_FIFORESET | SDMMC_CTRL_DMARESET;
   lpc43_putreg(regval, LPC43_SDMMC_CTRL);
 
-  while ((lpc43_getreg(LPC43_SDMMC_CTRL) & SDMMC_CTRL_DMARESET) != 0)
+  while ((lpc43_getreg(LPC43_SDMMC_CTRL) & (SDMMC_CTRL_FIFORESET | SDMMC_CTRL_DMARESET)) != 0)
     {
     }
 
@@ -2492,28 +2521,33 @@ static int lpc43_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
       if (buflen == 0)
         {
           ctrl |= MCI_DMADES0_LD;
+          g_sdmmc_dmadd[i].des3 = 0;
         }
       else
         {
           ctrl |= MCI_DMADES0_DIC;
+          g_sdmmc_dmadd[i].des3 = (uint32_t)&g_sdmmc_dmadd[i + 1];
         }
 
-      /* Another descriptor is needed */
-
       g_sdmmc_dmadd[i].des0 = ctrl;
-      g_sdmmc_dmadd[i].des3 = (uint32_t) &g_sdmmc_dmadd[i + 1];
       i++;
     }
 
+  DEBUGASSERT(i < NUM_DMA_DESCRIPTORS);
+
   lpc43_putreg((uint32_t)&g_sdmmc_dmadd[0], LPC43_SDMMC_DBADDR);
 
-   /* Enable internal DMA, burst size of 4, fixed burst */
+  /* Flush ints before we start */
+
+  lpc43_putreg(SDCARD_TRANSFER_ALL, LPC43_SDMMC_RINTSTS);
+
+  /* Enable internal DMA, burst size of 4, fixed burst */
 
   regval  = lpc43_getreg(LPC43_SDMMC_CTRL);
   regval |= SDMMC_CTRL_INTDMA;
   lpc43_putreg(regval, LPC43_SDMMC_CTRL);
 
-  regval = SDMMC_BMOD_DE | SDMMC_BMOD_PBL_4XFRS | SDMMC_BMOD_DSL(4);
+  regval = SDMMC_BMOD_DE | SDMMC_BMOD_PBL_4XFRS;
   lpc43_putreg(regval, LPC43_SDMMC_BMOD);
 
   /* Setup DMA error interrupts */
@@ -2548,6 +2582,9 @@ static int lpc43_dmasendsetup(FAR struct sdio_dev_s *dev,
 {
   struct lpc43_dev_s *priv = (struct lpc43_dev_s *)dev;
   uint32_t regval;
+  uint32_t ctrl;
+  uint32_t maxs;
+  int i;
 
   /* Don't bother with DMA if the entire transfer will fit in the TX FIFO or
    * if we do not have a 4-bit wide bus.
@@ -2584,7 +2621,7 @@ static int lpc43_dmasendsetup(FAR struct sdio_dev_s *dev,
   regval |= SDMMC_CTRL_FIFORESET | SDMMC_CTRL_DMARESET;
   lpc43_putreg(regval, LPC43_SDMMC_CTRL);
 
-  while ((lpc43_getreg(LPC43_SDMMC_CTRL) & SDMMC_CTRL_DMARESET) != 0)
+  while ((lpc43_getreg(LPC43_SDMMC_CTRL) & (SDMMC_CTRL_FIFORESET | SDMMC_CTRL_DMARESET)) != 0)
     {
     }
 
@@ -2598,20 +2635,69 @@ static int lpc43_dmasendsetup(FAR struct sdio_dev_s *dev,
 
   /* Setup DMA descriptor list */
 
-  g_sdmmc_dmadd[0].des0 = MCI_DMADES0_OWN | MCI_DMADES0_CH | MCI_DMADES0_LD;
-  g_sdmmc_dmadd[0].des1 = 512;
-  g_sdmmc_dmadd[0].des2 = (uint32_t)priv->buffer;
-  g_sdmmc_dmadd[0].des3 = (uint32_t)&g_sdmmc_dmadd[1];
+  i = 0;
+  while (buflen > 0)
+    {
+      /* Limit size of the transfer to maximum buffer size */
+
+      maxs = buflen;
+
+      if (maxs > MCI_DMADES1_MAXTR)
+        {
+          maxs = MCI_DMADES1_MAXTR;
+        }
+
+      buflen -= maxs;
+
+      /* Set buffer size */
+
+      g_sdmmc_dmadd[i].des1 = MCI_DMADES1_BS1(maxs);
+
+      /* Setup buffer address (chained) */
+
+      g_sdmmc_dmadd[i].des2 = (uint32_t)priv->buffer + (i * MCI_DMADES1_MAXTR);
+
+      /* Setup basic control */
+
+      ctrl = MCI_DMADES0_OWN | MCI_DMADES0_CH;
+
+      if (i == 0)
+        {
+          ctrl |= MCI_DMADES0_FS; /* First DMA buffer */
+        }
+
+      /* No more data?  Then this is the last descriptor */
+
+      if (buflen == 0)
+        {
+          ctrl |= MCI_DMADES0_LD;
+          g_sdmmc_dmadd[i].des3 = 0;
+        }
+      else
+        {
+          ctrl |= MCI_DMADES0_DIC;
+          g_sdmmc_dmadd[i].des3 = (uint32_t)&g_sdmmc_dmadd[i + 1];
+        }
+
+      g_sdmmc_dmadd[i].des0 = ctrl;
+      i++;
+    }
+
+  DEBUGASSERT(i < NUM_DMA_DESCRIPTORS);
 
   lpc43_putreg((uint32_t) &g_sdmmc_dmadd[0], LPC43_SDMMC_DBADDR);
 
-   /* Enable internal DMA, burst size of 4, fixed burst */
+  /* Flush ints before we start */
+
+  lpc43_putreg(SDCARD_TRANSFER_ALL, LPC43_SDMMC_RINTSTS);
+
+  /* Enable internal DMA, burst size of 4, fixed burst */
 
   regval  = lpc43_getreg(LPC43_SDMMC_CTRL);
   regval |= SDMMC_CTRL_INTDMA;
   lpc43_putreg(regval, LPC43_SDMMC_CTRL);
 
-  regval = SDMMC_BMOD_DE | SDMMC_BMOD_PBL_4XFRS | SDMMC_BMOD_DSL(4);
+  regval = SDMMC_BMOD_DE | SDMMC_BMOD_PBL_4XFRS;
   lpc43_putreg(regval, LPC43_SDMMC_BMOD);
 
   /* Setup DMA error interrupts */
@@ -2737,6 +2823,10 @@ FAR struct sdio_dev_s *lpc43_sdmmc_initialize(int slotno)
   regval |= CCU_CLK_CFG_AUTO;
   regval |= CCU_CLK_CFG_WAKEUP;
   lpc43_putreg(regval, LPC43_CCU1_M4_SDIO_CFG);
+
+  /* Setup the delay register */
+
+  lpc43_putreg(LPC43_SDMMC_DELAY_DEFAULT, LPC43_SDMMC_DELAY);
 
   /* Initialize semaphores */
 

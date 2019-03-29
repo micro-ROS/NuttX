@@ -47,7 +47,12 @@
 #include <nuttx/irq.h>
 #include <arch/chip/irq.h>
 
-#include <arch/lm32/irq.h>
+#ifdef CONFIG_ARCH_CHIP_LM32
+# include <arch/lm32/irq.h>
+#endif
+#ifdef CONFIG_ARCH_CHIP_MINERVA
+# include <arch/minerva/irq.h>
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -69,8 +74,8 @@ extern "C"
 #endif
 
 irqstate_t up_irq_save(void);
-void up_irq_restore(irqstate_t flags);
 irqstate_t up_irq_enable(void);
+void up_irq_restore(irqstate_t flags);
 
 #undef EXTERN
 #ifdef __cplusplus

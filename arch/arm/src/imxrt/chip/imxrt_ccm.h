@@ -2,7 +2,8 @@
  * arch/arm/src/imxrt/imxrt_ccm.h
  *
  *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
- *   Author:  Janne Rosberg <janne@offcode.fi>
+ *   Authors:  Janne Rosberg <janne@offcode.fi>
+ *             David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -159,6 +160,10 @@
 #define IMXRT_CCM_ANALOG_MISC1                   (IMXRT_ANATOP_BASE + IMXRT_CCM_ANALOG_MISC1_OFFSET)
 #define IMXRT_CCM_ANALOG_MISC2                   (IMXRT_ANATOP_BASE + IMXRT_CCM_ANALOG_MISC2_OFFSET)
 
+/* Helper Macros *********************************************************************************/
+
+#define CCM_PODF_FROM_DIVISOR(n)                   ((n)-1)  /* PODF Values are divisor-1 */
+
 /* Register bit definitions *********************************************************************************/
 
 /* Control Register */
@@ -210,7 +215,12 @@
 #define CCM_CBCDR_SEMC_PODF_MASK                 (0x3 << CCM_CBCDR_SEMC_PODF_SHIFT)
 # define CCM_CBCDR_SEMC_PODF(n)                  ((uint32_t)(n) << CCM_CBCDR_SEMC_PODF_SHIFT)
                                                            /* Bits 19-24: Reserved */
-#define CCM_CBCDR_SEMC_PERIPH_CLK_SEL            (1 << 25) /* Bit 25:     Selector for peripheral main clock */
+#define CCM_CBCDR_PERIPH_CLK_SEL_SHIFT           (25)      /* Bit 25:     Selector for peripheral main clock */
+#define CCM_CBCDR_PERIPH_CLK_SEL_MASK            (1 << CCM_CBCDR_PERIPH_CLK_SEL_SHIFT)
+#  define CCM_CBCDR_PERIPH_CLK_SEL(n)            ((uint32_t)(n) << CCM_CBCDR_PERIPH_CLK_SEL_SHIFT)
+#  define CCM_CBCDR_PERIPH_CLK_SEL_PRE_PERIPH    (0)
+#  define CCM_CBCDR_PERIPH_CLK_SEL_PERIPH_CLK2   (1)
+
                                                            /* Bit 26:     Reserved */
 #define CCM_CBCDR_PERIPH_CLK2_PODF_SHIFT         (27)      /* Bits 27-29: Divider for periph_clk2_podf */
 #define CCM_CBCDR_PERIPH_CLK2_PODF_MASK          (0x7 << CCM_CBCDR_PERIPH_CLK2_PODF_SHIFT)
@@ -227,8 +237,8 @@
 #  define CCM_CBCMR_LPSPI_CLK_SEL_PLL3_PFD0      ((uint32_t)(1) << CCM_CBCMR_LPSPI_CLK_SEL_SHIFT)
 #  define CCM_CBCMR_LPSPI_CLK_SEL_PLL2           ((uint32_t)(2) << CCM_CBCMR_LPSPI_CLK_SEL_SHIFT)
 #  define CCM_CBCMR_LPSPI_CLK_SEL_PLL2_PFD2      ((uint32_t)(3) << CCM_CBCMR_LPSPI_CLK_SEL_SHIFT)
-                                                          /* Bits 6-11:  Reserved */
-#define CCM_CBCMR_PERIPH_CLK2_SEL_SHIFT          (12)      /* Bits 13-13: Selector for peripheral clk2 clock multiplexer */
+                                                           /* Bits 6-11:  Reserved */
+#define CCM_CBCMR_PERIPH_CLK2_SEL_SHIFT          (12)      /* Bits 12-13: Selector for peripheral clk2 clock multiplexer */
 #define CCM_CBCMR_PERIPH_CLK2_SEL_MASK           (0x3 << CCM_CBCMR_PERIPH_CLK2_SEL_SHIFT)
 #  define CCM_CBCMR_PERIPH_CLK2_SEL(n)           ((uint32_t)(n) << CCM_CBCMR_PERIPH_CLK2_SEL_SHIFT)
 #  define CCM_CBCMR_PERIPH_CLK2_SEL_PLL3_SW      ((uint32_t)(0) << CCM_CBCMR_PERIPH_CLK2_SEL_SHIFT)
@@ -241,15 +251,15 @@
 #  define CCM_CBCMR_TRACE_CLK_SEL_PLL2_PFD2      ((uint32_t)(1) << CCM_CBCMR_TRACE_CLK_SEL_SHIFT)
 #  define CCM_CBCMR_TRACE_CLK_SEL_PLL2_PFD0      ((uint32_t)(2) << CCM_CBCMR_TRACE_CLK_SEL_SHIFT)
 #  define CCM_CBCMR_TRACE_CLK_SEL_PLL2_PFD1      ((uint32_t)(3) << CCM_CBCMR_TRACE_CLK_SEL_SHIFT)
-                                                          /* Bits 16-17: Reserved */
+                                                           /* Bits 16-17: Reserved */
 #define CCM_CBCMR_PRE_PERIPH_CLK_SEL_SHIFT       (18)      /* Bits 18-19: Selector for pre_periph clock multiplexer */
 #define CCM_CBCMR_PRE_PERIPH_CLK_SEL_MASK        (0x3 << CCM_CBCMR_PRE_PERIPH_CLK_SEL_SHIFT)
 #  define CCM_CBCMR_PRE_PERIPH_CLK_SEL(n)        ((uint32_t)(n) << CCM_CBCMR_PRE_PERIPH_CLK_SEL_SHIFT)
-#  define CCM_CBCMR_PRE_PERIPH_CLK_SEL_PLL2      ((uint32_t)(0) << CCM_CBCMR_PRE_PERIPH_CLK_SEL_SHIFT)
-#  define CCM_CBCMR_PRE_PERIPH_CLK_SEL_PLL2_PFD2 ((uint32_t)(1) << CCM_CBCMR_PRE_PERIPH_CLK_SEL_SHIFT)
-#  define CCM_CBCMR_PRE_PERIPH_CLK_SEL_PLL2_PFD0 ((uint32_t)(2) << CCM_CBCMR_PRE_PERIPH_CLK_SEL_SHIFT)
-#  define CCM_CBCMR_PRE_PERIPH_CLK_SEL_PLL1      ((uint32_t)(3) << CCM_CBCMR_PRE_PERIPH_CLK_SEL_SHIFT)
-                                                          /* Bits 20-22: Reserved */
+#  define CCM_CBCMR_PRE_PERIPH_CLK_SEL_PLL2      (0)
+#  define CCM_CBCMR_PRE_PERIPH_CLK_SEL_PLL2_PFD2 (1)
+#  define CCM_CBCMR_PRE_PERIPH_CLK_SEL_PLL2_PFD0 (2)
+#  define CCM_CBCMR_PRE_PERIPH_CLK_SEL_PLL1      (3)
+                                                           /* Bits 20-22: Reserved */
 #define CCM_CBCMR_LCDIF_PODF_SHIFT               (23)      /* Bits 23-25: Post-divider for LCDIF clock */
 #define CCM_CBCMR_LCDIF_PODF_MASK                (0x7 << CCM_CBCMR_LCDIF_PODF_SHIFT)
 # define CCM_CBCMR_LCDIF_PODF(n)                 ((uint32_t)(n) << CCM_CBCMR_LCDIF_PODF_SHIFT)
@@ -262,7 +272,11 @@
 #define CCM_CSCMR1_PERCLK_PODF_SHIFT             (0)       /* Bits 0-5:   Divider for perclk podf  */
 #define CCM_CSCMR1_PERCLK_PODF_MASK              (0x3f << CCM_CSCMR1_PERCLK_PODF_SHIFT)
 #  define CCM_CSCMR1_PERCLK_PODF(n)              ((uint32_t)(n) << CCM_CSCMR1_PERCLK_PODF_SHIFT)
-#define CCM_CSCMR1_PERCLK_CLK_SEL                (1 << 6)  /* Bit 6:      Selector for the perclk clock multiplexer */
+#define CCM_CSCMR1_PERCLK_CLK_SEL_SHIFT          (6)       /* Bit 6:      Selector for the perclk clock multiplexer */
+#define CCM_CSCMR1_PERCLK_CLK_SEL_MASK           (1 << CCM_CSCMR1_PERCLK_CLK_SEL_SHIFT)
+#  define CCM_CSCMR1_PERCLK_CLK_SEL(n)           ((uint32_t)(n) << CCM_CSCMR1_PERCLK_CLK_SEL_SHIFT)
+#  define CCM_CSCMR1_PERCLK_CLK_SEL_IPG_CLK_ROOT (0)
+#  define CCM_CSCMR1_PERCLK_CLK_SEL_OSC_CLK      (1)
                                                            /* Bits 7-9:   Reserved */
 #define CCM_CSCMR1_SAI1_CLK_SEL_SHIFT            (10)      /* Bits 10-11: Selector for sai1 clock multiplexer */
 #define CCM_CSCMR1_SAI1_CLK_SEL_MASK             (0x3 << CCM_CSCMR1_SAI1_CLK_SEL_SHIFT)
@@ -288,19 +302,19 @@
 #define CCM_CSCMR1_USDHC2_CLK_SEL                (1 << 17) /* Bit 17:     Selector for usdhc2 clock multiplexer */
 #  define CCM_CSCMR1_USDHC2_CLK_SEL_PLL2_PFD2    (0 << 17) /* derive clock from PLL2 PFD2 */
 #  define CCM_CSCMR1_USDHC2_CLK_SEL_PLL2_PFD0    (1 << 17) /* derive clock from PLL2 PFD0 */
-                                                          /* Bits 18-22: Reserved */
-#define CCM_CSCMR1_FLEXSPI_PODF_SHIFT            (23)     /* Bits 23-25: Divider for flexspi clock root */
+                                                           /* Bits 18-22: Reserved */
+#define CCM_CSCMR1_FLEXSPI_PODF_SHIFT            (23)      /* Bits 23-25: Divider for flexspi clock root */
 #define CCM_CSCMR1_FLEXSPI_PODF_MASK             (0x7 << CCM_CSCMR1_FLEXSPI_PODF_SHIFT)
 #  define CCM_CSCMR1_FLEXSPI_PODF(n)             ((uint32_t)(n) << CCM_CSCMR1_FLEXSPI_PODF_SHIFT)
-                                                          /* Bits 26-28: Reserved */
-#define CCM_CSCMR1_FLEXSPI_CLK_SEL_SHIFT         (29)     /* Bits 29-30: Selector for flexspi clock multiplexer */
+                                                           /* Bits 26-28: Reserved */
+#define CCM_CSCMR1_FLEXSPI_CLK_SEL_SHIFT         (29)      /* Bits 29-30: Selector for flexspi clock multiplexer */
 #define CCM_CSCMR1_FLEXSPI_CLK_SEL_MASK          (0x3 << CCM_CSCMR1_FLEXSPI_CLK_SEL_SHIFT)
 #  define CCM_CSCMR1_FLEXSPI_CLK_SEL(n)          ((uint32_t)(n) << CCM_CSCMR1_FLEXSPI_CLK_SEL_SHIFT)
 #  define CCM_CSCMR1_FLEXSPI_CLK_SEL_SEMC_CLK    ((uint32_t)(0) << CCM_CSCMR1_FLEXSPI_CLK_SEL_SHIFT)
 #  define CCM_CSCMR1_FLEXSPI_CLK_SEL_PLL3_SW     ((uint32_t)(1) << CCM_CSCMR1_FLEXSPI_CLK_SEL_SHIFT)
 #  define CCM_CSCMR1_FLEXSPI_CLK_SEL_PLL2_PFD2   ((uint32_t)(2) << CCM_CSCMR1_FLEXSPI_CLK_SEL_SHIFT)
 #  define CCM_CSCMR1_FLEXSPI_CLK_SEL_PLL3_PFD0   ((uint32_t)(3) << CCM_CSCMR1_FLEXSPI_CLK_SEL_SHIFT)
-                                                          /* Bit 31:     Reserved */
+                                                           /* Bit 31:     Reserved */
 
 /* Serial Clock Multiplexer Register 2 */
 
@@ -780,8 +794,8 @@
 
 /* Analog USB1 480MHz PLL Control Register */
 
-#define CCM_ANALOG_PLL_USB1_DIV_SELECT_SHIFT            (0)       /* Bits 0-1:   This field controls the PLL loop divider 20 or 22 */
-#define CCM_ANALOG_PLL_USB1_DIV_SELECT_MASK             (0x3 << CCM_ANALOG_PLL_USB1_DIV_SELECT_SHIFT)
+#define CCM_ANALOG_PLL_USB1_DIV_SELECT_SHIFT            (1)       /* Bits 0-1:   This field controls the PLL loop divider 20 or 22 */
+#define CCM_ANALOG_PLL_USB1_DIV_SELECT_MASK             (0x1 << CCM_ANALOG_PLL_USB1_DIV_SELECT_SHIFT)
 #  define CCM_ANALOG_PLL_USB1_DIV_SELECT_20             ((uint32_t)(0) << CCM_ANALOG_PLL_USB1_DIV_SELECT_SHIFT)
 #  define CCM_ANALOG_PLL_USB1_DIV_SELECT_22             ((uint32_t)(1) << CCM_ANALOG_PLL_USB1_DIV_SELECT_SHIFT)
                                                                   /* Bits 2-5    Reserved */
@@ -821,8 +835,8 @@
 #define CCM_ANALOG_PLL_SYS_DIV_SELECT_SHIFT             (0)       /* Bits 0-1:   This field controls the PLL loop divider 20 or 22 */
 #define CCM_ANALOG_PLL_SYS_DIV_SELECT_MASK              (0x3 << CCM_ANALOG_PLL_SYS_DIV_SELECT_SHIFT)
 #  define CCM_ANALOG_PLL_SYS_DIV_SELECT(n)              ((uint32_t)(n) << CCM_ANALOG_PLL_SYS_DIV_SELECT_SHIFT)
-#  define CCM_ANALOG_PLL_SYS_DIV_SELECT_20              ((uint32_t)(0) << CCM_ANALOG_PLL_SYS_DIV_SELECT_SHIFT)
-#  define CCM_ANALOG_PLL_SYS_DIV_SELECT_22              ((uint32_t)(1) << CCM_ANALOG_PLL_SYS_DIV_SELECT_SHIFT)
+#  define CCM_ANALOG_PLL_SYS_DIV_SELECT_20              (0)
+#  define CCM_ANALOG_PLL_SYS_DIV_SELECT_22              (1)
 #define CCM_ANALOG_PLL_SYS_POWERDOWN                    (1 << 12) /* Bit 12:     Powers down the PLL */
 #define CCM_ANALOG_PLL_SYS_ENABLE                       (1 << 13) /* Bit 13:     Enable the PLL clock output */
 #define CCM_ANALOG_PLL_SYS_BYPASS_CLK_SRC_SHIFT         (14)      /* Bits 14-15: Determines the bypass source */
@@ -1075,55 +1089,55 @@
 
 /* Miscellaneous Register 2 */
 
-#define CCM_ANALOG_MISC1_REG0_BO_OFFSET_SHIFT          (0)       /* Bits 0-2:   This field defines the brown out voltage offset */
-#define CCM_ANALOG_MISC1_REG0_BO_OFFSET_MASK           (0x7 << CCM_ANALOG_MISC1_REG0_BO_OFFSET_SHIFT)
-#  define CCM_ANALOG_MISC1_REG0_BO_OFFSET_0_100        ((uint32_t)(0) << CCM_ANALOG_MISC1_REG0_BO_OFFSET_SHIFT)
-#  define CCM_ANALOG_MISC1_REG0_BO_OFFSET_0_175        ((uint32_t)(1) << CCM_ANALOG_MISC1_REG0_BO_OFFSET_SHIFT)
-#define CCM_ANALOG_MISC1_REG0_BO_STATUS                (1 << 3)  /* Bit 3:      Reg0 brownout status bit */
+#define CCM_ANALOG_MISC2_REG0_BO_OFFSET_SHIFT          (0)       /* Bits 0-2:   This field defines the brown out voltage offset */
+#define CCM_ANALOG_MISC2_REG0_BO_OFFSET_MASK           (0x7 << CCM_ANALOG_MISC2_REG0_BO_OFFSET_SHIFT)
+#  define CCM_ANALOG_MISC2_REG0_BO_OFFSET_0_100        ((uint32_t)(0) << CCM_ANALOG_MISC2_REG0_BO_OFFSET_SHIFT)
+#  define CCM_ANALOG_MISC2_REG0_BO_OFFSET_0_175        ((uint32_t)(1) << CCM_ANALOG_MISC2_REG0_BO_OFFSET_SHIFT)
+#define CCM_ANALOG_MISC2_REG0_BO_STATUS                (1 << 3)  /* Bit 3:      Reg0 brownout status bit */
                                                                  /* Bit 4:      Reserved */
-#define CCM_ANALOG_MISC1_REG0_ENABLE_BO                (1 << 5)  /* Bit 5:      Enables the brownout detection */
-#define CCM_ANALOG_MISC1_REG0_OK                       (1 << 6)  /* Bit 6:      ARM supply */
-#define CCM_ANALOG_MISC1_PLL3_DISABLE                  (1 << 7)  /* Bit 7:      PLL3 can be disabled when the SoC is not in any low power mode */
-#define CCM_ANALOG_MISC1_REG1_BO_OFFSET_SHIFT          (8)       /* Bits 8-10:  This field defines the brown out voltage offset */
-#define CCM_ANALOG_MISC1_REG1_BO_OFFSET_MASK           (0x7 << CCM_ANALOG_MISC1_REG1_BO_OFFSET_SHIFT)
-#  define CCM_ANALOG_MISC1_REG1_BO_OFFSET_0_100        ((uint32_t)(0) << CCM_ANALOG_MISC1_REG1_BO_OFFSET_SHIFT)
-#  define CCM_ANALOG_MISC1_REG1_BO_OFFSET_0_175        ((uint32_t)(1) << CCM_ANALOG_MISC1_REG1_BO_OFFSET_SHIFT)
-#define CCM_ANALOG_MISC1_REG1_BO_STATUS                (1 << 11) /* Bit 11:     Reg1 brownout status bit */
+#define CCM_ANALOG_MISC2_REG0_ENABLE_BO                (1 << 5)  /* Bit 5:      Enables the brownout detection */
+#define CCM_ANALOG_MISC2_REG0_OK                       (1 << 6)  /* Bit 6:      ARM supply */
+#define CCM_ANALOG_MISC2_PLL3_DISABLE                  (1 << 7)  /* Bit 7:      PLL3 can be disabled when the SoC is not in any low power mode */
+#define CCM_ANALOG_MISC2_REG1_BO_OFFSET_SHIFT          (8)       /* Bits 8-10:  This field defines the brown out voltage offset */
+#define CCM_ANALOG_MISC2_REG1_BO_OFFSET_MASK           (0x7 << CCM_ANALOG_MISC2_REG1_BO_OFFSET_SHIFT)
+#  define CCM_ANALOG_MISC2_REG1_BO_OFFSET_0_100        ((uint32_t)(0) << CCM_ANALOG_MISC2_REG1_BO_OFFSET_SHIFT)
+#  define CCM_ANALOG_MISC2_REG1_BO_OFFSET_0_175        ((uint32_t)(1) << CCM_ANALOG_MISC2_REG1_BO_OFFSET_SHIFT)
+#define CCM_ANALOG_MISC2_REG1_BO_STATUS                (1 << 11) /* Bit 11:     Reg1 brownout status bit */
                                                                  /* Bit 12:     Reserved */
-#define CCM_ANALOG_MISC1_REG1_ENABLE_BO                (1 << 13) /* Bit 13:     Enables the brownout detection */
-#define CCM_ANALOG_MISC1_REG1_OK                       (1 << 14) /* Bit 14:     GPU/VPU supply */
-#define CCM_ANALOG_MISC1_AUDIO_DIV_LSB                 (1 << 15) /* Bit 15:     LSB of Post-divider for Audio PLL */
+#define CCM_ANALOG_MISC2_REG1_ENABLE_BO                (1 << 13) /* Bit 13:     Enables the brownout detection */
+#define CCM_ANALOG_MISC2_REG1_OK                       (1 << 14) /* Bit 14:     GPU/VPU supply */
+#define CCM_ANALOG_MISC2_AUDIO_DIV_LSB                 (1 << 15) /* Bit 15:     LSB of Post-divider for Audio PLL */
 
-#define CCM_ANALOG_MISC1_REG2_BO_OFFSET_SHIFT          (16)      /* Bits 16-18: This field defines the brown out voltage offset */
-#define CCM_ANALOG_MISC1_REG2_BO_OFFSET_MASK           (0x7 << CCM_ANALOG_MISC1_REG2_BO_OFFSET_SHIFT)
-#  define CCM_ANALOG_MISC1_REG2_BO_OFFSET_0_100        ((uint32_t)(0) << CCM_ANALOG_MISC1_REG2_BO_OFFSET_SHIFT)
-#  define CCM_ANALOG_MISC1_REG2_BO_OFFSET_0_175        ((uint32_t)(1) << CCM_ANALOG_MISC1_REG2_BO_OFFSET_SHIFT)
-#define CCM_ANALOG_MISC1_REG2_BO_STATUS                (1 << 19) /* Bit 19:     Reg2 brownout status bit */
+#define CCM_ANALOG_MISC2_REG2_BO_OFFSET_SHIFT          (16)      /* Bits 16-18: This field defines the brown out voltage offset */
+#define CCM_ANALOG_MISC2_REG2_BO_OFFSET_MASK           (0x7 << CCM_ANALOG_MISC2_REG2_BO_OFFSET_SHIFT)
+#  define CCM_ANALOG_MISC2_REG2_BO_OFFSET_0_100        ((uint32_t)(0) << CCM_ANALOG_MISC2_REG2_BO_OFFSET_SHIFT)
+#  define CCM_ANALOG_MISC2_REG2_BO_OFFSET_0_175        ((uint32_t)(1) << CCM_ANALOG_MISC2_REG2_BO_OFFSET_SHIFT)
+#define CCM_ANALOG_MISC2_REG2_BO_STATUS                (1 << 19) /* Bit 19:     Reg2 brownout status bit */
                                                                  /* Bit 20:     Reserved */
-#define CCM_ANALOG_MISC1_REG2_ENABLE_BO                (1 << 21) /* Bit 21:     Enables the brownout detection */
-#define CCM_ANALOG_MISC1_REG2_OK                       (1 << 22) /* Bit 22:     voltage is above the brownout level for the SOC supply */
-#define CCM_ANALOG_MISC1_AUDIO_DIV_MSB                 (1 << 23) /* Bit 23:     MSB of Post-divider for Audio PLL */
-#define CCM_ANALOG_MISC1_REG0_STEP_TIME_SHIFT          (24)      /* Bits 24-25: Number of clock periods (24MHz clock) */
-#define CCM_ANALOG_MISC1_REG0_STEP_TIME_MASK           (0x3 << CCM_ANALOG_MISC1_REG0_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG0_STEP_TIME_64           ((uint32_t)(0) << CCM_ANALOG_MISC1_REG0_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG0_STEP_TIME_128          ((uint32_t)(1) << CCM_ANALOG_MISC1_REG0_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG0_STEP_TIME_256          ((uint32_t)(2) << CCM_ANALOG_MISC1_REG0_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG0_STEP_TIME_512          ((uint32_t)(3) << CCM_ANALOG_MISC1_REG0_STEP_TIME_SHIFT)
-#define CCM_ANALOG_MISC1_REG1_STEP_TIME_SHIFT          (26)      /* Bits 26-27: Number of clock periods (24MHz clock) */
-#define CCM_ANALOG_MISC1_REG1_STEP_TIME_MASK           (0x3 << CCM_ANALOG_MISC1_REG1_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG1_STEP_TIME_64           ((uint32_t)(0) << CCM_ANALOG_MISC1_REG1_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG1_STEP_TIME_128          ((uint32_t)(1) << CCM_ANALOG_MISC1_REG1_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG1_STEP_TIME_256          ((uint32_t)(2) << CCM_ANALOG_MISC1_REG1_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG1_STEP_TIME_512          ((uint32_t)(3) << CCM_ANALOG_MISC1_REG1_STEP_TIME_SHIFT)
-#define CCM_ANALOG_MISC1_REG2_STEP_TIME_SHIFT          (28)      /* Bits 28-29: Number of clock periods (24MHz clock) */
-#define CCM_ANALOG_MISC1_REG2_STEP_TIME_MASK           (0x3 << CCM_ANALOG_MISC1_REG2_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG2_STEP_TIME_64           ((uint32_t)(0) << CCM_ANALOG_MISC1_REG2_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG2_STEP_TIME_128          ((uint32_t)(1) << CCM_ANALOG_MISC1_REG2_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG2_STEP_TIME_256          ((uint32_t)(2) << CCM_ANALOG_MISC1_REG2_STEP_TIME_SHIFT)
-#  define CCM_ANALOG_MISC1_REG2_STEP_TIME_512          ((uint32_t)(3) << CCM_ANALOG_MISC1_REG2_STEP_TIME_SHIFT)
+#define CCM_ANALOG_MISC2_REG2_ENABLE_BO                (1 << 21) /* Bit 21:     Enables the brownout detection */
+#define CCM_ANALOG_MISC2_REG2_OK                       (1 << 22) /* Bit 22:     voltage is above the brownout level for the SOC supply */
+#define CCM_ANALOG_MISC2_AUDIO_DIV_MSB                 (1 << 23) /* Bit 23:     MSB of Post-divider for Audio PLL */
+#define CCM_ANALOG_MISC2_REG0_STEP_TIME_SHIFT          (24)      /* Bits 24-25: Number of clock periods (24MHz clock) */
+#define CCM_ANALOG_MISC2_REG0_STEP_TIME_MASK           (0x3 << CCM_ANALOG_MISC2_REG0_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG0_STEP_TIME_64           ((uint32_t)(0) << CCM_ANALOG_MISC2_REG0_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG0_STEP_TIME_128          ((uint32_t)(1) << CCM_ANALOG_MISC2_REG0_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG0_STEP_TIME_256          ((uint32_t)(2) << CCM_ANALOG_MISC2_REG0_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG0_STEP_TIME_512          ((uint32_t)(3) << CCM_ANALOG_MISC2_REG0_STEP_TIME_SHIFT)
+#define CCM_ANALOG_MISC2_REG1_STEP_TIME_SHIFT          (26)      /* Bits 26-27: Number of clock periods (24MHz clock) */
+#define CCM_ANALOG_MISC2_REG1_STEP_TIME_MASK           (0x3 << CCM_ANALOG_MISC2_REG1_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG1_STEP_TIME_64           ((uint32_t)(0) << CCM_ANALOG_MISC2_REG1_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG1_STEP_TIME_128          ((uint32_t)(1) << CCM_ANALOG_MISC2_REG1_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG1_STEP_TIME_256          ((uint32_t)(2) << CCM_ANALOG_MISC2_REG1_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG1_STEP_TIME_512          ((uint32_t)(3) << CCM_ANALOG_MISC2_REG1_STEP_TIME_SHIFT)
+#define CCM_ANALOG_MISC2_REG2_STEP_TIME_SHIFT          (28)      /* Bits 28-29: Number of clock periods (24MHz clock) */
+#define CCM_ANALOG_MISC2_REG2_STEP_TIME_MASK           (0x3 << CCM_ANALOG_MISC2_REG2_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG2_STEP_TIME_64           ((uint32_t)(0) << CCM_ANALOG_MISC2_REG2_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG2_STEP_TIME_128          ((uint32_t)(1) << CCM_ANALOG_MISC2_REG2_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG2_STEP_TIME_256          ((uint32_t)(2) << CCM_ANALOG_MISC2_REG2_STEP_TIME_SHIFT)
+#  define CCM_ANALOG_MISC2_REG2_STEP_TIME_512          ((uint32_t)(3) << CCM_ANALOG_MISC2_REG2_STEP_TIME_SHIFT)
 
-#define CCM_ANALOG_MISC1_VIDEO_DIV_SHIFT               (30)      /* Bits 30-31: Post-divider for video */
-#define CCM_ANALOG_MISC1_VIDEO_DIV_MASK                (0x3 << CCM_ANALOG_MISC1_VIDEO_DIV_SHIFT)
-#  define CCM_ANALOG_MISC1_VIDEO_DIV(n)                ((uint32_t)(0) << CCM_ANALOG_MISC1_VIDEO_DIV_SHIFT)
+#define CCM_ANALOG_MISC2_VIDEO_DIV_SHIFT               (30)      /* Bits 30-31: Post-divider for video */
+#define CCM_ANALOG_MISC2_VIDEO_DIV_MASK                (0x3 << CCM_ANALOG_MISC2_VIDEO_DIV_SHIFT)
+#  define CCM_ANALOG_MISC2_VIDEO_DIV(n)                ((uint32_t)(n) << CCM_ANALOG_MISC2_VIDEO_DIV_SHIFT)
 
 #endif /* __ARCH_ARM_SRC_IMXRT_CHIP_IMXRT_CCM_H */

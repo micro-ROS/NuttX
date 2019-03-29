@@ -52,13 +52,9 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/arch.h>
 #include <nuttx/sched.h>
-#include <nuttx/signal.h>
 #include <nuttx/cancelpt.h>
 
 #include "sched/sched.h"
-#ifndef CONFIG_DISABLE_SIGNALS
-#  include "signal/signal.h"
-#endif
 #include "mqueue/mqueue.h"
 
 /****************************************************************************
@@ -91,11 +87,11 @@
  ****************************************************************************/
 
 int nxmq_verify_send(mqd_t mqdes, FAR const char *msg, size_t msglen,
-                     int prio)
+                     unsigned int prio)
 {
   /* Verify the input parameters */
 
-  if (!msg || !mqdes || prio < 0 || prio > MQ_PRIO_MAX)
+  if (msg == NULL || mqdes == NULL || prio > MQ_PRIO_MAX)
     {
       return -EINVAL;
     }
@@ -294,6 +290,11 @@ int nxmq_wait_send(mqd_t mqdes)
               saved_errno   = rtcb->pterrno;
               rtcb->pterrno = OK;
 
+              /* Make sure this is not the idle task, descheduling that
+               * isn't going to end well.
+               */
+
+              DEBUGASSERT(NULL != rtcb->flink);
               up_block_task(rtcb, TSTATE_WAIT_MQNOTFULL);
 
               /* When we resume at this point, either (1) the message queue
@@ -338,7 +339,7 @@ int nxmq_wait_send(mqd_t mqdes)
  ****************************************************************************/
 
 int nxmq_do_send(mqd_t mqdes, FAR struct mqueue_msg_s *mqmsg,
-                 FAR const char *msg, size_t msglen, int prio)
+                 FAR const char *msg, size_t msglen, unsigned int prio)
 {
   FAR struct tcb_s *btcb;
   FAR struct mqueue_inode_s *msgq;
@@ -410,30 +411,10 @@ int nxmq_do_send(mqd_t mqdes, FAR struct mqueue_msg_s *mqmsg,
       msgq->ntpid   = INVALID_PROCESS_ID;
       msgq->ntmqdes = NULL;
 
-      /* Notification the client via signal? */
+      /* Notification the client */
 
-      if (event.sigev_notify == SIGEV_SIGNAL)
-        {
-          /* Yes... Queue the signal -- What if this returns an error? */
-
-#ifdef CONFIG_CAN_PASS_STRUCTS
-          DEBUGVERIFY(nxsig_mqnotempty(pid, event.sigev_signo,
-                                       event.sigev_value));
-#else
-          DEBUGVERIFY(nxsig_mqnotempty(pid, event.sigev_signo,
-                                       event.sigev_value.sival_ptr));
-#endif
-        }
-
-#ifdef CONFIG_SIG_EVTHREAD
-      /* Notify the client via a function call */
-
-      else if (event.sigev_notify == SIGEV_THREAD)
-        {
-          DEBUGVERIFY(nxsig_notification(pid, &event));
-        }
-#endif
-
+      DEBUGVERIFY(nxsig_notification(pid, &event,
+                                     SI_MESGQ, &msgq->ntwork));
     }
 #endif
 

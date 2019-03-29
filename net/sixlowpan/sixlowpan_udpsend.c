@@ -206,8 +206,8 @@ ssize_t psock_6lowpan_udp_sendto(FAR struct socket *psock,
 
   /* Route outgoing message to the correct device */
 
-  dev = netdev_findby_ipv6addr(conn->u.ipv6.laddr,
-                               to6->sin6_addr.in6_u.u6_addr16);
+  dev = netdev_findby_ripv6addr(conn->u.ipv6.laddr,
+                                to6->sin6_addr.in6_u.u6_addr16);
   if (dev == NULL)
     {
       nwarn("WARNING: Not routable\n");
@@ -445,7 +445,6 @@ void sixlowpan_udp_send(FAR struct net_driver_s *dev,
 
   if (dev != NULL && dev->d_len > 0 && fwddev != NULL)
     {
-
       sixlowpan_dumpbuffer("Outgoing UDP packet",
                            (FAR const uint8_t *)ipv6udp, dev->d_len);
 

@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/sched/sched_resumescheduler.c
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,8 +48,7 @@
 #include "irq/irq.h"
 #include "sched/sched.h"
 
-#if CONFIG_RR_INTERVAL > 0 || defined(CONFIG_SCHED_SPORADIC) || \
-    defined(CONFIG_SCHED_INSTRUMENTATION) || defined(CONFIG_SMP)
+#if CONFIG_RR_INTERVAL > 0 || defined(CONFIG_SCHED_RESUMESCHEDULER)
 
 /****************************************************************************
  * Public Functions
@@ -96,9 +95,12 @@ void sched_resume_scheduler(FAR struct tcb_s *tcb)
     }
 #endif
 
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-  /* Inidicate the task has been resumed */
+  /* Indicate the task has been resumed */
 
+#ifdef CONFIG_SCHED_CRITMONITOR
+  sched_critmon_resume(tcb);
+#endif
+#ifdef CONFIG_SCHED_INSTRUMENTATION
   sched_note_resume(tcb);
 #endif
 
@@ -138,8 +140,6 @@ void sched_resume_scheduler(FAR struct tcb_s *tcb)
                   &g_cpu_irqlock);
     }
 #endif /* CONFIG_SMP */
-
 }
 
-#endif /* CONFIG_RR_INTERVAL > 0 || CONFIG_SCHED_SPORADIC || \
-        * CONFIG_SCHED_INSTRUMENTATION || CONFIG_SMP */
+#endif /* CONFIG_RR_INTERVAL > 0 || CONFIG_SCHED_RESUMESCHEDULER */

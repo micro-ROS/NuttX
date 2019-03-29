@@ -3,6 +3,7 @@
  *
  *   Copyright (C) 2009-2013, 2016-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *           Bob Feretich <bob.fereich@rafresearch.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1196,10 +1197,13 @@ static int mmcsd_transferready(FAR struct mmcsd_state_s *priv)
         }
 
       /* Check for the programming state. This is not an error.  It means
-       * that the card is still busy from the last (write) transfer.
+       * that the card is still busy from the last (write) transfer.  The
+       * card can also still be receiving data, for example, if hardware
+       * receive FIFOs are not yet empty.
        */
 
-      else if (!IS_STATE(r1, MMCSD_R1_STATE_PRG))
+      else if (!IS_STATE(r1, MMCSD_R1_STATE_PRG) &&
+               !IS_STATE(r1, MMCSD_R1_STATE_RCV))
         {
           /* Any other state would be an error in this context.  There is
            * a possibility that the card is not selected.  In this case,
@@ -1405,6 +1409,9 @@ static ssize_t mmcsd_readsingle(FAR struct mmcsd_state_s *priv,
 
   ret = mmcsd_eventwait(priv, SDIOWAIT_TIMEOUT | SDIOWAIT_ERROR,
                         MMCSD_BLOCK_RDATADELAY);
+#ifdef CONFIG_SDIO_DMA
+  SDIO_DMADELYDINVLDT(priv->dev, buffer, priv->blocksize);
+#endif
   if (ret != OK)
     {
       ferr("ERROR: CMD17 transfer failed: %d\n", ret);
@@ -1547,6 +1554,10 @@ static ssize_t mmcsd_readmultiple(FAR struct mmcsd_state_s *priv,
   /* Send STOP_TRANSMISSION */
 
   ret = mmcsd_stoptransmission(priv);
+#ifdef CONFIG_SDIO_DMA
+  SDIO_DMADELYDINVLDT(priv->dev, buffer, priv->blocksize * nblocks);
+#endif
+
   if (ret != OK)
     {
       ferr("ERROR: mmcsd_stoptransmission failed: %d\n", ret);
@@ -1791,6 +1802,8 @@ static ssize_t mmcsd_writesingle(FAR struct mmcsd_state_s *priv,
  *
  * Description:
  *   Write multiple, contiguous blocks of data to the physical device.
+ *   This function expects that the data to be written is contained in
+ *   one large buffer that is pointed to by buffer.
  *
  ****************************************************************************/
 

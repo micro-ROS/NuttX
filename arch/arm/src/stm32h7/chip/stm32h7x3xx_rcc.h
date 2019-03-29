@@ -67,15 +67,15 @@
 #define STM32_RCC_PLL2FRACR_OFFSET      0x003c  /* */
 #define STM32_RCC_PLL3DIVR_OFFSET       0x0040  /* */
 #define STM32_RCC_PLL3FRACR_OFFSET      0x0044  /* */
-#define STM32_RCC_D1CCIPR_OFFSET        0x004c  /* */
-#define STM32_RCC_D2CCIP1R_OFFSET       0x0050  /* */
-#define STM32_RCC_D2CCIP2R_OFFSET       0x0054  /* */
-#define STM32_RCC_D3CCIPR_OFFSET        0x0058  /* */
-#define STM32_RCC_CIER_OFFSET           0x0060  /* */
-#define STM32_RCC_CIFR_OFFSET           0x0064  /* */
-#define STM32_RCC_CICR_OFFSET           0x0068  /* */
-#define STM32_RCC_BDCR_OFFSET           0x0070  /* */
-#define STM32_RCC_CSR_OFFSET            0x0074  /* */
+#define STM32_RCC_D1CCIPR_OFFSET        0x004c  /* Domain 1 Kernel Clock configuration register */
+#define STM32_RCC_D2CCIP1R_OFFSET       0x0050  /* Domain 2 Kernel Clock configuration register 1 */
+#define STM32_RCC_D2CCIP2R_OFFSET       0x0054  /* Domain 2 Kernel Clock configuration register 2 */
+#define STM32_RCC_D3CCIPR_OFFSET        0x0058  /* Domain 3 Kernel Clock configuration register */
+#define STM32_RCC_CIER_OFFSET           0x0060  /* Clock Source Interrupt enable register */
+#define STM32_RCC_CIFR_OFFSET           0x0064  /* Clock Source Interrupt Flag register */
+#define STM32_RCC_CICR_OFFSET           0x0068  /* Clock Source Interrupt Clear register  */
+#define STM32_RCC_BDCR_OFFSET           0x0070  /* Backup Domain Control register */
+#define STM32_RCC_CSR_OFFSET            0x0074  /* Clock Control and Status register */
 #define STM32_RCC_AHB1RSTR_OFFSET       0x0080  /* AHB1 peripheral reset register */
 #define STM32_RCC_AHB2RSTR_OFFSET       0x0084  /* AHB2 peripheral reset register */
 #define STM32_RCC_AHB3RSTR_OFFSET       0x007c  /* AHB3 peripheral reset register */
@@ -85,9 +85,9 @@
 #define STM32_RCC_APB2RSTR_OFFSET       0x0098  /* APB2 Peripheral reset register */
 #define STM32_RCC_APB3RSTR_OFFSET       0x008c  /* APB3 Peripheral reset register */
 #define STM32_RCC_APB4RSTR_OFFSET       0x009c  /* APB4 Peripheral reset register */
-#define STM32_RCC_GCR_OFFSET            0x00a0  /* */
-#define STM32_RCC_D3AMR_OFFSET          0x00a8  /* */
-#define STM32_RCC_RSR_OFFSET            0x00d0  /* */
+#define STM32_RCC_GCR_OFFSET            0x00a0  /* RCC Global Control register */
+#define STM32_RCC_D3AMR_OFFSET          0x00a8  /* D3 Autonomous mode register */
+#define STM32_RCC_RSR_OFFSET            0x00d0  /* RCC Reset Status register */
 #define STM32_RCC_AHB1ENR_OFFSET        0x00d8  /* AHB1 Peripheral Clock enable register */
 #define STM32_RCC_AHB2ENR_OFFSET        0x00dc  /* AHB2 Peripheral Clock enable register */
 #define STM32_RCC_AHB3ENR_OFFSET        0x00d4  /* AHB3 Peripheral Clock enable register */
@@ -316,19 +316,19 @@
                                            /* Bits 0-3: Reserved */
 #define RCC_D2CFGR_D2PPRE1_SHIFT     (4)   /* Bits 4-6: D2 domain APB1 prescaler */
 #define RCC_D2CFGR_D2PPRE1_MASK      (7 << RCC_D2CFGR_D2PPRE1_SHIFT)
-#define RCC_D2CFGR_D2PPRE1_HCLK      (0 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 0xx: */
-#define RCC_D2CFGR_D2PPRE1_HCLKd2    (4 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 100: */
-#define RCC_D2CFGR_D2PPRE1_HCLKd4    (5 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 101: */
-#define RCC_D2CFGR_D2PPRE1_HCLKd8    (6 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 110: */
-#define RCC_D2CFGR_D2PPRE1_HCLKd16   (7 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 111: */
+#  define RCC_D2CFGR_D2PPRE1_HCLK      (0 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 0xx: */
+#  define RCC_D2CFGR_D2PPRE1_HCLKd2    (4 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 100: */
+#  define RCC_D2CFGR_D2PPRE1_HCLKd4    (5 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 101: */
+#  define RCC_D2CFGR_D2PPRE1_HCLKd8    (6 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 110: */
+#  define RCC_D2CFGR_D2PPRE1_HCLKd16   (7 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 111: */
                                            /* Bit 7: Reserved */
 #define RCC_D2CFGR_D2PPRE2_SHIFT     (8)   /* Bits 8-10: D2 domain APB2 prescaler */
 #define RCC_D2CFGR_D2PPRE2_MASK      (7 << RCC_D2CFGR_D2PPRE2_SHIFT)
-#define RCC_D2CFGR_D2PPRE2_HCLK      (0 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 0xx: */
-#define RCC_D2CFGR_D2PPRE2_HCLKd2    (4 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 100: */
-#define RCC_D2CFGR_D2PPRE2_HCLKd4    (5 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 101: */
-#define RCC_D2CFGR_D2PPRE2_HCLKd8    (6 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 110: */
-#define RCC_D2CFGR_D2PPRE2_HCLKd16   (7 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 111: */
+#  define RCC_D2CFGR_D2PPRE2_HCLK      (0 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 0xx: */
+#  define RCC_D2CFGR_D2PPRE2_HCLKd2    (4 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 100: */
+#  define RCC_D2CFGR_D2PPRE2_HCLKd4    (5 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 101: */
+#  define RCC_D2CFGR_D2PPRE2_HCLKd8    (6 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 110: */
+#  define RCC_D2CFGR_D2PPRE2_HCLKd16   (7 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 111: */
                                            /* Bits 11-31: Reserved */
 
 /* Bit definitions for RCC_D3CFGR */
@@ -336,11 +336,11 @@
                                           /* Bits 0-3: Reserved */
 #define RCC_D3CFGR_D3PPRE_SHIFT     (4)   /* Bits 4-6: D3 domain APB4 prescaler */
 #define RCC_D3CFGR_D3PPRE_MASK      (7 << RCC_D3CFGR_D3PPRE_SHIFT)
-#define RCC_D3CFGR_D3PPRE_HCLK      (0 << RCC_D3CFGR_D3PPRE_SHIFT) /* 0xx: */
-#define RCC_D3CFGR_D3PPRE_HCLKd2    (4 << RCC_D3CFGR_D3PPRE_SHIFT) /* 100: */
-#define RCC_D3CFGR_D3PPRE_HCLKd4    (5 << RCC_D3CFGR_D3PPRE_SHIFT) /* 101: */
-#define RCC_D3CFGR_D3PPRE_HCLKd8    (6 << RCC_D3CFGR_D3PPRE_SHIFT) /* 110: */
-#define RCC_D3CFGR_D3PPRE_HCLKd16   (7 << RCC_D3CFGR_D3PPRE_SHIFT) /* 111: */
+#  define RCC_D3CFGR_D3PPRE_HCLK      (0 << RCC_D3CFGR_D3PPRE_SHIFT) /* 0xx: */
+#  define RCC_D3CFGR_D3PPRE_HCLKd2    (4 << RCC_D3CFGR_D3PPRE_SHIFT) /* 100: */
+#  define RCC_D3CFGR_D3PPRE_HCLKd4    (5 << RCC_D3CFGR_D3PPRE_SHIFT) /* 101: */
+#  define RCC_D3CFGR_D3PPRE_HCLKd8    (6 << RCC_D3CFGR_D3PPRE_SHIFT) /* 110: */
+#  define RCC_D3CFGR_D3PPRE_HCLKd16   (7 << RCC_D3CFGR_D3PPRE_SHIFT) /* 111: */
                                           /* Bits 7-31: Reserved */
 
 /* Bit definitions for RCC_PLLCKSELR register */
@@ -494,29 +494,203 @@
 #define RCC_PLL3FRACR_FRACN3_MASK       (0x1FFFul << RCC_PLL3FRACR_FRACN3_SHIFT) /* 0x0000FFF8 */
 #define RCC_PLL3FRACR_FRACN3             RCC_PLL3FRACR_FRACN3_MASK
 
-/* CSR */
 
-#define RCC_CSR_LSION_SHIFT             (0ul)                  /* RCC CSR: LSION (Bit 0) */
-#define RCC_CSR_LSION                   (0x1ul)                /* RCC CSR: LSION (Bitfield-Mask: 0x01) */
-#define RCC_CSR_LSIRDY_SHIFT            (1ul)                  /* RCC CSR: LSIRDY (Bit 1) */
-#define RCC_CSR_LSIRDY                  (0x2ul)                /* RCC CSR: LSIRDY (Bitfield-Mask: 0x01) */
+/* Bit definitions for RCC_D1CCIPR reigster */
+
+#define RCC_D1CCIPR_FMCSEL_SHIFT        (0) /* Bits 0-1: */
+#define RCC_D1CCIPR_FMCSEL_MASK         (3 << RCC_D1CCIPR_FMCSEL_SHIFT)
+#  define RCC_D1CCIPR_FMCSEL_HCLK       (0 << RCC_D1CCIPR_FMCSEL_SHIFT) /* 00: */
+#  define RCC_D1CCIPR_FMCSEL_PLL1       (1 << RCC_D1CCIPR_FMCSEL_SHIFT) /* 01: */
+#  define RCC_D1CCIPR_FMCSEL_PLL2       (2 << RCC_D1CCIPR_FMCSEL_SHIFT) /* 10: */
+#  define RCC_D1CCIPR_FMCSEL_PER        (3 << RCC_D1CCIPR_FMCSEL_SHIFT) /* 11: */
+                                            /* Bits 2-3: Reserved */
+#define RCC_D1CCIPR_QSPISEL_SHIFT       (0) /* Bits 4-5: */
+#define RCC_D1CCIPR_QSPISEL_MASK        (3 << RCC_D1CCIPR_QSPISEL_SHIFT)
+#  define RCC_D1CCIPR_QSPISEL_HCLK      (0 << RCC_D1CCIPR_QSPISEL_SHIFT) /* 00: */
+#  define RCC_D1CCIPR_QSPISEL_PLL1      (1 << RCC_D1CCIPR_QSPISEL_SHIFT) /* 01: */
+#  define RCC_D1CCIPR_QSPISEL_PLL2      (2 << RCC_D1CCIPR_QSPISEL_SHIFT) /* 10: */
+#  define RCC_D1CCIPR_QSPISEL_PER       (3 << RCC_D1CCIPR_QSPISEL_SHIFT) /* 11: */
+                                            /* Bits 6-15: Reserved */
+#define RCC_D1CCIPR_SDMMC_SHIFT         (16) /* Bit 15: */
+#define RCC_D1CCIPR_SDMMC_MASK          (1 << RCC_D1CCIPR_SDMMC_SHIFT)
+#  define RCC_D1CCIPR_SDMMC_PLL1        (0 << RCC_D1CCIPR_SDMMC_SHIFT) /* 0: */
+#  define RCC_D1CCIPR_SDMMC_PLL2        (1 << RCC_D1CCIPR_SDMMC_SHIFT) /* 1: */
+                                            /* Bits 17-27: Reserved */
+                                            /* Bits 17-27: Reserved */
+#define RCC_D1CCIPR_CKPERSEL_SHIFT      (0) /* Bits 28-29: */
+#define RCC_D1CCIPR_CKPERSEL_MASK       (3 << RCC_D1CCIPR_CKPERSEL_SHIFT)
+#  define RCC_D1CCIPR_CKPERSEL_HSI      (0 << RCC_D1CCIPR_CKPERSEL_SHIFT) /* 00: */
+#  define RCC_D1CCIPR_CKPERSEL_CSI      (1 << RCC_D1CCIPR_CKPERSEL_SHIFT) /* 01: */
+#  define RCC_D1CCIPR_CKPERSEL_HSE      (2 << RCC_D1CCIPR_CKPERSEL_SHIFT) /* 10: */
+                                                                          /* 11: Reserved */
+                                             /* Bits 30-31: Reserved */
+
+/* Bit definitions for RCC_D2CCIP1R reigster */
+
+#define RCC_D2CCIP1R_SAI1SEL_SHIFT      (0)  /* Bits 0-2 */
+#define RCC_D2CCIP1R_SAI1SEL_MASK       (7 << RCC_D2CCIP1R_SAI1SEL_MASK)
+#  define RCC_D2CCIP1R_SAI1SEL_PLL1     (0 << RCC_D2CCIP1R_SAI1SEL_SHIFT) /* 000 */
+#  define RCC_D2CCIP1R_SAI1SEL_PLL2     (1 << RCC_D2CCIP1R_SAI1SEL_SHIFT) /* 001 */
+#  define RCC_D2CCIP1R_SAI1SEL_PLL3     (2 << RCC_D2CCIP1R_SAI1SEL_SHIFT) /* 010 */
+#  define RCC_D2CCIP1R_SAI1SEL_I2SCKIN  (3 << RCC_D2CCIP1R_SAI1SEL_SHIFT) /* 011 */
+#  define RCC_D2CCIP1R_SAI1SEL_PER      (4 << RCC_D2CCIP1R_SAI1SEL_SHIFT) /* 100 */
+                                             /* Bits 3-5: Reserved */
+#define RCC_D2CCIP1R_SAI23SEL_SHIFT     (6)  /* Bits 6-8 */
+#define RCC_D2CCIP1R_SAI23SEL_MASK      (7 << RCC_D2CCIP1R_SAI23SEL_SHIFT)
+#  define RCC_D2CCIP1R_SAI23SEL_PLL1    (0 << RCC_D2CCIP1R_SAI23SEL_SHIFT) /* 000 */
+#  define RCC_D2CCIP1R_SAI23SEL_PLL2    (1 << RCC_D2CCIP1R_SAI23SEL_SHIFT) /* 001 */
+#  define RCC_D2CCIP1R_SAI23SEL_PLL3    (2 << RCC_D2CCIP1R_SAI23SEL_SHIFT) /* 010 */
+#  define RCC_D2CCIP1R_SAI23SEL_I2SCKIN (3 << RCC_D2CCIP1R_SAI23SEL_SHIFT) /* 011 */
+#  define RCC_D2CCIP1R_SAI23SEL_PER     (4 << RCC_D2CCIP1R_SAI23SEL_SHIFT) /* 100 */
+                                             /* Bits 9-11: Reserved */
+#define RCC_D2CCIP1R_SPI123SEL_SHIFT    (12) /* Bits 12-14 */
+#define RCC_D2CCIP1R_SPI123SEL_MASK     (7 << RCC_D2CCIP1R_SPI123SEL_SHIFT)
+#  define RCC_D2CCIP1R_SPI123SEL_PLL1   (0 << RCC_D2CCIP1R_SPI123SEL_SHIFT) /* 000 */
+#  define RCC_D2CCIP1R_SPI123SEL_PLL2   (1 << RCC_D2CCIP1R_SPI123SEL_SHIFT) /* 001 */
+#  define RCC_D2CCIP1R_SPI123SEL_PLL3   (2 << RCC_D2CCIP1R_SPI123SEL_SHIFT) /* 010 */
+#  define RCC_D2CCIP1R_SPI123SEL_I2SCKIN (3 << RCC_D2CCIP1R_SPI123SEL_SHIFT) /* 011 */
+#  define RCC_D2CCIP1R_SPI123SEL_PER    (4 << RCC_D2CCIP1R_SPI123SEL_SHIFT) /* 100 */
+                                             /* Bit 15: Reserved */
+#define RCC_D2CCIP1R_SPI45SEL_SHIFT     (16) /* Bits 16-18 */
+#define RCC_D2CCIP1R_SPI45SEL_MASK      (7 << RCC_D2CCIP1R_SPI45SEL_SHIFT)
+#  define RCC_D2CCIP1R_SPI45SEL_APB     (0 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 000 */
+#  define RCC_D2CCIP1R_SPI45SEL_PLL2    (1 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 001 */
+#  define RCC_D2CCIP1R_SPI45SEL_PLL3    (2 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 010 */
+#  define RCC_D2CCIP1R_SPI45SEL_HSI     (3 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 011 */
+#  define RCC_D2CCIP1R_SPI45SEL_CSI     (4 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 100 */
+#  define RCC_D2CCIP1R_SPI45SEL_HSE     (5 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 101 */
+                                             /* Bit 19: Reserved */
+#define RCC_D2CCIP1R_SPDIFSEL_SHIFT     (20) /* Bits 20-21 */
+#define RCC_D2CCIP1R_SPDIFSEL_MASK      (3 << RCC_D2CCIP1R_SPDIFSEL_SHIFT)
+#  define RCC_D2CCIP1R_SPDIFSEL_PLL1    (0 << RCC_D2CCIP1R_SPDIFSEL_SHIFT) /* 00 */
+#  define RCC_D2CCIP1R_SPDIFSEL_PLL2    (1 << RCC_D2CCIP1R_SPDIFSEL_SHIFT) /* 01 */
+#  define RCC_D2CCIP1R_SPDIFSEL_PLL3    (2 << RCC_D2CCIP1R_SPDIFSEL_SHIFT) /* 10 */
+#  define RCC_D2CCIP1R_SPDIFSEL_HSI     (3 << RCC_D2CCIP1R_SPDIFSEL_SHIFT) /* 11 */
+                                             /* Bits 22-23: Reserved */
+#define RCC_D2CCIP1R_DFSDM1SEL_SHIFT    (24) /* Bit 24 */
+#define RCC_D2CCIP1R_DFSDM1SEL_MASK     (1 << RCC_D2CCIP1R_DFSDM1SEL_SHIFT)
+#  define RCC_D2CCIP1R_DFSDM1SEL_PCLK2  (0 << RCC_D2CCIP1R_DFSDM1SEL_SHIFT) /* 0 */
+#  define RCC_D2CCIP1R_DFSDM1SEL_SYSCLK (1 << RCC_D2CCIP1R_DFSDM1SEL_SHIFT) /* 1 */
+                                             /* Bits 25-27: Reserved */
+#define RCC_D2CCIP1R_FDCANSEL_SHIFT     (28) /* Bits 28-29 */
+#define RCC_D2CCIP1R_FDCANSEL_MASK      (3 << RCC_D2CCIP1R_FDCANSEL_SHIFT)
+#  define RCC_D2CCIP1R_FDCANSEL_HSE     (0 << RCC_D2CCIP1R_FDCANSEL_SHIFT) /* 00 */
+#  define RCC_D2CCIP1R_FDCANSEL_PLL1    (1 << RCC_D2CCIP1R_FDCANSEL_SHIFT) /* 01 */
+#  define RCC_D2CCIP1R_FDCANSEL_PLL2    (2 << RCC_D2CCIP1R_FDCANSEL_SHIFT) /* 10 */
+                                             /* Bit 30: Reserved */
+#define RCC_D2CCIP1R_SWPSEL_SHIFT       (31) /* Bit 31 */
+#define RCC_D2CCIP1R_SWPSEL_MASK        (1 << RCC_D2CCIP1R_SWPSEL_SHIFT)
+#  define RCC_D2CCIP1R_SWPSEL_PCLK      (0 << RCC_D2CCIP1R_SWPSEL_SHIFT) /* 0 */
+#  define RCC_D2CCIP1R_SWPSEL_HSI       (1 << RCC_D2CCIP1R_SWPSEL_SHIFT) /* 1 */
+
+/* Bit definitions for RCC_D2CCIP2R reigster */
+
+#define RCC_D2CCIP2R_USART234578SEL_SHIFT  (0) /* Bits 0-2 */
+#  define RCC_D2CCIP2R_USART234578SEL_MASK (7 << RCC_D2CCIP2R_USART234578SEL_SHIFT)
+#define RCC_D2CCIP2R_USART16SEL_SHIFT      (3) /* Bits 3-5 */
+#  define RCC_D2CCIP2R_USART16SEL_MASK     (7 << RCC_D2CCIP2R_USART16SEL_SHIFT)
+#define RCC_D2CCIP2R_RNGSEL_SHIFT          (3) /* Bits 8-9 */
+#  define RCC_D2CCIP2R_RNGSEL_MASK         (3 << RCC_D2CCIP2R_RNGSEL_SHIFT)
+#define RCC_D2CCIP2R_I2C123SEL_SHIFT       (12) /* Bits 12-13 */
+#define RCC_D2CCIP2R_I2C123SEL_MASK        (3 << RCC_D2CCIP2R_I2C123SEL_SHIFT)
+#   define RCC_D2CCIP2R_I2C123SEL_PCLK1    (0 << RCC_D2CCIP2R_I2C123SEL_SHIFT) /* 00 */
+#   define RCC_D2CCIP2R_I2C123SEL_PLL3     (1 << RCC_D2CCIP2R_I2C123SEL_SHIFT) /* 01 */
+#   define RCC_D2CCIP2R_I2C123SEL_HSI      (2 << RCC_D2CCIP2R_I2C123SEL_SHIFT) /* 10 */
+#   define RCC_D2CCIP2R_I2C123SEL_CSI      (3 << RCC_D2CCIP2R_I2C123SEL_SHIFT) /* 11 */
+#define RCC_D2CCIP2R_USBSEL_SHIFT          (20) /* Bits 20-21 */
+#  define RCC_D2CCIP2R_USBSEL_MASK         (3 << RCC_D2CCIP2R_USBSEL_SHIFT)
+#  define RCC_D2CCIP2R_USBSEL_DISABLE      (0 << RCC_D2CCIP2R_USBSEL_SHIFT)
+#  define RCC_D2CCIP2R_USBSEL_PLL1         (1 << RCC_D2CCIP2R_USBSEL_SHIFT)
+#  define RCC_D2CCIP2R_USBSEL_PLL3         (2 << RCC_D2CCIP2R_USBSEL_SHIFT)
+#  define RCC_D2CCIP2R_USBSEL_HSI48        (3 << RCC_D2CCIP2R_USBSEL_SHIFT)
+#define RCC_D2CCIP2R_CECSEL_SHIFT          (22) /* Bits 22-23 */
+#  define RCC_D2CCIP2R_CECSEL_MASK         (3 << RCC_D2CCIP2R_CECSEL_SHIFT)
+#define RCC_D2CCIP2R_LPTIM1SEL_SHIFT       (28) /* Bits 28-30 */
+#  define RCC_D2CCIP2R_LPTIM1SEL_MASK      (3 << RCC_D2CCIP2R_LPTIM1SEL_SHIFT)
+
+/* TODO: Bit definitions for RCC_D3CCIPR reigster */
+
+#define RCC_D3CCIPR_LPUART1SEL_SHIFT     (0)  /* Bits 0-2: LPUART1 kernel clock source selection */
+#define RCC_D3CCIPR_LPUART1SEL_MASK      (7 << RCC_D3CCIPR_LPUART1SEL_SHIFT)
+#  define RCC_D3CCIPR_LPUART1SEL_PCLK    (0 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 000 */
+#  define RCC_D3CCIPR_LPUART1SEL_PLL2    (1 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 001 */
+#  define RCC_D3CCIPR_LPUART1SEL_PLL3    (2 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 010 */
+#  define RCC_D3CCIPR_LPUART1SEL_HSI     (3 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 011 */
+#  define RCC_D3CCIPR_LPUART1SEL_CSI     (4 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 100 */
+#  define RCC_D3CCIPR_LPUART1SEL_LSE     (5 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 101 */
+                                              /* Bits 3-7: Reserved */
+#define RCC_D3CCIPR_I2C4SEL_SHIFT        (8)  /* Bits 8-9: I2C4 kernel clock source selection */
+#define RCC_D3CCIPR_I2C4SEL_MASK         (3 << RCC_D3CCIPR_I2C4SEL_SHIFT)
+#   define RCC_D3CCIPR_I2C4SEL_PCLK4     (0 << RCC_D3CCIPR_I2C4SEL_SHIFT) /* 00 */
+#   define RCC_D3CCIPR_I2C4SEL_PLL3      (1 << RCC_D3CCIPR_I2C4SEL_SHIFT) /* 01 */
+#   define RCC_D3CCIPR_I2C4SEL_HSI       (2 << RCC_D3CCIPR_I2C4SEL_SHIFT) /* 10 */
+#   define RCC_D3CCIPR_I2C4SEL_CSI       (3 << RCC_D3CCIPR_I2C4SEL_SHIFT) /* 11 */
+#define RCC_D3CCIPR_LPTIM2SEL_SHIFT      (10) /* Bits 10-12: LPTIM2 kernel clock source selection */
+#define RCC_D3CCIPR_LPTIM2SEL_MASK       (7 << RCC_D3CCIPR_LPTIM2SEL_SHIFT)
+#   define RCC_D3CCIPR_LPTIM2SEL_PCLK4   (0 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 000 */
+#   define RCC_D3CCIPR_LPTIM2SEL_PLL2    (1 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 001 */
+#   define RCC_D3CCIPR_LPTIM2SEL_PLL3    (2 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 010 */
+#   define RCC_D3CCIPR_LPTIM2SEL_LSE     (3 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 011 */
+#   define RCC_D3CCIPR_LPTIM2SEL_LSI     (4 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 100 */
+#   define RCC_D3CCIPR_LPTIM2SEL_PER     (5 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 101 */
+#define RCC_D3CCIPR_LPTIM345SEL_SHIFT    (13) /* Bits 13-15: LPTIM3,4,5 kernel clock source selection */
+#define RCC_D3CCIPR_LPTIM345SEL_MASK     (7 << RCC_D3CCIPR_LPTIM345SEL_SHIFT)
+#   define RCC_D3CCIPR_LPTIM345SEL_PCLK4 (0 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 000 */
+#   define RCC_D3CCIPR_LPTIM345SEL_PLL2  (1 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 001 */
+#   define RCC_D3CCIPR_LPTIM345SEL_PLL3  (2 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 010 */
+#   define RCC_D3CCIPR_LPTIM345SEL_LSE   (3 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 011 */
+#   define RCC_D3CCIPR_LPTIM345SEL_LSI   (4 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 100 */
+#   define RCC_D3CCIPR_LPTIM345SEL_PER   (5 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 101 */
+#define RCC_D3CCIPR_ADCSEL_SHIFT         (16) /* Bits 16-17: SAR ADC kernel clock source selection */
+#define RCC_D3CCIPR_ADCSEL_MASK          (3 << RCC_D3CCIPR_ADCSEL_SHIFT)
+#   define RCC_D3CCIPR_ADCSEL_PLL2       (0 << RCC_D3CCIPR_ADCSEL_SHIFT) /* 00 */
+#   define RCC_D3CCIPR_ADCSEL_PLL3       (1 << RCC_D3CCIPR_ADCSEL_SHIFT) /* 01 */
+#   define RCC_D3CCIPR_ADCSEL_PER        (2 << RCC_D3CCIPR_ADCSEL_SHIFT) /* 10 */
+                                              /* Bits 18-20: Reserved */
+#define RCC_D3CCIPR_SAI4ASEL_SHIFT       (21) /* Bits 21-23: Sub-Block A of SAI4 kernel clock source selection */
+#define RCC_D3CCIPR_SAI4ASEL_MASK        (7 << RCC_D3CCIPR_SAI4ASEL_SHIFT)
+#   define RCC_D3CCIPR_SAI4ASEL_PLL1     (0 << RCC_D3CCIPR_SAI4ASEL_SHIFT) /* 000 */
+#   define RCC_D3CCIPR_SAI4ASEL_PLL2     (1 << RCC_D3CCIPR_SAI4ASEL_SHIFT) /* 001 */
+#   define RCC_D3CCIPR_SAI4ASEL_PLL3     (2 << RCC_D3CCIPR_SAI4ASEL_SHIFT) /* 010 */
+#   define RCC_D3CCIPR_SAI4ASEL_I2CCKIN  (3 << RCC_D3CCIPR_SAI4ASEL_SHIFT) /* 011 */
+#   define RCC_D3CCIPR_SAI4ASEL_PER      (4 << RCC_D3CCIPR_SAI4ASEL_SHIFT) /* 100 */
+#define RCC_D3CCIPR_SAI4BSEL_SHIFT       (24) /* Bits 24-26: Sub-Block B of SAI4 kernel clock source selection */
+#define RCC_D3CCIPR_SAI4BSEL_MASK        (7 << RCC_D3CCIPR_SAI4BSEL_SHIFT)
+#   define RCC_D3CCIPR_SAI4BSEL_PLL1     (0 << RCC_D3CCIPR_SAI4BSEL_SHIFT) /* 000 */
+#   define RCC_D3CCIPR_SAI4BSEL_PLL2     (1 << RCC_D3CCIPR_SAI4BSEL_SHIFT) /* 001 */
+#   define RCC_D3CCIPR_SAI4BSEL_PLL3     (2 << RCC_D3CCIPR_SAI4BSEL_SHIFT) /* 010 */
+#   define RCC_D3CCIPR_SAI4BSEL_I2CCKIN  (3 << RCC_D3CCIPR_SAI4BSEL_SHIFT) /* 011 */
+#   define RCC_D3CCIPR_SAI4BSEL_PER      (4 << RCC_D3CCIPR_SAI4BSEL_SHIFT) /* 100 */
+#define RCC_D3CCIPR_SPI6SEL_SHIFT        (28) /* Bits 28-30: SPI6 kernel clock source selection */
+#define RCC_D3CCIPR_SPI6SEL_MASK         (7 << RCC_D3CCIPR_SPI6SEL_SHIFT)
+#   define RCC_D3CCIPR_SPI6SEL_PCLK4     (0 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 000 */
+#   define RCC_D3CCIPR_SPI6SEL_PLL2      (1 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 001 */
+#   define RCC_D3CCIPR_SPI6SEL_PLL3      (2 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 010 */
+#   define RCC_D3CCIPR_SPI6SEL_HSI       (3 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 011 */
+#   define RCC_D3CCIPR_SPI6SEL_CSI       (4 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 100 */
+#   define RCC_D3CCIPR_SPI6SEL_HSE       (5 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 101 */
+                                              /* Bit 31: Reserved */
+/* ... */
+
+/* TODO: CIER */
+/* TODO: CIFR */
+/* TODO: CICR */
+/* TODO: BDCR */
+
+/* Bit definitions for RCC_CSR register */
+
+#define RCC_CSR_LSION                   (1 << 0)  /* RCC CSR: LSION */
+#define RCC_CSR_LSIRDY                  (1 << 1)  /* RCC CSR: LSIRDY */
 
 /* AHB3 peripheral reset register */
 
-#define RCC_AHB3RSTR_MDMARST_SHIFT      (0ul)                  /* RCC AHB3RSTR: MDMARST (Bit 0) */
-#define RCC_AHB3RSTR_MDMARST            (0x1ul)                /* RCC AHB3RSTR: MDMARST (Bitfield-Mask: 0x01) */
-#define RCC_AHB3RSTR_DMA2DRST_SHIFT     (4ul)                  /* RCC AHB3RSTR: DMA2DRST (Bit 4) */
-#define RCC_AHB3RSTR_DMA2DRST           (0x10ul)               /* RCC AHB3RSTR: DMA2DRST (Bitfield-Mask: 0x01) */
-#define RCC_AHB3RSTR_JPGDECRST_SHIFT    (5ul)                  /* RCC AHB3RSTR: JPGDECRST (Bit 5) */
-#define RCC_AHB3RSTR_JPGDECRST          (0x20ul)               /* RCC AHB3RSTR: JPGDECRST (Bitfield-Mask: 0x01) */
-#define RCC_AHB3RSTR_FMCRST_SHIFT       (12ul)                 /* RCC AHB3RSTR: FMCRST (Bit 12) */
-#define RCC_AHB3RSTR_FMCRST             (0x1000ul)             /* RCC AHB3RSTR: FMCRST (Bitfield-Mask: 0x01) */
-#define RCC_AHB3RSTR_QSPIRST_SHIFT      (14ul)                 /* RCC AHB3RSTR: QSPIRST (Bit 14) */
-#define RCC_AHB3RSTR_QSPIRST            (0x4000ul)             /* RCC AHB3RSTR: QSPIRST (Bitfield-Mask: 0x01) */
-#define RCC_AHB3RSTR_SDMMC1RST_SHIFT    (16ul)                 /* RCC AHB3RSTR: SDMMC1RST (Bit 16) */
-#define RCC_AHB3RSTR_SDMMC1RST          (0x10000ul)            /* RCC AHB3RSTR: SDMMC1RST (Bitfield-Mask: 0x01) */
-#define RCC_AHB3RSTR_CPURST_SHIFT       (31ul)                 /* RCC AHB3RSTR: CPURST (Bit 31) */
-#define RCC_AHB3RSTR_CPURST             (0x80000000ul)         /* RCC AHB3RSTR: CPURST (Bitfield-Mask: 0x01) */
+#define RCC_AHB3RSTR_MDMARST            (1 << 0)  /* RCC AHB3RSTR: MDMARST */
+#define RCC_AHB3RSTR_DMA2DRST           (1 << 4)  /* RCC AHB3RSTR: DMA2DRST */
+#define RCC_AHB3RSTR_JPGDECRST          (1 << 5)  /* RCC AHB3RSTR: JPGDECRST */
+#define RCC_AHB3RSTR_FMCRST             (1 << 12) /* RCC AHB3RSTR: FMCRST */
+#define RCC_AHB3RSTR_QSPIRST            (1 << 14) /* RCC AHB3RSTR: QSPIRST */
+#define RCC_AHB3RSTR_SDMMC1RST          (1 << 16) /* RCC AHB3RSTR: SDMMC1RST */
+#define RCC_AHB3RSTR_CPURST             (1 << 31) /* RCC AHB3RSTR: CPURST */
 
 /* AHB1 peripheral reset register */
 
@@ -526,9 +700,9 @@
                                                    /* Bits 6-14: Reserved */
 #define RCC_AHB1RSTR_ETH1MACRST         (1 << 15)  /* RCC AHB1RSTR: ETH1MACRST */
                                                    /* Bits 16-24: Reserved */
-#define RCC_AHB1RSTR_USB1OTGRST         (1 << 25)  /* RCC AHB1RSTR: USB1OTGRST */
+#define RCC_AHB1RSTR_OTGHSRST           (1 << 25)  /* RCC AHB1RSTR: OTGHSRST */
                                                    /* Bit 26: Reserved */
-#define RCC_AHB1RSTR_USB2OTGRST         (1 << 27)  /* RCC AHB1RSTR: USB2OTGRST */
+#define RCC_AHB1RSTR_OTGFSRST           (1 << 27)  /* RCC AHB1RSTR: OTGFSRST */
                                                    /* Bits 28-31: Reserved */
 
 /* AHB2 peripheral reset register */
@@ -596,7 +770,7 @@
                                                     /* Bits 24-26: Reserved */
 #define RCC_APB1LRSTR_HDMICECRST        (1 << 27)   /* RCC APB1LRSTR: HDMICECRST */
                                                     /* Bit 28: Reserved */
-#define RCC_APB1LRSTR_DAC12RST          (1 << 29)   /* RCC APB1LRSTR: DAC12RST */
+#define RCC_APB1LRSTR_DAC1RST           (1 << 29)   /* RCC APB1LRSTR: DAC1RST */
 #define RCC_APB1LRSTR_USART7RST         (1 << 30)   /* RCC APB1LRSTR: USART7RST */
 #define RCC_APB1LRSTR_USART8RST         (1 << 31)   /* RCC APB1LRSTR: USART8RST */
 
@@ -614,92 +788,98 @@
 
 /* APB2 peripheral reset register */
 
-#define RCC_APB2RSTR_TIM1RST            (0x1ul)         /* RCC APB2RSTR: TIM1RST */
-#define RCC_APB2RSTR_TIM8RST            (0x2ul)         /* RCC APB2RSTR: TIM8RST */
-#define RCC_APB2RSTR_USART1RST          (0x10ul)        /* RCC APB2RSTR: USART1RST */
-#define RCC_APB2RSTR_USART6RST          (0x20ul)        /* RCC APB2RSTR: USART6RST */
-#define RCC_APB2RSTR_SPI1RST            (0x1000ul)      /* RCC APB2RSTR: SPI1RST */
-#define RCC_APB2RSTR_SPI4RST            (0x2000ul)      /* RCC APB2RSTR: SPI4RST */
-#define RCC_APB2RSTR_TIM15RST           (0x10000ul)     /* RCC APB2RSTR: TIM15RST */
-#define RCC_APB2RSTR_TIM16RST           (0x20000ul)     /* RCC APB2RSTR: TIM16RST */
-#define RCC_APB2RSTR_TIM17RST           (0x40000ul)     /* RCC APB2RSTR: TIM17RST */
-#define RCC_APB2RSTR_SPI5RST            (0x100000ul)    /* RCC APB2RSTR: SPI5RST */
-#define RCC_APB2RSTR_SAI1RST            (0x400000ul)    /* RCC APB2RSTR: SAI1RST */
-#define RCC_APB2RSTR_SAI2RST            (0x800000ul)    /* RCC APB2RSTR: SAI2RST */
-#define RCC_APB2RSTR_SAI3RST            (0x1000000ul)   /* RCC APB2RSTR: SAI3RST */
-#define RCC_APB2RSTR_DFSDM1RST          (0x10000000ul)  /* RCC APB2RSTR: DFSDM1RST */
-#define RCC_APB2RSTR_HRTIMRST           (0x20000000ul)  /* RCC APB2RSTR: HRTIMRST */
+#define RCC_APB2RSTR_TIM1RST            (1 << 0)    /* RCC APB2RSTR: TIM1RST */
+#define RCC_APB2RSTR_TIM8RST            (1 << 1)    /* RCC APB2RSTR: TIM8RST */
+#define RCC_APB2RSTR_USART1RST          (1 << 4)    /* RCC APB2RSTR: USART1RST */
+#define RCC_APB2RSTR_USART6RST          (1 << 5)    /* RCC APB2RSTR: USART6RST */
+#define RCC_APB2RSTR_SPI1RST            (1 << 12)   /* RCC APB2RSTR: SPI1RST */
+#define RCC_APB2RSTR_SPI4RST            (1 << 13)   /* RCC APB2RSTR: SPI4RST */
+#define RCC_APB2RSTR_TIM15RST           (1 << 16)   /* RCC APB2RSTR: TIM15RST */
+#define RCC_APB2RSTR_TIM16RST           (1 << 17)   /* RCC APB2RSTR: TIM16RST */
+#define RCC_APB2RSTR_TIM17RST           (1 << 18)   /* RCC APB2RSTR: TIM17RST */
+#define RCC_APB2RSTR_SPI5RST            (1 << 20)   /* RCC APB2RSTR: SPI5RST */
+#define RCC_APB2RSTR_SAI1RST            (1 << 22)   /* RCC APB2RSTR: SAI1RST */
+#define RCC_APB2RSTR_SAI2RST            (1 << 23)   /* RCC APB2RSTR: SAI2RST */
+#define RCC_APB2RSTR_SAI3RST            (1 << 24)   /* RCC APB2RSTR: SAI3RST */
+#define RCC_APB2RSTR_DFSDM1RST          (1 << 28)   /* RCC APB2RSTR: DFSDM1RST */
+#define RCC_APB2RSTR_HRTIMRST           (1 << 29)   /* RCC APB2RSTR: HRTIMRST */
 
 /* APB4 peripheral reset register */
 
-#define RCC_APB4RSTR_SYSCFGRST          (0x2ul)         /* RCC APB4RSTR: SYSCFGRST */
-#define RCC_APB4RSTR_LPUART1RST         (0x8ul)         /* RCC APB4RSTR: LPUART1RST */
-#define RCC_APB4RSTR_SPI6RST            (0x20ul)        /* RCC APB4RSTR: SPI6RST */
-#define RCC_APB4RSTR_I2C4RST            (0x80ul)        /* RCC APB4RSTR: I2C4RST */
-#define RCC_APB4RSTR_LPTIM2RST          (0x200ul)       /* RCC APB4RSTR: LPTIM2RST */
-#define RCC_APB4RSTR_LPTIM3RST          (0x400ul)       /* RCC APB4RSTR: LPTIM3RST */
-#define RCC_APB4RSTR_LPTIM4RST          (0x800ul)       /* RCC APB4RSTR: LPTIM4RST */
-#define RCC_APB4RSTR_LPTIM5RST          (0x1000ul)      /* RCC APB4RSTR: LPTIM5RST */
-#define RCC_APB4RSTR_COMP12RST          (0x4000ul)      /* RCC APB4RSTR: COMP12RST */
-#define RCC_APB4RSTR_VREFRST            (0x8000ul)      /* RCC APB4RSTR: VREFRST */
-#define RCC_APB4RSTR_SAI4RST            (0x200000ul)    /* RCC APB4RSTR: SAI4RST */
+#define RCC_APB4RSTR_SYSCFGRST          (1 << 1)    /* RCC APB4RSTR: SYSCFGRST */
+#define RCC_APB4RSTR_LPUART1RST         (1 << 3)    /* RCC APB4RSTR: LPUART1RST */
+#define RCC_APB4RSTR_SPI6RST            (1 << 5)    /* RCC APB4RSTR: SPI6RST */
+#define RCC_APB4RSTR_I2C4RST            (1 << 7)    /* RCC APB4RSTR: I2C4RST */
+#define RCC_APB4RSTR_LPTIM2RST          (1 << 9)    /* RCC APB4RSTR: LPTIM2RST */
+#define RCC_APB4RSTR_LPTIM3RST          (1 << 10)   /* RCC APB4RSTR: LPTIM3RST */
+#define RCC_APB4RSTR_LPTIM4RST          (1 << 11)   /* RCC APB4RSTR: LPTIM4RST */
+#define RCC_APB4RSTR_LPTIM5RST          (1 << 12)   /* RCC APB4RSTR: LPTIM5RST */
+#define RCC_APB4RSTR_COMP12RST          (1 << 14)   /* RCC APB4RSTR: COMP12RST */
+#define RCC_APB4RSTR_VREFRST            (1 << 15)   /* RCC APB4RSTR: VREFRST */
+#define RCC_APB4RSTR_SAI4RST            (1 << 21)   /* RCC APB4RSTR: SAI4RST */
+
+/* RCC Global Control resgister */
+
+#define RCC_GCR_WW1RSC                  (1 << 0)    /* Bit 0: WWDG1 reset scope control */
+
+/* TODO: D3 Autonomous mode register */
+
+/* TODO: RCC Reset Status register */
 
 /* AHB3 Peripheral Clock enable register */
 
-#define RCC_AHB3ENR_MDMAEN              (0x1ul)         /* RCC AHB3ENR: MDMAEN */
-#define RCC_AHB3ENR_DMA2DEN             (0x10ul)        /* RCC AHB3ENR: DMA2DEN */
-#define RCC_AHB3ENR_JPGDECEN            (0x20ul)        /* RCC AHB3ENR: JPGDECEN */
-#define RCC_AHB3ENR_FMCEN               (0x1000ul)      /* RCC AHB3ENR: FMCEN */
-#define RCC_AHB3ENR_QSPIEN              (0x4000ul)      /* RCC AHB3ENR: QSPIEN */
-#define RCC_AHB3ENR_SDMMC1EN            (0x10000ul)     /* RCC AHB3ENR: SDMMC1EN */
-
+#define RCC_AHB3ENR_MDMAEN              (1 << 0)    /* RCC AHB3ENR: MDMAEN */
+#define RCC_AHB3ENR_DMA2DEN             (1 << 4)    /* RCC AHB3ENR: DMA2DEN */
+#define RCC_AHB3ENR_JPGDECEN            (1 << 5)    /* RCC AHB3ENR: JPGDECEN */
+#define RCC_AHB3ENR_FMCEN               (1 << 12)   /* RCC AHB3ENR: FMCEN */
+#define RCC_AHB3ENR_QSPIEN              (1 << 14)   /* RCC AHB3ENR: QSPIEN */
+#define RCC_AHB3ENR_SDMMC1EN            (1 << 16)   /* RCC AHB3ENR: SDMMC1EN */
 /* AHB1 Peripheral Clock enable register */
 
-#define RCC_AHB1ENR_DMA1EN              (0x1ul)         /* RCC AHB1ENR: DMA1EN */
-#define RCC_AHB1ENR_DMA2EN              (0x2ul)         /* RCC AHB1ENR: DMA2EN */
-#define RCC_AHB1ENR_ADC12EN             (0x20ul)        /* RCC AHB1ENR: ADC12EN */
-#define RCC_AHB1ENR_ETH1MACEN           (0x8000ul)      /* RCC AHB1ENR: ETH1MACEN */
-#define RCC_AHB1ENR_ETH1TXEN            (0x10000ul)     /* RCC AHB1ENR: ETH1TXEN */
-#define RCC_AHB1ENR_ETH1RXEN            (0x20000ul)     /* RCC AHB1ENR: ETH1RXEN */
-#define RCC_AHB1ENR_USB1OTGEN           (0x2000000ul)   /* RCC AHB1ENR: USB1OTGEN */
-#define RCC_AHB1ENR_USB1ULPIEN          (0x4000000ul)   /* RCC AHB1ENR: USB1ULPIEN */
-#define RCC_AHB1ENR_USB2OTGEN           (0x8000000ul)   /* RCC AHB1ENR: USB2OTGEN */
-#define RCC_AHB1ENR_USB2ULPIEN          (0x10000000ul)  /* RCC AHB1ENR: USB2ULPIEN */
+#define RCC_AHB1ENR_DMA1EN              (1 << 0)    /* RCC AHB1ENR: DMA1EN */
+#define RCC_AHB1ENR_DMA2EN              (1 << 1)    /* RCC AHB1ENR: DMA2EN */
+#define RCC_AHB1ENR_ADC12EN             (1 << 5)    /* RCC AHB1ENR: ADC12EN */
+#define RCC_AHB1ENR_ETH1MACEN           (1 << 15)   /* RCC AHB1ENR: ETH1MACEN */
+#define RCC_AHB1ENR_ETH1TXEN            (1 << 16)   /* RCC AHB1ENR: ETH1TXEN */
+#define RCC_AHB1ENR_ETH1RXEN            (1 << 17)   /* RCC AHB1ENR: ETH1RXEN */
+#define RCC_AHB1ENR_OTGHSEN             (1 << 25)   /* RCC AHB1ENR: OTGHSEN */
+#define RCC_AHB1ENR_OTGHSULPIEN         (1 << 26)   /* RCC AHB1ENR: OTGHSULPIEN */
+#define RCC_AHB1ENR_OTGFSEN             (1 << 27)   /* RCC AHB1ENR: OTGFSEN */
 
 /* AHB2 Peripheral Clock enable register */
 
-#define RCC_AHB2ENR_CAMITFEN            (0x1ul)         /* RCC AHB2ENR: CAMITFEN */
-#define RCC_AHB2ENR_CRYPTEN             (0x10ul)        /* RCC AHB2ENR: CRYPTEN */
-#define RCC_AHB2ENR_HASHEN              (0x20ul)        /* RCC AHB2ENR: HASHEN */
-#define RCC_AHB2ENR_RNGEN               (0x40ul)        /* RCC AHB2ENR: RNGEN */
-#define RCC_AHB2ENR_SDMMC2EN            (0x200ul)       /* RCC AHB2ENR: SDMMC2EN */
-#define RCC_AHB2ENR_SRAM1EN             (0x20000000ul)  /* RCC AHB2ENR: SRAM1EN */
-#define RCC_AHB2ENR_SRAM2EN             (0x40000000ul)  /* RCC AHB2ENR: SRAM2EN */
-#define RCC_AHB2ENR_SRAM3EN             (0x80000000ul)  /* RCC AHB2ENR: SRAM3EN */
+#define RCC_AHB2ENR_CAMITFEN            (1 << 0)    /* RCC AHB2ENR: CAMITFEN */
+#define RCC_AHB2ENR_CRYPTEN             (1 << 4)    /* RCC AHB2ENR: CRYPTEN */
+#define RCC_AHB2ENR_HASHEN              (1 << 5)    /* RCC AHB2ENR: HASHEN */
+#define RCC_AHB2ENR_RNGEN               (1 << 6)    /* RCC AHB2ENR: RNGEN */
+#define RCC_AHB2ENR_SDMMC2EN            (1 << 9)    /* RCC AHB2ENR: SDMMC2EN */
+#define RCC_AHB2ENR_SRAM1EN             (1 << 29)   /* RCC AHB2ENR: SRAM1EN */
+#define RCC_AHB2ENR_SRAM2EN             (1 << 30)   /* RCC AHB2ENR: SRAM2EN */
+#define RCC_AHB2ENR_SRAM3EN             (1 << 31)   /* RCC AHB2ENR: SRAM3EN */
 
 /* AHB4 Peripheral Clock enable register */
 
-#define RCC_AHB4ENR_GPIOAEN             (0x1ul)         /* RCC AHB4ENR: GPIOAEN */
-#define RCC_AHB4ENR_GPIOBEN             (0x2ul)         /* RCC AHB4ENR: GPIOBEN */
-#define RCC_AHB4ENR_GPIOCEN             (0x4ul)         /* RCC AHB4ENR: GPIOCEN */
-#define RCC_AHB4ENR_GPIODEN             (0x8ul)         /* RCC AHB4ENR: GPIODEN */
-#define RCC_AHB4ENR_GPIOEEN             (0x10ul)        /* RCC AHB4ENR: GPIOEEN */
-#define RCC_AHB4ENR_GPIOFEN             (0x20ul)        /* RCC AHB4ENR: GPIOFEN */
-#define RCC_AHB4ENR_GPIOGEN             (0x40ul)        /* RCC AHB4ENR: GPIOGEN */
-#define RCC_AHB4ENR_GPIOHEN             (0x80ul)        /* RCC AHB4ENR: GPIOHEN */
-#define RCC_AHB4ENR_GPIOIEN             (0x100ul)       /* RCC AHB4ENR: GPIOIEN */
-#define RCC_AHB4ENR_GPIOJEN             (0x200ul)       /* RCC AHB4ENR: GPIOJEN */
-#define RCC_AHB4ENR_GPIOKEN             (0x400ul)       /* RCC AHB4ENR: GPIOKEN */
-#define RCC_AHB4ENR_CRCEN               (0x80000ul)     /* RCC AHB4ENR: CRCEN */
-#define RCC_AHB4ENR_BDMAEN              (0x200000ul)    /* RCC AHB4ENR: BDMAEN */
-#define RCC_AHB4ENR_ADC3EN              (0x1000000ul)   /* RCC AHB4ENR: ADC3EN */
-#define RCC_AHB4ENR_HSEMEN              (0x2000000ul)   /* RCC AHB4ENR: HSEMEN */
-#define RCC_AHB4ENR_BKPRAMEN            (0x10000000ul)  /* RCC AHB4ENR: BKPRAMEN */
+#define RCC_AHB4ENR_GPIOAEN             (1 << 0)    /* RCC AHB4ENR: GPIOAEN */
+#define RCC_AHB4ENR_GPIOBEN             (1 << 1)    /* RCC AHB4ENR: GPIOBEN */
+#define RCC_AHB4ENR_GPIOCEN             (1 << 2)    /* RCC AHB4ENR: GPIOCEN */
+#define RCC_AHB4ENR_GPIODEN             (1 << 3)    /* RCC AHB4ENR: GPIODEN */
+#define RCC_AHB4ENR_GPIOEEN             (1 << 4)    /* RCC AHB4ENR: GPIOEEN */
+#define RCC_AHB4ENR_GPIOFEN             (1 << 5)    /* RCC AHB4ENR: GPIOFEN */
+#define RCC_AHB4ENR_GPIOGEN             (1 << 6)    /* RCC AHB4ENR: GPIOGEN */
+#define RCC_AHB4ENR_GPIOHEN             (1 << 7)    /* RCC AHB4ENR: GPIOHEN */
+#define RCC_AHB4ENR_GPIOIEN             (1 << 8)    /* RCC AHB4ENR: GPIOIEN */
+#define RCC_AHB4ENR_GPIOJEN             (1 << 9)    /* RCC AHB4ENR: GPIOJEN */
+#define RCC_AHB4ENR_GPIOKEN             (1 << 10)   /* RCC AHB4ENR: GPIOKEN */
+#define RCC_AHB4ENR_CRCEN               (1 << 19)   /* RCC AHB4ENR: CRCEN */
+#define RCC_AHB4ENR_BDMAEN              (1 << 21)   /* RCC AHB4ENR: BDMAEN and DMAMUX2 */
+#define RCC_AHB4ENR_ADC3EN              (1 << 24)   /* RCC AHB4ENR: ADC3EN */
+#define RCC_AHB4ENR_HSEMEN              (1 << 25)   /* RCC AHB4ENR: HSEMEN */
+#define RCC_AHB4ENR_BKPRAMEN            (1 << 28)   /* RCC AHB4ENR: BKPRAMEN */
 
 /* APB3 Peripheral Clock enable register */
 
-#define RCC_APB3ENR_LTDCEN              (0x8ul)   /* RCC APB3ENR: LTDCEN */
-#define RCC_APB3ENR_WWDG1EN             (0x40ul)  /* RCC APB3ENR: WWDG1EN  */
+#define RCC_APB3ENR_LTDCEN              (1 << 3)   /* RCC APB3ENR: LTDCEN */
+#define RCC_APB3ENR_WWDG1EN             (1 << 6)   /* RCC APB3ENR: WWDG1EN  */
 
 /* APB1 L Peripheral Clock enable register */
 
@@ -727,7 +907,7 @@
                                                   /* Bits 24-25: Reserved */
 #define RCC_APB1LENR_HDMICECEN          (1 << 27) /* RCC APB1LENR: HDMICECEN */
                                                   /* Bit 28: Reserved */
-#define RCC_APB1LENR_DAC12EN            (1 << 29) /* RCC APB1LENR: DAC12EN */
+#define RCC_APB1LENR_DAC1EN             (1 << 29) /* RCC APB1LENR: DAC1EN */
 #define RCC_APB1LENR_USART7EN           (1 << 30) /* RCC APB1LENR: USART7EN */
 #define RCC_APB1LENR_USART8EN           (1 << 31) /* RCC APB1LENR: USART8EN */
 
@@ -769,149 +949,156 @@
 
 /* APB4 Peripheral Clock enable register */
 
-#define RCC_APB4ENR_SYSCFGEN            (0x2ul)        /* RCC APB4ENR: SYSCFGEN */
-#define RCC_APB4ENR_LPUART1EN           (0x8ul)        /* RCC APB4ENR: LPUART1EN */
-#define RCC_APB4ENR_SPI6EN              (0x20ul)       /* RCC APB4ENR: SPI6EN */
-#define RCC_APB4ENR_I2C4EN              (0x80ul)       /* RCC APB4ENR: I2C4EN */
-#define RCC_APB4ENR_LPTIM2EN            (0x200ul)      /* RCC APB4ENR: LPTIM2EN */
-#define RCC_APB4ENR_LPTIM3EN            (0x400ul)      /* RCC APB4ENR: LPTIM3EN */
-#define RCC_APB4ENR_LPTIM4EN            (0x800ul)      /* RCC APB4ENR: LPTIM4EN */
-#define RCC_APB4ENR_LPTIM5EN            (0x1000ul)     /* RCC APB4ENR: LPTIM5EN */
-#define RCC_APB4ENR_COMP12EN            (0x4000ul)     /* RCC APB4ENR: COMP12EN */
-#define RCC_APB4ENR_VREFEN              (0x8000ul)     /* RCC APB4ENR: VREFEN */
-#define RCC_APB4ENR_RTCAPBEN            (0x10000ul)    /* RCC APB4ENR: RTCAPBEN */
-#define RCC_APB4ENR_SAI4EN              (0x200000ul)   /* RCC APB4ENR: SAI4EN */
+                                                    /* Bit 0: Reserved */
+#define RCC_APB4ENR_SYSCFGEN            (1 << 1)    /* Bit 1: RCC APB4ENR: SYSCFGEN */
+                                                    /* Bit 2: Reserved */
+#define RCC_APB4ENR_LPUART1EN           (1 << 3)    /* Bit 3: RCC APB4ENR: LPUART1EN */
+                                                    /* Bit 4: Reserved */
+#define RCC_APB4ENR_SPI6EN              (1 << 5)    /* Bit 5: RCC APB4ENR: SPI6EN */
+                                                    /* Bit 6: Reserved */
+#define RCC_APB4ENR_I2C4EN              (1 << 7)    /* Bit 7: RCC APB4ENR: I2C4EN */
+                                                    /* Bit 8: Reserved */
+#define RCC_APB4ENR_LPTIM2EN            (1 << 9)    /* Bit 9: RCC APB4ENR: LPTIM2EN */
+#define RCC_APB4ENR_LPTIM3EN            (1 << 10)   /* Bit 10: RCC APB4ENR: LPTIM3EN */
+#define RCC_APB4ENR_LPTIM4EN            (1 << 11)   /* Bit 11: RCC APB4ENR: LPTIM4EN */
+#define RCC_APB4ENR_LPTIM5EN            (1 << 12)   /* Bit 12: RCC APB4ENR: LPTIM5EN */
+                                                    /* Bit 13: Reserved */
+#define RCC_APB4ENR_COMP12EN            (1 << 14)   /* Bit 14: RCC APB4ENR: COMP12EN */
+#define RCC_APB4ENR_VREFEN              (1 << 15)   /* Bit 15: RCC APB4ENR: VREFEN */
+#define RCC_APB4ENR_RTCAPBEN            (1 << 16)   /* Bit 16: RCC APB4ENR: RTCAPBEN */
+                                                    /* Bits 17-20: Reserved */
+#define RCC_APB4ENR_SAI4EN              (1 << 21)   /* Bit 21: RCC APB4ENR: SAI4EN */
+                                                    /* Bit2 22-31: Reserved */
 
 /* AHB3 low power mode peripheral clock enable register */
 
-#define RCC_AHB3LPENR_MDMALPEN          (0x1ul)        /* RCC AHB3LPENR: MDMALPEN */
-#define RCC_AHB3LPENR_DMA2DLPEN         (0x10ul)       /* RCC AHB3LPENR: DMA2DLPEN */
-#define RCC_AHB3LPENR_JPGDECLPEN        (0x20ul)       /* RCC AHB3LPENR: JPGDECLPEN */
-#define RCC_AHB3LPENR_FLITFLPEN         (0x100ul)      /* RCC AHB3LPENR: FLITFLPEN */
-#define RCC_AHB3LPENR_FMCLPEN           (0x1000ul)     /* RCC AHB3LPENR: FMCLPEN */
-#define RCC_AHB3LPENR_QSPILPEN          (0x4000ul)     /* RCC AHB3LPENR: QSPILPEN */
-#define RCC_AHB3LPENR_SDMMC1LPEN        (0x10000ul)    /* RCC AHB3LPENR: SDMMC1LPEN */
-#define RCC_AHB3LPENR_D1DTCM1LPEN       (0x10000000ul) /* RCC AHB3LPENR: D1DTCM1LPEN */
-#define RCC_AHB3LPENR_DTCM2LPEN         (0x20000000ul) /* RCC AHB3LPENR: DTCM2LPEN */
-#define RCC_AHB3LPENR_ITCMLPEN          (0x40000000ul) /* RCC AHB3LPENR: ITCMLPEN */
-#define RCC_AHB3LPENR_AXISRAMLPEN       (0x80000000ul) /* RCC AHB3LPENR: AXISRAMLPEN */
+#define RCC_AHB3LPENR_MDMALPEN          (1 << 0)    /* RCC AHB3LPENR: MDMALPEN */
+#define RCC_AHB3LPENR_DMA2DLPEN         (1 << 4)    /* RCC AHB3LPENR: DMA2DLPEN */
+#define RCC_AHB3LPENR_JPGDECLPEN        (1 << 5)    /* RCC AHB3LPENR: JPGDECLPEN */
+#define RCC_AHB3LPENR_FLITFLPEN         (1 << 8)    /* RCC AHB3LPENR: FLITFLPEN */
+#define RCC_AHB3LPENR_FMCLPEN           (1 << 12)   /* RCC AHB3LPENR: FMCLPEN */
+#define RCC_AHB3LPENR_QSPILPEN          (1 << 14)   /* RCC AHB3LPENR: QSPILPEN */
+#define RCC_AHB3LPENR_SDMMC1LPEN        (1 << 16)   /* RCC AHB3LPENR: SDMMC1LPEN */
+#define RCC_AHB3LPENR_D1DTCM1LPEN       (1 << 28)   /* RCC AHB3LPENR: D1DTCM1LPEN */
+#define RCC_AHB3LPENR_DTCM2LPEN         (1 << 29)   /* RCC AHB3LPENR: DTCM2LPEN */
+#define RCC_AHB3LPENR_ITCMLPEN          (1 << 30)   /* RCC AHB3LPENR: ITCMLPEN */
+#define RCC_AHB3LPENR_AXISRAMLPEN       (1 << 31)   /* RCC AHB3LPENR: AXISRAMLPEN */
 
 /* AHB1 low power mode peripheral clock enable register */
 
-#define RCC_AHB1LPENR_DMA1LPEN          (0x1ul)        /* RCC AHB1LPENR: DMA1LPEN */
-#define RCC_AHB1LPENR_DMA2LPEN          (0x2ul)        /* RCC AHB1LPENR: DMA2LPEN */
-#define RCC_AHB1LPENR_ADC12LPEN         (0x20ul)       /* RCC AHB1LPENR: ADC12LPEN */
-#define RCC_AHB1LPENR_ETH1MACLPEN       (0x8000ul)     /* RCC AHB1LPENR: ETH1MACLPEN */
-#define RCC_AHB1LPENR_ETH1TXLPEN        (0x10000ul)    /* RCC AHB1LPENR: ETH1TXLPEN */
-#define RCC_AHB1LPENR_ETH1RXLPEN        (0x20000ul)    /* RCC AHB1LPENR: ETH1RXLPEN */
-#define RCC_AHB1LPENR_USB1OTGLPEN       (0x2000000ul)  /* RCC AHB1LPENR: USB1OTGLPEN */
-#define RCC_AHB1LPENR_USB1ULPILPEN      (0x4000000ul)  /* RCC AHB1LPENR: USB1ULPILPEN */
-#define RCC_AHB1LPENR_USB2OTGLPEN       (0x8000000ul)  /* RCC AHB1LPENR: USB2OTGLPEN */
-#define RCC_AHB1LPENR_USB2ULPILPEN      (0x10000000ul) /* RCC AHB1LPENR: USB2ULPILPEN */
+#define RCC_AHB1LPENR_DMA1LPEN          (1 << 0)       /* RCC AHB1LPENR: DMA1LPEN */
+#define RCC_AHB1LPENR_DMA2LPEN          (1 << 1)       /* RCC AHB1LPENR: DMA2LPEN */
+#define RCC_AHB1LPENR_ADC12LPEN         (1 << 5)       /* RCC AHB1LPENR: ADC12LPEN */
+#define RCC_AHB1LPENR_ETH1MACLPEN       (1 << 15)      /* RCC AHB1LPENR: ETH1MACLPEN */
+#define RCC_AHB1LPENR_ETH1TXLPEN        (1 << 16)      /* RCC AHB1LPENR: ETH1TXLPEN */
+#define RCC_AHB1LPENR_ETH1RXLPEN        (1 << 17)      /* RCC AHB1LPENR: ETH1RXLPEN */
+#define RCC_AHB1LPENR_OTGHSLPEN         (1 << 25)      /* RCC AHB1LPENR: OTGHSLPEN */
+#define RCC_AHB1LPENR_OTGHSULPILPEN     (1 << 26)      /* RCC AHB1LPENR: OTGHSULPILPEN */
+#define RCC_AHB1LPENR_OTGFSLPEN         (1 << 27)      /* RCC AHB1LPENR: OTGFSLPEN */
 
 
 /* AHB2 low power mode peripheral clock enable register */
 
-#define RCC_AHB2LPENR_CAMITFLPEN        (0x1ul)        /* RCC AHB2LPENR: CAMITFLPEN */
-#define RCC_AHB2LPENR_CRYPTLPEN         (0x10ul)       /* RCC AHB2LPENR: CRYPTLPEN */
-#define RCC_AHB2LPENR_HASHLPEN          (0x20ul)       /* RCC AHB2LPENR: HASHLPEN */
-#define RCC_AHB2LPENR_SDMMC2LPEN        (0x200ul)      /* RCC AHB2LPENR: SDMMC2LPEN */
-#define RCC_AHB2LPENR_RNGLPEN           (0x40ul)       /* RCC AHB2LPENR: RNGLPEN */
-#define RCC_AHB2LPENR_SRAM1LPEN         (0x20000000ul) /* RCC AHB2LPENR: SRAM1LPEN */
-#define RCC_AHB2LPENR_SRAM2LPEN         (0x40000000ul) /* RCC AHB2LPENR: SRAM2LPEN */
-#define RCC_AHB2LPENR_SRAM3LPEN         (0x80000000ul) /* RCC AHB2LPENR: SRAM3LPEN */
+#define RCC_AHB2LPENR_CAMITFLPEN        (1 << 0)       /* RCC AHB2LPENR: CAMITFLPEN */
+#define RCC_AHB2LPENR_CRYPTLPEN         (1 << 4)       /* RCC AHB2LPENR: CRYPTLPEN */
+#define RCC_AHB2LPENR_HASHLPEN          (1 << 5)       /* RCC AHB2LPENR: HASHLPEN */
+#define RCC_AHB2LPENR_SDMMC2LPEN        (1 << 6)       /* RCC AHB2LPENR: SDMMC2LPEN */
+#define RCC_AHB2LPENR_RNGLPEN           (1 << 9)       /* RCC AHB2LPENR: RNGLPEN */
+#define RCC_AHB2LPENR_SRAM1LPEN         (1 << 29)      /* RCC AHB2LPENR: SRAM1LPEN */
+#define RCC_AHB2LPENR_SRAM2LPEN         (1 << 30)      /* RCC AHB2LPENR: SRAM2LPEN */
+#define RCC_AHB2LPENR_SRAM3LPEN         (1 << 31)      /* RCC AHB2LPENR: SRAM3LPEN */
 
 /* AHB4 low power mode peripheral clock enable register*/
 
-#define RCC_AHB4LPENR_GPIOALPEN         (0x1ul)        /* RCC AHB4LPENR: GPIOALPEN */
-#define RCC_AHB4LPENR_GPIOBLPEN         (0x2ul)        /* RCC AHB4LPENR: GPIOBLPEN */
-#define RCC_AHB4LPENR_GPIOCLPEN         (0x4ul)        /* RCC AHB4LPENR: GPIOCLPEN */
-#define RCC_AHB4LPENR_GPIODLPEN         (0x8ul)        /* RCC AHB4LPENR: GPIODLPEN */
-#define RCC_AHB4LPENR_GPIOELPEN         (0x10ul)       /* RCC AHB4LPENR: GPIOELPEN */
-#define RCC_AHB4LPENR_GPIOFLPEN         (0x20ul)       /* RCC AHB4LPENR: GPIOFLPEN */
-#define RCC_AHB4LPENR_GPIOGLPEN         (0x40ul)       /* RCC AHB4LPENR: GPIOGLPEN */
-#define RCC_AHB4LPENR_GPIOHLPEN         (0x80ul)       /* RCC AHB4LPENR: GPIOHLPEN */
-#define RCC_AHB4LPENR_GPIOILPEN         (0x100ul)      /* RCC AHB4LPENR: GPIOILPEN */
-#define RCC_AHB4LPENR_GPIOJLPEN         (0x200ul)      /* RCC AHB4LPENR: GPIOJLPEN */
-#define RCC_AHB4LPENR_GPIOKLPEN         (0x400ul)      /* RCC AHB4LPENR: GPIOKLPEN */
-#define RCC_AHB4LPENR_CRCLPEN           (0x80000ul)    /* RCC AHB4LPENR: CRCLPEN */
-#define RCC_AHB4LPENR_BDMALPEN          (0x200000ul)   /* RCC AHB4LPENR: BDMALPEN */
-#define RCC_AHB4LPENR_ADC3LPEN          (0x1000000ul)  /* RCC AHB4LPENR: ADC3LPEN */
-#define RCC_AHB4LPENR_BKPRAMLPEN        (0x10000000ul) /* RCC AHB4LPENR: BKPRAMLPEN */
-#define RCC_AHB4LPENR_SRAM4LPEN         (0x20000000ul) /* RCC AHB4LPENR: SRAM4LPEN */
+#define RCC_AHB4LPENR_GPIOALPEN         (1 << 0)       /* RCC AHB4LPENR: GPIOALPEN */
+#define RCC_AHB4LPENR_GPIOBLPEN         (1 << 1)       /* RCC AHB4LPENR: GPIOBLPEN */
+#define RCC_AHB4LPENR_GPIOCLPEN         (1 << 2)       /* RCC AHB4LPENR: GPIOCLPEN */
+#define RCC_AHB4LPENR_GPIODLPEN         (1 << 3)       /* RCC AHB4LPENR: GPIODLPEN */
+#define RCC_AHB4LPENR_GPIOELPEN         (1 << 4)       /* RCC AHB4LPENR: GPIOELPEN */
+#define RCC_AHB4LPENR_GPIOFLPEN         (1 << 5)       /* RCC AHB4LPENR: GPIOFLPEN */
+#define RCC_AHB4LPENR_GPIOGLPEN         (1 << 6)       /* RCC AHB4LPENR: GPIOGLPEN */
+#define RCC_AHB4LPENR_GPIOHLPEN         (1 << 7)       /* RCC AHB4LPENR: GPIOHLPEN */
+#define RCC_AHB4LPENR_GPIOILPEN         (1 << 8)       /* RCC AHB4LPENR: GPIOILPEN */
+#define RCC_AHB4LPENR_GPIOJLPEN         (1 << 9)       /* RCC AHB4LPENR: GPIOJLPEN */
+#define RCC_AHB4LPENR_GPIOKLPEN         (1 << 10)      /* RCC AHB4LPENR: GPIOKLPEN */
+#define RCC_AHB4LPENR_CRCLPEN           (1 << 19)      /* RCC AHB4LPENR: CRCLPEN */
+#define RCC_AHB4LPENR_BDMALPEN          (1 << 21)      /* RCC AHB4LPENR: BDMALPEN */
+#define RCC_AHB4LPENR_ADC3LPEN          (1 << 24)      /* RCC AHB4LPENR: ADC3LPEN */
+#define RCC_AHB4LPENR_BKPRAMLPEN        (1 << 28)      /* RCC AHB4LPENR: BKPRAMLPEN */
+#define RCC_AHB4LPENR_SRAM4LPEN         (1 << 29)      /* RCC AHB4LPENR: SRAM4LPEN */
 
 /* APB3 low power mode peripheral clock enable register */
 
-#define RCC_APB3LPENR_LTDCLPEN          (0x8ul)        /* RCC APB3LPENR: LTDCLPEN */
-#define RCC_APB3LPENR_WWDG1LPEN         (0x40ul)       /* RCC APB3LPENR: WWDG1LPEN */
+#define RCC_APB3LPENR_LTDCLPEN          (1 << 3)       /* RCC APB3LPENR: LTDCLPEN */
+#define RCC_APB3LPENR_WWDG1LPEN         (1 << 6)       /* RCC APB3LPENR: WWDG1LPEN */
 
 /* APB1 L low power mode peripheral clock enable register */
 
-#define RCC_APB1LLPENR_TIM2LPEN         (0x1ul)        /* RCC APB1LLPENR: TIM2LPEN */
-#define RCC_APB1LLPENR_TIM3LPEN         (0x2ul)        /* RCC APB1LLPENR: TIM3LPEN */
-#define RCC_APB1LLPENR_TIM4LPEN         (0x4ul)        /* RCC APB1LLPENR: TIM4LPEN */
-#define RCC_APB1LLPENR_TIM5LPEN         (0x8ul)        /* RCC APB1LLPENR: TIM5LPEN */
-#define RCC_APB1LLPENR_TIM6LPEN         (0x10ul)       /* RCC APB1LLPENR: TIM6LPEN */
-#define RCC_APB1LLPENR_TIM7LPEN         (0x20ul)       /* RCC APB1LLPENR: TIM7LPEN */
-#define RCC_APB1LLPENR_TIM12LPEN        (0x40ul)       /* RCC APB1LLPENR: TIM12LPEN */
-#define RCC_APB1LLPENR_TIM13LPEN        (0x80ul)       /* RCC APB1LLPENR: TIM13LPEN */
-#define RCC_APB1LLPENR_TIM14LPEN        (0x100ul)      /* RCC APB1LLPENR: TIM14LPEN */
-#define RCC_APB1LLPENR_LPTIM1LPEN       (0x200ul)      /* RCC APB1LLPENR: LPTIM1LPEN */
-#define RCC_APB1LLPENR_SPI2LPEN         (0x4000ul)     /* RCC APB1LLPENR: SPI2LPEN */
-#define RCC_APB1LLPENR_SPI3LPEN         (0x8000ul)     /* RCC APB1LLPENR: SPI3LPEN */
-#define RCC_APB1LLPENR_SPDIFRXLPEN      (0x10000ul)    /* RCC APB1LLPENR: SPDIFRXLPEN */
-#define RCC_APB1LLPENR_USART2LPEN       (0x20000ul)    /* RCC APB1LLPENR: USART2LPEN */
-#define RCC_APB1LLPENR_USART3LPEN       (0x40000ul)    /* RCC APB1LLPENR: USART3LPEN */
-#define RCC_APB1LLPENR_UART4LPEN        (0x80000ul)    /* RCC APB1LLPENR: UART4LPEN */
-#define RCC_APB1LLPENR_UART5LPEN        (0x100000ul)   /* RCC APB1LLPENR: UART5LPEN */
-#define RCC_APB1LLPENR_I2C1LPEN         (0x200000ul)   /* RCC APB1LLPENR: I2C1LPEN */
-#define RCC_APB1LLPENR_I2C2LPEN         (0x400000ul)   /* RCC APB1LLPENR: I2C2LPEN */
-#define RCC_APB1LLPENR_I2C3LPEN         (0x800000ul)   /* RCC APB1LLPENR: I2C3LPEN */
-#define RCC_APB1LLPENR_HDMICECLPEN      (0x8000000ul)  /* RCC APB1LLPENR: HDMICECLPEN */
-#define RCC_APB1LLPENR_DAC12LPEN        (0x20000000ul) /* RCC APB1LLPENR: DAC12LPEN */
-#define RCC_APB1LLPENR_USART7LPEN       (0x40000000ul) /* RCC APB1LLPENR: USART7LPEN */
-#define RCC_APB1LLPENR_USART8LPEN       (0x80000000ul) /* RCC APB1LLPENR: USART8LPEN */
+#define RCC_APB1LLPENR_TIM2LPEN         (1 << 0)       /* RCC APB1LLPENR: TIM2LPEN */
+#define RCC_APB1LLPENR_TIM3LPEN         (1 << 1)       /* RCC APB1LLPENR: TIM3LPEN */
+#define RCC_APB1LLPENR_TIM4LPEN         (1 << 2)       /* RCC APB1LLPENR: TIM4LPEN */
+#define RCC_APB1LLPENR_TIM5LPEN         (1 << 3)       /* RCC APB1LLPENR: TIM5LPEN */
+#define RCC_APB1LLPENR_TIM6LPEN         (1 << 4)       /* RCC APB1LLPENR: TIM6LPEN */
+#define RCC_APB1LLPENR_TIM7LPEN         (1 << 5)       /* RCC APB1LLPENR: TIM7LPEN */
+#define RCC_APB1LLPENR_TIM12LPEN        (1 << 6)       /* RCC APB1LLPENR: TIM12LPEN */
+#define RCC_APB1LLPENR_TIM13LPEN        (1 << 7)       /* RCC APB1LLPENR: TIM13LPEN */
+#define RCC_APB1LLPENR_TIM14LPEN        (1 << 8)       /* RCC APB1LLPENR: TIM14LPEN */
+#define RCC_APB1LLPENR_LPTIM1LPEN       (1 << 9)       /* RCC APB1LLPENR: LPTIM1LPEN */
+#define RCC_APB1LLPENR_SPI2LPEN         (1 << 14)      /* RCC APB1LLPENR: SPI2LPEN */
+#define RCC_APB1LLPENR_SPI3LPEN         (1 << 15)      /* RCC APB1LLPENR: SPI3LPEN */
+#define RCC_APB1LLPENR_SPDIFRXLPEN      (1 << 16)      /* RCC APB1LLPENR: SPDIFRXLPEN */
+#define RCC_APB1LLPENR_USART2LPEN       (1 << 17)      /* RCC APB1LLPENR: USART2LPEN */
+#define RCC_APB1LLPENR_USART3LPEN       (1 << 18)      /* RCC APB1LLPENR: USART3LPEN */
+#define RCC_APB1LLPENR_UART4LPEN        (1 << 19)      /* RCC APB1LLPENR: UART4LPEN */
+#define RCC_APB1LLPENR_UART5LPEN        (1 << 20)      /* RCC APB1LLPENR: UART5LPEN */
+#define RCC_APB1LLPENR_I2C1LPEN         (1 << 21)      /* RCC APB1LLPENR: I2C1LPEN */
+#define RCC_APB1LLPENR_I2C2LPEN         (1 << 22)      /* RCC APB1LLPENR: I2C2LPEN */
+#define RCC_APB1LLPENR_I2C3LPEN         (1 << 23)      /* RCC APB1LLPENR: I2C3LPEN */
+#define RCC_APB1LLPENR_HDMICECLPEN      (1 << 27)      /* RCC APB1LLPENR: HDMICECLPEN */
+#define RCC_APB1LLPENR_DAC1LPEN         (1 << 29)      /* RCC APB1LLPENR: DAC1LPEN */
+#define RCC_APB1LLPENR_USART7LPEN       (1 << 30)      /* RCC APB1LLPENR: USART7LPEN */
+#define RCC_APB1LLPENR_USART8LPEN       (1 << 31)      /* RCC APB1LLPENR: USART8LPEN */
 
 
 /* APB1 H low power mode peripheral clock enable register */
 
-#define RCC_APB1HLPENR_CRSLPEN          (0x2ul)        /* RCC APB1HLPENR: CRSLPEN */
-#define RCC_APB1HLPENR_SWPLPEN          (0x4ul)        /* RCC APB1HLPENR: SWPLPEN */
-#define RCC_APB1HLPENR_OPAMPLPEN        (0x10ul)       /* RCC APB1HLPENR: OPAMPLPEN */
-#define RCC_APB1HLPENR_MDIOSLPEN        (0x20ul)       /* RCC APB1HLPENR: MDIOSLPEN */
-#define RCC_APB1HLPENR_FDCANLPEN        (0x100ul)      /* RCC APB1HLPENR: FDCANLPEN */
+#define RCC_APB1HLPENR_CRSLPEN          (1 << 1)       /* RCC APB1HLPENR: CRSLPEN */
+#define RCC_APB1HLPENR_SWPLPEN          (1 << 2)       /* RCC APB1HLPENR: SWPLPEN */
+#define RCC_APB1HLPENR_OPAMPLPEN        (1 << 4)       /* RCC APB1HLPENR: OPAMPLPEN */
+#define RCC_APB1HLPENR_MDIOSLPEN        (1 << 5)       /* RCC APB1HLPENR: MDIOSLPEN */
+#define RCC_APB1HLPENR_FDCANLPEN        (1 << 8)       /* RCC APB1HLPENR: FDCANLPEN */
 
 /* APB2 low power mode peripheral clock enable register */
 
-#define RCC_APB2LPENR_TIM1LPEN          (0x1ul)        /* RCC APB2LPENR: TIM1LPEN */
-#define RCC_APB2LPENR_TIM8LPEN          (0x2ul)        /* RCC APB2LPENR: TIM8LPEN */
-#define RCC_APB2LPENR_USART1LPEN        (0x10ul)       /* RCC APB2LPENR: USART1LPEN */
-#define RCC_APB2LPENR_USART6LPEN        (0x20ul)       /* RCC APB2LPENR: USART6LPEN */
-#define RCC_APB2LPENR_SPI1LPEN          (0x1000ul)     /* RCC APB2LPENR: SPI1LPEN */
-#define RCC_APB2LPENR_SPI4LPEN          (0x2000ul)     /* RCC APB2LPENR: SPI4LPEN */
-#define RCC_APB2LPENR_TIM15LPEN         (0x10000ul)    /* RCC APB2LPENR: TIM15LPEN */
-#define RCC_APB2LPENR_TIM16LPEN         (0x20000ul)    /* RCC APB2LPENR: TIM16LPEN */
-#define RCC_APB2LPENR_TIM17LPEN         (0x40000ul)    /* RCC APB2LPENR: TIM17LPEN */
-#define RCC_APB2LPENR_SPI5LPEN          (0x100000ul)   /* RCC APB2LPENR: SPI5LPEN */
-#define RCC_APB2LPENR_SAI1LPEN          (0x400000ul)   /* RCC APB2LPENR: SAI1LPEN */
-#define RCC_APB2LPENR_SAI2LPEN          (0x800000ul)   /* RCC APB2LPENR: SAI2LPEN */
-#define RCC_APB2LPENR_SAI3LPEN          (0x1000000ul)  /* RCC APB2LPENR: SAI3LPEN */
-#define RCC_APB2LPENR_DFSDM1LPEN        (0x10000000ul) /* RCC APB2LPENR: DFSDM1LPEN */
-#define RCC_APB2LPENR_HRTIMLPEN         (0x20000000ul) /* RCC APB2LPENR: HRTIMLPEN */
+#define RCC_APB2LPENR_TIM1LPEN          (1 << 0)       /* RCC APB2LPENR: TIM1LPEN */
+#define RCC_APB2LPENR_TIM8LPEN          (1 << 1)       /* RCC APB2LPENR: TIM8LPEN */
+#define RCC_APB2LPENR_USART1LPEN        (1 << 4)       /* RCC APB2LPENR: USART1LPEN */
+#define RCC_APB2LPENR_USART6LPEN        (1 << 5)       /* RCC APB2LPENR: USART6LPEN */
+#define RCC_APB2LPENR_SPI1LPEN          (1 << 12)      /* RCC APB2LPENR: SPI1LPEN */
+#define RCC_APB2LPENR_SPI4LPEN          (1 << 13)      /* RCC APB2LPENR: SPI4LPEN */
+#define RCC_APB2LPENR_TIM15LPEN         (1 << 16)      /* RCC APB2LPENR: TIM15LPEN */
+#define RCC_APB2LPENR_TIM16LPEN         (1 << 17)      /* RCC APB2LPENR: TIM16LPEN */
+#define RCC_APB2LPENR_TIM17LPEN         (1 << 18)      /* RCC APB2LPENR: TIM17LPEN */
+#define RCC_APB2LPENR_SPI5LPEN          (1 << 20)      /* RCC APB2LPENR: SPI5LPEN */
+#define RCC_APB2LPENR_SAI1LPEN          (1 << 22)      /* RCC APB2LPENR: SAI1LPEN */
+#define RCC_APB2LPENR_SAI2LPEN          (1 << 23)      /* RCC APB2LPENR: SAI2LPEN */
+#define RCC_APB2LPENR_SAI3LPEN          (1 << 24)      /* RCC APB2LPENR: SAI3LPEN */
+#define RCC_APB2LPENR_DFSDM1LPEN        (1 << 28)      /* RCC APB2LPENR: DFSDM1LPEN */
+#define RCC_APB2LPENR_HRTIMLPEN         (1 << 29)      /* RCC APB2LPENR: HRTIMLPEN */
 
 /* APB4 low power mode peripheral clock enable register */
 
-#define RCC_APB4LPENR_SYSCFGLPEN        (0x2ul)     /* RCC APB4LPENR: SYSCFGLPEN */
-#define RCC_APB4LPENR_LPUART1LPEN       (0x8ul)     /* RCC APB4LPENR: LPUART1LPEN */
-#define RCC_APB4LPENR_SPI6LPEN          (0x20ul)    /* RCC APB4LPENR: SPI6LPEN */
-#define RCC_APB4LPENR_I2C4LPEN          (0x80ul)    /* RCC APB4LPENR: I2C4LPEN */
-#define RCC_APB4LPENR_LPTIM2LPEN        (0x200ul)   /* RCC APB4LPENR: LPTIM2LPEN */
-#define RCC_APB4LPENR_LPTIM3LPEN        (0x400ul)   /* RCC APB4LPENR: LPTIM3LPEN */
-#define RCC_APB4LPENR_LPTIM4LPEN        (0x800ul)   /* RCC APB4LPENR: LPTIM4LPEN */
-#define RCC_APB4LPENR_LPTIM5LPEN        (0x1000ul)  /* RCC APB4LPENR: LPTIM5LPEN */
-#define RCC_APB4LPENR_COMP12LPEN        (0x4000ul)  /* RCC APB4LPENR: COMP12LPEN */
-#define RCC_APB4LPENR_VREFLPEN          (0x8000ul)  /* RCC APB4LPENR: VREFLPEN */
-#define RCC_APB4LPENR_RTCAPBLPEN        (0x10000ul) /* RCC APB4LPENR: RTCAPBLPEN */
-#define RCC_APB4LPENR_SAI4LPEN          (0x200000ul) /* RCC APB4LPENR: SAI4LPEN */
+#define RCC_APB4LPENR_SYSCFGLPEN        (1 << 1)       /* RCC APB4LPENR: SYSCFGLPEN */
+#define RCC_APB4LPENR_LPUART1LPEN       (1 << 3)       /* RCC APB4LPENR: LPUART1LPEN */
+#define RCC_APB4LPENR_SPI6LPEN          (1 << 5)       /* RCC APB4LPENR: SPI6LPEN */
+#define RCC_APB4LPENR_I2C4LPEN          (1 << 7)       /* RCC APB4LPENR: I2C4LPEN */
+#define RCC_APB4LPENR_LPTIM2LPEN        (1 << 9)       /* RCC APB4LPENR: LPTIM2LPEN */
+#define RCC_APB4LPENR_LPTIM3LPEN        (1 << 10)      /* RCC APB4LPENR: LPTIM3LPEN */
+#define RCC_APB4LPENR_LPTIM4LPEN        (1 << 11)      /* RCC APB4LPENR: LPTIM4LPEN */
+#define RCC_APB4LPENR_LPTIM5LPEN        (1 << 12)      /* RCC APB4LPENR: LPTIM5LPEN */
+#define RCC_APB4LPENR_COMP12LPEN        (1 << 14)      /* RCC APB4LPENR: COMP12LPEN */
+#define RCC_APB4LPENR_VREFLPEN          (1 << 15)      /* RCC APB4LPENR: VREFLPEN */
+#define RCC_APB4LPENR_RTCAPBLPEN        (1 << 16)      /* RCC APB4LPENR: RTCAPBLPEN */
+#define RCC_APB4LPENR_SAI4LPEN          (1 << 21)      /* RCC APB4LPENR: SAI4LPEN */
 
 #endif /* __ARCH_ARM_SRC_STM32H7_CHIP_STM32H7X3XX_RCC_H */

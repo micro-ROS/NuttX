@@ -48,6 +48,7 @@
 #include <debug.h>
 #include <errno.h>
 
+#include <nuttx/fs/fs.h>
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/binfmt/binfmt.h>
 #include <nuttx/binfmt/builtin.h>
@@ -90,7 +91,7 @@ static struct binfmt_s g_builtin_binfmt =
 static int builtin_loadbinary(struct binary_s *binp)
 {
   FAR const char *filename;
-  FAR const struct builtin_s *b;
+  FAR const struct builtin_s *builtin;
   int fd;
   int index;
   int ret;
@@ -99,12 +100,11 @@ static int builtin_loadbinary(struct binary_s *binp)
 
   /* Open the binary file for reading (only) */
 
-  fd = open(binp->filename, O_RDONLY);
+  fd = nx_open(binp->filename, O_RDONLY);
   if (fd < 0)
     {
-      int errval = get_errno();
-      berr("ERROR: Failed to open binary %s: %d\n", binp->filename, errval);
-      return -errval;
+      berr("ERROR: Failed to open binary %s: %d\n", binp->filename, fd);
+      return fd;
     }
 
   /* If this file is a BINFS file system, then we can recover the name of
@@ -138,10 +138,10 @@ static int builtin_loadbinary(struct binary_s *binp)
    * the priority.  That is a bug and needs to be fixed.
    */
 
-  b = builtin_for_index(index);
-  binp->entrypt   = b->main;
-  binp->stacksize = b->stacksize;
-  binp->priority  = b->priority;
+  builtin         = builtin_for_index(index);
+  binp->entrypt   = builtin->main;
+  binp->stacksize = builtin->stacksize;
+  binp->priority  = builtin->priority;
   close(fd);
   return OK;
 }

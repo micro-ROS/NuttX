@@ -76,10 +76,6 @@
 #  define DMA_NSTREAMS   DMA1_NSTREAMS
 #endif
 
-#ifndef CONFIG_DMA_PRI
-#  define CONFIG_DMA_PRI NVIC_SYSH_PRIORITY_DEFAULT
-#endif
-
 /* Convert the DMA stream base address to the DMA register block address */
 
 #define DMA_BASE(ch)     ((ch) & 0xfffffc00)
@@ -475,7 +471,7 @@ static int stm32_dmainterrupt(int irq, void *context, FAR void *arg)
  *
  ****************************************************************************/
 
-void weak_function up_dmainitialize(void)
+void weak_function up_dma_initialize(void)
 {
   struct stm32_dma_s *dmast;
   int stream;
@@ -498,12 +494,6 @@ void weak_function up_dmainitialize(void)
       /* Enable the IRQ at the NVIC (still disabled at the DMA controller) */
 
       up_enable_irq(dmast->irq);
-
-#ifdef CONFIG_ARCH_IRQPRIO
-      /* Set the interrupt priority */
-
-      up_prioritize_irq(dmast->irq, CONFIG_DMA_PRI);
-#endif
     }
 }
 
@@ -928,8 +918,8 @@ bool stm32_dmacapable(uint32_t maddr, uint32_t count, uint32_t ccr)
 
 #  if defined(CONFIG_ARMV7M_DCACHE) && !defined(CONFIG_ARMV7M_DCACHE_WRITETHROUGH)
   /* buffer alignment is required for DMA transfers with dcache in buffered
-   * mode (not write-through) because a) arch_invalidate_dcache could lose
-   * buffered writes and b) arch_flush_dcache could corrupt adjacent memory if
+   * mode (not write-through) because a) up_invalidate_dcache could lose
+   * buffered writes and b) up_flush_dcache could corrupt adjacent memory if
    * the maddr and the mend+1, the next next address are not on
    * ARMV7M_DCACHE_LINESIZE boundaries.
    */

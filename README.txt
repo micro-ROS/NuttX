@@ -173,6 +173,7 @@ Using MSYS
     pacman -S git
     pacman -S make
     pacman -S gcc
+    pacman -S gdb
 
   And possibly others depending upon your usage.  Then you will need to
   build and install kconfig-frontends per the instructions of the top-level
@@ -340,7 +341,7 @@ Ubuntu Bash under Windows 10
   for the needs of your project.
 
   You will also need to get the kconfig-frontends configuration as
-  described below under "NuttX Configuration tool".  In order to build the
+  described below under "NuttX Configuration Tool".  In order to build the
   kconfig-frontends configuration tool you will also need:  make, gperf,
   flex, bison, and libncurses-dev.
 
@@ -377,7 +378,7 @@ INSTALLATION
 ^^^^^^^^^^^^
 
   There are two ways to get NuttX:  You may download released, stable
-  tarballs from wither the Bitbucket or Sourceforge download locations.
+  tarballs from either the Bitbucket or Sourceforge download locations.
   Or you may get NuttX by cloning the Bitbucket GIT repositories.  Let's
   consider the released tarballs first:
 
@@ -559,7 +560,7 @@ Notes about Header Files
     When a GCC toolchain is built, it incorporates the C library header
     files into the compiler internal directories and, in this way, the C
     library really becomes a part of the toolchain.  If you use the NuttX
-    buildroot toolchain as described below under under "NuttX Buildroot
+    buildroot toolchain as described below under "NuttX Buildroot
     Toolchain", your GCC toolchain will build against the NuttX C library
     and will incorporate the NuttX C library header files as part of the
     toolchain.
@@ -760,7 +761,7 @@ Refreshing Configurations
   be?  Enter ? in response to the 'make oldconfig' prompt and it will show
   you the help text that goes with the option.
 
-  If you don't want to make any decisions are are willing to just accept the
+  If you don't want to make any decisions are willing to just accept the
   recommended default value for each new configuration item, an even easier
   way is:
 
@@ -1790,11 +1791,17 @@ nuttx/
  |   |   `- README.txt
  |   |- freedom-kl26z/
  |   |   `- README.txt
+ |   |- gapuino/
+ |   |   `- README.txt
  |   |- hymini-stm32v/
  |   |   `- README.txt
  |   |- imxrt1050-evk
  |   |   `- README.txt
  |   |- kwikstik-k40/
+ |   |   `- README.txt
+ |   |- launchxl-cc1310/
+ |   |   `- README.txt
+ |   |- launchxl-cc1312r1/
  |   |   `- README.txt
  |   |- launchxl-tms57004/
  |   |   `- README.txt
@@ -1822,6 +1829,8 @@ nuttx/
  |   |   `- README.txt
  |   |- maple/
  |   |   `- README.txt
+ |   |- max32660-evsys/
+ |   |   `- README.txt
  |   |- mbed/
  |   |   `- README.txt
  |   |- mcb1700/
@@ -1842,7 +1851,7 @@ nuttx/
  |   |   `- README.txt
  |   |- ne63badge/
  |   |   `- README.txt
- |   |- nrf52-pca10040/
+ |   |- nrf52-generic/
  |   |   `- README.txt
  |   |- ntosd-dm320/
  |   |   |- doc/README.txt
@@ -1860,6 +1869,8 @@ nuttx/
  |   |- nucleo-f4x1re/
  |   |   `- README.txt
  |   |- nucleo-f410rb
+ |   |   `- README.txt
+ |   |- nucleo-f446re
  |   |   `- README.txt
  |   |- nucleo-l432kc/
  |   |   `- README.txt
@@ -1891,11 +1902,11 @@ nuttx/
  |   |   `- README.txt
  |   |- olimex-strp711/
  |   |   `- README.txt
+ |   |- omnibusf4/
+ |   |   `- README.txt
  |   |- open1788/
  |   |   `- README.txt
  |   |- p112/
- |   |   `- README.txt
- |   |- pcblogic-pic32mx/
  |   |   `- README.txt
  |   |- pcduino-a10/
  |   |   `- README.txt
@@ -1906,8 +1917,6 @@ nuttx/
  |   |- pic32mx7mmb/
  |   |   `- README.txt
  |   |- pic32mz-starterkit/
- |   |   `- README.txt
- |   |- pizero/
  |   |   `- README.txt
  |   |- qemu-i486/
  |   |   `- README.txt
@@ -2058,6 +2067,8 @@ nuttx/
  |   |   `- README.txt
  |   |- procfs/
  |   |   `- README.txt
+ |   |- spiffs/
+ |   |   `- README.md
  |   `- unionfs/
  |       `- README.txt
  |- graphics/
@@ -2140,7 +2151,11 @@ apps/
  |   |  `- README.txt
  |   |- nxplayer/
  |   |  `- README.txt
+ |   |- psmq/
+ |   |  `- README.txt
  |   |- symtab/
+ |   |   `- README.txt
+ |   |- termcurses/
  |   |   `- README.txt
  |   |- usbmsc/
  |   |  `- README.txt

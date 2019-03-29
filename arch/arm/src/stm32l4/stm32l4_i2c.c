@@ -397,7 +397,7 @@ struct stm32l4_trace_s
   uint32_t count;                /* Interrupt count when status change */
   enum stm32l4_intstate_e event; /* Last event that occurred with this status */
   uint32_t parm;                 /* Parameter associated with the event */
-  uint32_t time;                 /* First of event or first status */
+  clock_t time;                  /* First of event or first status */
 };
 
 /* I2C Device hardware configuration */
@@ -439,7 +439,7 @@ struct stm32l4_i2c_priv_s
 
 #ifdef CONFIG_I2C_TRACE
   int tndx;                    /* Trace array index */
-  uint32_t start_time;         /* Time when the trace was started */
+  clock_t start_time;          /* Time when the trace was started */
 
   /* The actual trace data */
 
@@ -899,9 +899,9 @@ static inline int stm32l4_i2c_sem_waitdone(FAR struct stm32l4_i2c_priv_s *priv)
 #else
 static inline int stm32l4_i2c_sem_waitdone(FAR struct stm32l4_i2c_priv_s *priv)
 {
-  uint32_t timeout;
-  uint32_t start;
-  uint32_t elapsed;
+  clock_t timeout;
+  clock_t start;
+  clock_t elapsed;
   int ret;
 
   /* Get the timeout value */
@@ -937,8 +937,8 @@ static inline int stm32l4_i2c_sem_waitdone(FAR struct stm32l4_i2c_priv_s *priv)
 
   while (priv->intstate != INTSTATE_DONE && elapsed < timeout);
 
-  i2cinfo("intstate: %d elapsed: %d threshold: %d status: 0x%08x\n",
-          priv->intstate, elapsed, timeout, priv->status);
+  i2cinfo("intstate: %d elapsed: %ld threshold: %ld status: 0x%08x\n",
+          priv->intstate, (long)elapsed, (long)timeout, priv->status);
 
   /* Set the interrupt state back to IDLE */
 
@@ -1040,9 +1040,9 @@ stm32l4_i2c_disable_reload(FAR struct stm32l4_i2c_priv_s *priv)
 
 static inline void stm32l4_i2c_sem_waitstop(FAR struct stm32l4_i2c_priv_s *priv)
 {
-  uint32_t start;
-  uint32_t elapsed;
-  uint32_t timeout;
+  clock_t start;
+  clock_t elapsed;
+  clock_t timeout;
   uint32_t cr;
   uint32_t sr;
 
@@ -1245,15 +1245,15 @@ static void stm32l4_i2c_tracedump(FAR struct stm32l4_i2c_priv_s *priv)
   int i;
 
   syslog(LOG_DEBUG, "Elapsed time: %d\n",
-         clock_systimer() - priv->start_time);
+         (int)(clock_systimer() - priv->start_time));
 
-  for (i = 0; i <= priv->tndx; i++)
+  for (i = 0; i < priv->tndx; i++)
     {
       trace = &priv->trace[i];
       syslog(LOG_DEBUG,
              "%2d. STATUS: %08x COUNT: %3d EVENT: %2d PARM: %08x TIME: %d\n",
              i+1, trace->status, trace->count,  trace->event, trace->parm,
-             trace->time - priv->start_time);
+             (int)(trace->time - priv->start_time));
     }
 }
 #endif /* CONFIG_I2C_TRACE */
@@ -1593,7 +1593,9 @@ static inline void stm32l4_i2c_sendstart(FAR struct stm32l4_i2c_priv_s *priv)
    * it otherwise.
    */
 
-  if (priv->msgc > 0)
+  /* Check if there are multiple messages and the next is a continuation */
+
+  if (priv->msgc > 1)
     {
       next_norestart = (((priv->msgv + 1)->flags & I2C_M_NOSTART) != 0);
     }
@@ -1878,7 +1880,7 @@ static int stm32l4_i2c_isr_process(struct stm32l4_i2c_priv_s *priv)
                * can't write NBYTES to clear TCR so it will fire forever.
                */
 
-              if ((priv->msgc - 1) == 0)
+              if (priv->msgc == 1)
                 {
                   stm32l4_i2c_disable_reload(priv);
                 }
@@ -2029,11 +2031,18 @@ static int stm32l4_i2c_isr_process(struct stm32l4_i2c_priv_s *priv)
       i2cinfo("TC: ENTER dcnt = %i msgc = %i status 0x%08x\n",
               priv->dcnt, priv->msgc, status);
 
-      /* Prior message has been sent successfully */
+      /* Prior message has been sent successfully. Or there could have
+       * been an error that set msgc to 0; So test for that case as
+       * we do not want to decrement msgc less then zero nor move msgv
+       * past the last message.
+       */
 
-      priv->msgc--;
+      if (priv->msgc > 0)
+        {
+          priv->msgc--;
+        }
 
-      /* if additional messages remain to be transmitted / received */
+      /* Are there additional messages remain to be transmitted / received? */
 
       if (priv->msgc > 0)
         {
@@ -2644,8 +2653,8 @@ static int stm32l4_i2c_process(FAR struct i2c_master_s *dev,
        * wraps up the transfer with a STOP condition.
        */
 
-      uint32_t start = clock_systimer();
-      uint32_t timeout = USEC2TICK(USEC_PER_SEC/priv->frequency) + 1;
+      clock_t start = clock_systimer();
+      clock_t timeout = USEC2TICK(USEC_PER_SEC/priv->frequency) + 1;
 
       status = stm32l4_i2c_getstatus(priv);
 
@@ -2874,6 +2883,11 @@ static int stm32l4_i2c_pm_prepare(FAR struct pm_callback_s *cb, int domain,
 
           return -EBUSY;
         }
+
+      break;
+
+    default:
+      /* Should not get here */
 
       break;
     }

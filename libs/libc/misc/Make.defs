@@ -1,7 +1,8 @@
 ############################################################################
 # libs/libc/misc/Make.defs
 #
-#   Copyright (C) 2011-2012, 2014, 2016 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012, 2014, 2016, 2018 Gregory Nutt. All rights
+#     reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -49,8 +50,6 @@ CSRCS += lib_uadd32x64.c lib_uadd64.c lib_usub64x32.c lib_usub64.c
 
 # Add C files that depend on file OR socket descriptors
 
-ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
-
 CSRCS += lib_sendfile.c
 
 ifneq ($(CONFIG_NFILE_STREAMS),0)
@@ -65,25 +64,9 @@ ifeq ($(CONFIG_PIPES),y)
 CSRCS += lib_mkfifo.c
 endif
 
-else # CONFIG_NFILE_DESCRIPTORS > 0
-ifneq ($(CONFIG_NSOCKET_DESCRIPTORS),0)
-
-CSRCS += lib_sendfile.c
-
-ifneq ($(CONFIG_NFILE_STREAMS),0)
-CSRCS += lib_streamsem.c
-endif
-
-ifeq ($(CONFIG_LIBC_IOCTL_VARIADIC),y)
-CSRCS += lib_ioctl.c
-endif
-
-endif # CONFIG_NSOCKET_DESCRIPTORS > 0
-endif # CONFIG_NFILE_DESCRIPTORS > 0
-
 # Add the miscellaneous C files to the build
 
-CSRCS += lib_crc64.c lib_crc32.c lib_crc16.c lib_crc8.c
+CSRCS += lib_crc64.c lib_crc32.c lib_crc16.c lib_crc8.c lib_crc8ccitt.c
 CSRCS += lib_dumpbuffer.c lib_match.c
 
 ifeq ($(CONFIG_DEBUG_FEATURES),y)
@@ -101,6 +84,17 @@ endif
 ifeq ($(CONFIG_LIB_SLCDCODEC),y)
 CSRCS += lib_slcdencode.c lib_slcddecode.c
 endif
+
+# Environment search path support
+
+ifeq ($(CONFIG_LIB_ENVPATH),y)
+CSRCS += lib_envpath.c
+endif
+
+# To ensure uname information is newest,
+# add lib_utsname.o to phony target for force rebuild
+
+.PHONY: lib_utsname$(OBJEXT)
 
 # Add the misc directory to the build
 

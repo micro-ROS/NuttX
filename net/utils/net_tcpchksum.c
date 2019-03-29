@@ -1,7 +1,8 @@
 /****************************************************************************
  * net/utils/net_tcpchksum.c
  *
- *   Copyright (C) 2007-2010, 2012, 2014-2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2010, 2012, 2014-2015, 2017 Gregory Nutt.  All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -82,7 +83,7 @@ uint16_t tcp_ipv4_chksum(FAR struct net_driver_s *dev)
 #ifdef CONFIG_NET_IPv6
 uint16_t tcp_ipv6_chksum(FAR struct net_driver_s *dev)
 {
-  return ipv6_upperlayer_chksum(dev, IP_PROTO_TCP);
+  return ipv6_upperlayer_chksum(dev, IP_PROTO_TCP, IPv6_HDRLEN);
 }
 #endif /* CONFIG_NET_IPv6 */
 #endif /* !CONFIG_NET_ARCH_CHKSUM */

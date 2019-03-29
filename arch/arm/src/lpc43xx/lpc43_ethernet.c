@@ -85,18 +85,18 @@
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error Work queue support is required
-#else
-
-  /* Select work queue */
-
-#  if defined(CONFIG_LPC43_ETHERNET_HPWORK)
-#    define ETHWORK HPWORK
-#  elif defined(CONFIG_LPC43_ETHERNET_LPWORK)
-#    define ETHWORK LPWORK
-#  else
-#    error Neither CONFIG_LPC43_ETHERNET_HPWORK nor CONFIG_LPC43_ETHERNET_LPWORK defined
-#  endif
 #endif
+
+/* The low priority work queue is preferred.  If it is not enabled, LPWORK
+ * will be the same as HPWORK.
+ *
+ * NOTE:  However, the network should NEVER run on the high priority work
+ * queue!  That queue is intended only to service short back end interrupt
+ * processing that never suspends.  Suspending the high priority work queue
+ * may bring the system to its knees!
+ */
+
+#define ETHWORK LPWORK
 
 #ifndef CONFIG_LPC43_PHYADDR
 #  error "CONFIG_LPC43_PHYADDR must be defined in the NuttX configuration"
@@ -615,10 +615,10 @@ static int  lpc43_ifdown(struct net_driver_s *dev);
 static void lpc43_txavail_work(FAR void *arg);
 static int  lpc43_txavail(struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int  lpc43_addmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  lpc43_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
 #ifdef CONFIG_NETDEV_IOCTL
@@ -2410,7 +2410,7 @@ static int lpc43_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static uint32_t lpc43_calcethcrc(const uint8_t *data, size_t length)
 {
   uint32_t crc = 0xffffffff;
@@ -2455,7 +2455,7 @@ static uint32_t lpc43_calcethcrc(const uint8_t *data, size_t length)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int lpc43_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   uint32_t crc;
@@ -2512,7 +2512,7 @@ static int lpc43_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lpc43_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   uint32_t crc;
@@ -2761,9 +2761,9 @@ static int lpc43_ioctl(struct net_driver_s *dev, int cmd, unsigned long arg)
 #ifdef CONFIG_ARCH_PHY_INTERRUPT
   case SIOCMIINOTIFY: /* Set up for PHY event notifications */
     {
-      struct mii_iotcl_notify_s *req = (struct mii_iotcl_notify_s *)((uintptr_t)arg);
+      struct mii_ioctl_notify_s *req = (struct mii_ioctl_notify_s *)((uintptr_t)arg);
 
-      ret = phy_notify_subscribe(dev->d_ifname, req->pid, req->signo, req->arg);
+      ret = phy_notify_subscribe(dev->d_ifname, req->pid, &req->event);
       if (ret == OK)
           {
             /* Enable PHY link up/down interrupts */
@@ -3386,7 +3386,7 @@ static inline void lpc43_ethgpioconfig(FAR struct lpc43_ethmac_s *priv)
   lpc43_pin_config(PINCONF_ENET_RXD1);
   lpc43_pin_config(PINCONF_ENET_TXD0);
   lpc43_pin_config(PINCONF_ENET_TXD1);
-  lpc43_pin_config(PINCONF_ENET_TXEN);
+  lpc43_pin_config(PINCONF_ENET_TX_EN);
 
 #ifdef PINCONF_ENET_RESET
   lpc43_pin_config(PINCONF_ENET_RESET);
@@ -3824,7 +3824,7 @@ static inline int lpc43_ethinitialize(void)
   priv->dev.d_ifup    = lpc43_ifup;     /* I/F up (new IP address) callback */
   priv->dev.d_ifdown  = lpc43_ifdown;   /* I/F down callback */
   priv->dev.d_txavail = lpc43_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = lpc43_addmac;   /* Add multicast MAC address */
   priv->dev.d_rmmac   = lpc43_rmmac;    /* Remove multicast MAC address */
 #endif
@@ -3878,9 +3878,11 @@ static inline int lpc43_ethinitialize(void)
  *
  ****************************************************************************/
 
+#ifndef CONFIG_NETDEV_LATEINIT
 void up_netinitialize(void)
 {
   (void)lpc43_ethinitialize();
 }
+#endif
 
 #endif /* CONFIG_NET && CONFIG_LPC43_ETHERNET */

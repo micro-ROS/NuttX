@@ -95,7 +95,7 @@ static int lpc17_timerisr(int irq, uint32_t *regs, void *arg)
 {
   /* Process timer interrupt */
 
-  sched_process_timer();
+  nxsched_process_timer();
   return 0;
 }
 
@@ -118,14 +118,14 @@ void arm_timer_initialize(void)
 
   /* Set the SysTick interrupt to the default priority */
 
-  regval = getreg32(NVIC_SYSH12_15_PRIORITY);
+  regval  = getreg32(NVIC_SYSH12_15_PRIORITY);
   regval &= ~NVIC_SYSH_PRIORITY_PR15_MASK;
   regval |= (NVIC_SYSH_PRIORITY_DEFAULT << NVIC_SYSH_PRIORITY_PR15_SHIFT);
   putreg32(regval, NVIC_SYSH12_15_PRIORITY);
 
   /* Make sure that the SYSTICK clock source is set to use the LPC17xx CCLK */
 
-  regval = getreg32(NVIC_SYSTICK_CTRL);
+  regval  = getreg32(NVIC_SYSTICK_CTRL);
   regval |= NVIC_SYSTICK_CTRL_CLKSOURCE;
   putreg32(regval, NVIC_SYSTICK_CTRL);
 

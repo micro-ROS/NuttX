@@ -1,7 +1,8 @@
 /****************************************************************************
  * libs/libnx/nxtk/nxtk_events.c
  *
- *   Copyright (C) 2008-2009, 2012, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2012, 2017, 2019 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,14 +52,6 @@
 #include "nxtk.h"
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -76,11 +69,8 @@ static void nxtk_mousein(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
 static void nxtk_kbdin(NXWINDOW hwnd, uint8_t nch, const uint8_t *ch,
                        FAR void *arg);
 #endif
-static void nxtk_blocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2);
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
+static void nxtk_event(NXWINDOW hwnd, enum nx_event_e event,
+                       FAR void *arg1, FAR void *arg2);
 
 /****************************************************************************
  * Public Data
@@ -96,12 +86,8 @@ const struct nx_callback_s g_nxtkcb =
 #ifdef CONFIG_NX_KBD
   , nxtk_kbdin    /* kbdin */
 #endif
-  , nxtk_blocked  /* blocked */
+  , nxtk_event    /* event */
 };
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
 
 /****************************************************************************
  * Name: nxtk_redraw
@@ -110,10 +96,11 @@ const struct nx_callback_s g_nxtkcb =
 static void nxtk_redraw(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
                         bool more, FAR void *arg)
 {
-  FAR struct nxtk_framedwindow_s *fwnd = (FAR struct nxtk_framedwindow_s *)hwnd;
+  FAR struct nxtk_framedwindow_s *fwnd;
   struct nxgl_rect_s intersection;
 
-  DEBUGASSERT(hwnd && rect && fwnd->fwcb);
+  DEBUGASSERT(hwnd != NULL && rect != NULL);
+  fwnd = (FAR struct nxtk_framedwindow_s *)hwnd;
 
   ginfo("hwnd=%p rect={(%d,%d),(%d,%d)} more=%d\n",
         hwnd, rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y, more);
@@ -124,6 +111,7 @@ static void nxtk_redraw(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
    * forward the redraw callback.
    */
 
+  DEBUGASSERT(fwnd->fwcb != NULL);
   if (fwnd->fwcb->redraw)
     {
       /* Clip the redraw rectangle so that it lies within the client sub-window
@@ -304,18 +292,19 @@ static void nxtk_kbdin(NXWINDOW hwnd, uint8_t nch, const uint8_t *ch,
 #endif
 
 /****************************************************************************
- * Name: nxtk_blocked
+ * Name: nxtk_event
  ****************************************************************************/
 
-static void nxtk_blocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2)
+static void nxtk_event(NXWINDOW hwnd, enum nx_event_e event,
+                       FAR void *arg1, FAR void *arg2)
 {
   FAR struct nxtk_framedwindow_s *fwnd = (FAR struct nxtk_framedwindow_s *)hwnd;
 
-  /* Only the client window gets keyboard input */
+  /* Forward the event to the window client */
 
-  if (fwnd->fwcb->blocked)
+  if (fwnd->fwcb->event != NULL)
     {
-      fwnd->fwcb->blocked((NXTKWINDOW)fwnd, fwnd->fwarg, arg2);
+      fwnd->fwcb->event((NXTKWINDOW)fwnd, event, fwnd->fwarg, arg2);
     }
 }
 

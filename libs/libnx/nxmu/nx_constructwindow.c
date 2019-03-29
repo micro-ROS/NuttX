@@ -1,7 +1,7 @@
 /****************************************************************************
  * libs/libnx/nxmu/nx_constsructwindow.c
  *
- *   Copyright (C) 2008, 2011-2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008, 2011-2013, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -72,6 +72,9 @@
  * Input Parameters:
  *   handle - The handle returned by nx_connect
  *   hwnd   - The pre-allocated window structure.
+ *   flags  - Optional flags.  Must be zero unless CONFIG_NX_RAMBACKED is
+ *            enabled.  In that case, it may be zero or
+ *            NXBE_WINDOW_RAMBACKED
  *   cb     - Callbacks used to process window events
  *   arg    - User provided value that will be returned with NX callbacks.
  *
@@ -81,21 +84,21 @@
  *
  ****************************************************************************/
 
-int nx_constructwindow(NXHANDLE handle, NXWINDOW hwnd,
+int nx_constructwindow(NXHANDLE handle, NXWINDOW hwnd, uint8_t flags,
                        FAR const struct nx_callback_s *cb, FAR void *arg)
 {
-  FAR struct nxfe_conn_s *conn = (FAR struct nxfe_conn_s *)handle;
+  FAR struct nxmu_conn_s *conn = (FAR struct nxmu_conn_s *)handle;
   FAR struct nxbe_window_s *wnd = (FAR struct nxbe_window_s *)hwnd;
   struct nxsvrmsg_openwindow_s outmsg;
 
 #ifdef CONFIG_DEBUG_FEATURES
-  if (!wnd)
+  if (wnd == NULL)
     {
       set_errno(EINVAL);
       return ERROR;
     }
 
-  if (!conn || !cb)
+  if (conn == NULL || cb == NULL || (flags & ~NXBE_WINDOW_USER) != 0)
     {
       lib_ufree(wnd);
       set_errno(EINVAL);
@@ -103,13 +106,21 @@ int nx_constructwindow(NXHANDLE handle, NXWINDOW hwnd,
     }
 #endif
 
-  /* Setup only the connection structure, callbacks and client private data
-   * reference. The server will set everything else up.
+  /* Setup only the connection structure, user flags, callbacks and client
+   * private data reference. The server will set everything else up.
    */
 
   wnd->conn   = conn;
+  wnd->flags  = flags;
   wnd->cb     = cb;
   wnd->arg    = arg;
+#ifdef CONFIG_NX_RAMBACKED
+#ifdef CONFIG_BUILD_KERNEL
+  wnd->npages = 0;
+#endif
+  wnd->stride = 0;
+  wnd->fbmem  = NULL;
+#endif
 
   /* Request initialization the new window from the server */
 

@@ -74,6 +74,14 @@
 #endif
 
 /****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_STACKDUMP
+static uint32_t s_last_regs[XCPTCONTEXT_REGS];
+#endif
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -158,24 +166,31 @@ static inline void up_showtasks(void)
 #ifdef CONFIG_ARCH_STACKDUMP
 static inline void up_registerdump(void)
 {
+  volatile uint32_t *regs = CURRENT_REGS;
+  int reg;
+
   /* Are user registers available from interrupt processing? */
 
-  if (CURRENT_REGS)
+  if (regs == NULL)
     {
-      int regs;
+      /* No.. capture user registers by hand */
 
-      /* Yes.. dump the interrupt registers */
-
-      for (regs = REG_R0; regs <= REG_R15; regs += 8)
-        {
-          uint32_t *ptr = (uint32_t *)&CURRENT_REGS[regs];
-          _alert("R%d: %08x %08x %08x %08x %08x %08x %08x %08x\n",
-                 regs, ptr[0], ptr[1], ptr[2], ptr[3],
-                 ptr[4], ptr[5], ptr[6], ptr[7]);
-        }
-
-      _alert("CPSR: %08x\n", CURRENT_REGS[REG_CPSR]);
+      up_saveusercontext(s_last_regs);
+      regs = s_last_regs;
     }
+
+
+  /* Dump the interrupt registers */
+
+  for (reg = REG_R0; reg <= REG_R15; reg += 8)
+    {
+      uint32_t *ptr = (uint32_t *)&regs[reg];
+      _alert("R%d: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+             reg, ptr[0], ptr[1], ptr[2], ptr[3],
+             ptr[4], ptr[5], ptr[6], ptr[7]);
+    }
+
+  _alert("CPSR: %08x\n", regs[REG_CPSR]);
 }
 #else
 # define up_registerdump()
@@ -213,7 +228,7 @@ static int assert_tracecallback(FAR struct usbtrace_s *trace, FAR void *arg)
 #ifdef CONFIG_ARCH_STACKDUMP
 static void up_dumpstate(void)
 {
-  struct tcb_s *rtcb = this_task();
+  struct tcb_s *rtcb = running_task();
   uint32_t sp   = up_getsp();
   uint32_t ustackbase;
   uint32_t ustacksize;
@@ -225,9 +240,13 @@ static void up_dumpstate(void)
   uint32_t kstackbase = 0;
 #endif
 
+  /* Dump the CPU registers (if available) */
+
+  up_registerdump();
+
   /* Get the limits on the user stack memory */
 
-  if (rtcb->pid == 0)
+  if (rtcb->pid == 0) /* Check for CPU0 IDLE thread */
     {
       ustackbase = g_idle_topstack - 4;
       ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
@@ -306,6 +325,11 @@ static void up_dumpstate(void)
       sp        = *stackbase;
       _alert("User sp: %08x\n", sp);
     }
+  else if (CURRENT_REGS)
+    {
+      _alert("ERROR: Stack pointer is not within the interrupt stack\n");
+      up_stackdump(istackbase - istacksize, istackbase);
+    }
 #endif
 
   /* Dump the user stack if the stack pointer lies within the allocated user
@@ -323,22 +347,26 @@ static void up_dumpstate(void)
    * kernel stack memory.
    */
 
-  if (sp >= (uint32_t)rtcb->xcp.kstack && sp < kstackbase)
+  else if (sp >= (uint32_t)rtcb->xcp.kstack && sp < kstackbase)
     {
       _alert("Kernel Stack\n", sp);
       up_stackdump(sp, kstackbase);
     }
 #endif
+  else
+    {
+      _alert("ERROR: Stack pointer is not within the allocated stack\n");
+      up_stackdump(ustackbase - ustacksize, ustackbase);
+#ifdef CONFIG_ARCH_KERNEL_STACK
+      up_stackdump((uint32_t)rtcb->xcp.kstack, kstackbase);
+#endif
+    }
 
 #ifdef CONFIG_SMP
   /* Show the CPU number */
 
   _alert("CPU%d:\n", up_cpu_index());
 #endif
-
-  /* Then dump the CPU registers (if available) */
-
-  up_registerdump();
 
   /* Dump the state of all tasks (if available) */
 
@@ -367,7 +395,7 @@ static void _up_assert(int errorcode)
 
   /* Are we in an interrupt handler or the idle task? */
 
-  if (CURRENT_REGS || this_task()->pid == 0)
+  if (CURRENT_REGS || running_task()->flink == NULL)
     {
       /* Disable interrupts on this CPU */
 
@@ -382,7 +410,7 @@ static void _up_assert(int errorcode)
 #endif
 
 #if CONFIG_BOARD_RESET_ON_ASSERT >= 1
-          board_reset(0);
+          board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 #endif
 #ifdef CONFIG_ARCH_LEDS
           /* FLASH LEDs a 2Hz */
@@ -397,7 +425,7 @@ static void _up_assert(int errorcode)
   else
     {
 #if CONFIG_BOARD_RESET_ON_ASSERT >= 2
-      board_reset(0);
+      board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 #endif
       exit(errorcode);
     }
@@ -414,7 +442,7 @@ static void _up_assert(int errorcode)
 void up_assert(const uint8_t *filename, int lineno)
 {
 #if CONFIG_TASK_NAME_SIZE > 0 && defined(CONFIG_DEBUG_ALERT)
-  struct tcb_s *rtcb = this_task();
+  struct tcb_s *rtcb = running_task();
 #endif
 
   board_autoled_on(LED_ASSERTION);
@@ -448,7 +476,7 @@ void up_assert(const uint8_t *filename, int lineno)
   (void)syslog_flush();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
-  board_crashdump(up_getsp(), this_task(), filename, lineno);
+  board_crashdump(up_getsp(), running_task(), filename, lineno);
 #endif
 
   _up_assert(EXIT_FAILURE);

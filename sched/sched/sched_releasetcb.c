@@ -1,7 +1,8 @@
 /****************************************************************************
  * sched/sched/sched_releasetcb.c
  *
- *   Copyright (C) 2007, 2009, 2012-2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2012-2014, 2019 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,13 +56,13 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name:  sched_releasepid
+ * Name:  nxsched_releasepid
  *
  * Description:  When a task is destroyed, this function must
  * be called to make its process ID available for re-use.
  ****************************************************************************/
 
-static void sched_releasepid(pid_t pid)
+static void nxsched_releasepid(pid_t pid)
 {
   int hash_ndx = PIDHASH(pid);
 
@@ -139,7 +140,7 @@ int sched_releasetcb(FAR struct tcb_s *tcb, uint8_t ttype)
 
       if (tcb->pid)
         {
-          sched_releasepid(tcb->pid);
+          nxsched_releasepid(tcb->pid);
         }
 
       /* Delete the thread's stack if one has been allocated */
@@ -167,7 +168,7 @@ int sched_releasetcb(FAR struct tcb_s *tcb, uint8_t ttype)
 #ifdef CONFIG_PIC
       /* Delete the task's allocated DSpace region (external modules only) */
 
-      if (tcb->dspace)
+      if (tcb->dspace != NULL)
         {
           if (tcb->dspace->crefs <= 1)
             {
@@ -192,11 +193,9 @@ int sched_releasetcb(FAR struct tcb_s *tcb, uint8_t ttype)
       ret = up_addrenv_detach(tcb->group, tcb);
 #endif
 
-#ifdef HAVE_TASK_GROUP
       /* Leave the group (if we did not already leave in task_exithook.c) */
 
       group_leave(tcb);
-#endif
 
       /* And, finally, release the TCB itself */
 

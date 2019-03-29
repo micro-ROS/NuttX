@@ -50,6 +50,7 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/serial/serial.h>
 #include <nuttx/power/pm.h>
 
@@ -57,7 +58,6 @@
 #  include <termios.h>
 #endif
 
-#include <arch/serial.h>
 #include <arch/board/board.h>
 
 #include "chip.h"
@@ -340,7 +340,7 @@ static int  stm32l4serial_pmprepare(FAR struct pm_callback_s *cb, int domain,
 #endif
 
 /****************************************************************************
- * Private Variables
+ * Private Data
  ****************************************************************************/
 
 #ifndef SERIAL_HAVE_ONLY_DMA
@@ -1187,7 +1187,7 @@ static void stm32l4serial_setsuspend(struct uart_dev_s *dev, bool suspend)
  ****************************************************************************/
 
 #ifdef CONFIG_PM
-void stm32l4serial_pm_setsuspend(bool suspend)
+static void stm32l4serial_pm_setsuspend(bool suspend)
 {
   int n;
 
@@ -1857,7 +1857,7 @@ static int stm32l4serial_ioctl(FAR struct file *filep, int cmd,
         /* Perform some sanity checks before accepting any changes */
 
         if (((termiosp->c_cflag & CSIZE) != CS8)
-#ifdef CONFIG_SERIAL_IFLOWCONTROL
+#ifdef CONFIG_SERIAL_OFLOWCONTROL
             || ((termiosp->c_cflag & CCTS_OFLOW) && (priv->cts_gpio == 0))
 #endif
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
@@ -2613,6 +2613,7 @@ static void stm32l4serial_pmnotify(FAR struct pm_callback_s *cb, int domain,
 
       default:
         /* Should not get here */
+
         break;
     }
 }
@@ -2709,9 +2710,13 @@ static int stm32l4serial_pmprepare(FAR struct pm_callback_s *cb, int domain,
               return ERROR;
             }
         }
+      break;
 
+    default:
+      /* Should not get here */
       break;
     }
+
   return OK;
 }
 #endif
@@ -2731,7 +2736,7 @@ static int stm32l4serial_pmprepare(FAR struct pm_callback_s *cb, int domain,
  * Description:
  *   Performs the low level USART initialization early in debug so that the
  *   serial console will be available during bootup.  This must be called
- *   before stm32l4serial_getregit.
+ *   before up_serialinit.
  *
  ****************************************************************************/
 
@@ -2899,7 +2904,7 @@ void stm32l4_serial_dma_poll(void)
  * Name: up_putc
  *
  * Description:
- *   Provide priority, low-level access to support OS debug  writes
+ *   Provide priority, low-level access to support OS debug writes
  *
  ****************************************************************************/
 

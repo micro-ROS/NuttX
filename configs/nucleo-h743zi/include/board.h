@@ -55,7 +55,7 @@
 /* Clocking *************************************************************************/
 /* The Nucleo-144  board provides the following clock sources:
  *
- *   MCO: 8 MHz from MCO output of ST-LINK is used as input clock
+ *   MCO: 8 MHz from MCO output of ST-LINK is used as input clock (default)
  *   X2:  32.768 KHz crystal for LSE
  *   X3:  HSE crystal oscillator (not provided)
  *
@@ -67,7 +67,7 @@
  *   LSE: 32.768 kHz
  */
 
-#define STM32_BOARD_XTAL        8000000ul
+#define STM32_BOARD_XTAL        8000000ul /* ST-LINK MCO */
 
 #define STM32_HSI_FREQUENCY     16000000ul
 #define STM32_LSI_FREQUENCY     32000
@@ -100,12 +100,6 @@
  *   PLLP1   = {2, 4, 6, 8, ..., 128}
  *   PLLP2,3 = {2, 3, 4, ..., 128}
  *   CPUCLK <= 400 MHz
- *
- */
-
-/* PLL1_VCO = (8,000,000 / 2) * 200 = 800 MHz
- * SYSCLK   = 800 MHz / 2 = 400 MHz
- * CPUCLK   = 800 MHz / 1 = 400 MHz
  */
 
 #define STM32_BOARD_USEHSE
@@ -113,76 +107,126 @@
 
 #define STM32_PLLCFG_PLLSRC      RCC_PLLCKSELR_PLLSRC_HSE
 
-/* Wide PLL1, 4 - 8 MHz input, enable DIVP */
+/* PLL1, wide 4 - 8 MHz input, enable DIVP, DIVQ, DIVR
+ *
+ *   PLL1_VCO = (8,000,000 / 2) * 200 = 800 MHz
+ *
+ *   PLL1P = PLL1_VCO/2  = 800 MHz / 2   = 400 MHz
+ *   PLL1Q = PLL1_VCO/4  = 800 MHz / 4   = 200 MHz
+ *   PLL1R = PLL1_VCO/8  = 800 MHz / 8   = 100 MHz
+ */
 
 #define STM32_PLLCFG_PLL1CFG     (RCC_PLLCFGR_PLL1VCOSEL_WIDE | \
                                   RCC_PLLCFGR_PLL1RGE_4_8_MHZ | \
-                                  RCC_PLLCFGR_DIVP1EN)
+                                  RCC_PLLCFGR_DIVP1EN | \
+                                  RCC_PLLCFGR_DIVQ1EN | \
+                                  RCC_PLLCFGR_DIVR1EN)
 #define STM32_PLLCFG_PLL1M       RCC_PLLCKSELR_DIVM1(2)
 #define STM32_PLLCFG_PLL1N       RCC_PLL1DIVR_N1(200)
 #define STM32_PLLCFG_PLL1P       RCC_PLL1DIVR_P1(2)
 #define STM32_PLLCFG_PLL1Q       RCC_PLL1DIVR_Q1(4)
 #define STM32_PLLCFG_PLL1R       RCC_PLL1DIVR_R1(8)
 
+#define STM32_VCO1_FREQUENCY     ((STM32_HSE_FREQUENCY / 2) * 200)
+#define STM32_PLL1P_FREQUENCY    (STM32_VCO1_FREQUENCY / 2)
+#define STM32_PLL1Q_FREQUENCY    (STM32_VCO1_FREQUENCY / 4)
+#define STM32_PLL1R_FREQUENCY    (STM32_VCO1_FREQUENCY / 8)
+
 /* PLL2 */
 
 #define STM32_PLLCFG_PLL2CFG 0
-#define STM32_PLLCFG_PLL2M 0
-#define STM32_PLLCFG_PLL2N 0
-#define STM32_PLLCFG_PLL2P 0
-#define STM32_PLLCFG_PLL2Q 0
-#define STM32_PLLCFG_PLL2R 0
+#define STM32_PLLCFG_PLL2M   0
+#define STM32_PLLCFG_PLL2N   0
+#define STM32_PLLCFG_PLL2P   0
+#define STM32_PLLCFG_PLL2Q   0
+#define STM32_PLLCFG_PLL2R   0
+
+#define STM32_VCO2_FREQUENCY
+#define STM32_PLL2P_FREQUENCY
+#define STM32_PLL2Q_FREQUENCY
+#define STM32_PLL2R_FREQUENCY
 
 /* PLL3 */
 
 #define STM32_PLLCFG_PLL3CFG 0
-#define STM32_PLLCFG_PLL3M 0
-#define STM32_PLLCFG_PLL3N 0
-#define STM32_PLLCFG_PLL3P 0
-#define STM32_PLLCFG_PLL3Q 0
-#define STM32_PLLCFG_PLL3R 0
+#define STM32_PLLCFG_PLL3M   0
+#define STM32_PLLCFG_PLL3N   0
+#define STM32_PLLCFG_PLL3P   0
+#define STM32_PLLCFG_PLL3Q   0
+#define STM32_PLLCFG_PLL3R   0
 
-#define STM32_VCO1_FREQUENCY     ((STM32_HSE_FREQUENCY / 4) * 200)
-#define STM32_SYSCLK_FREQUENCY   (STM32_VCO1_FREQUENCY / 1)
+#define STM32_VCO3_FREQUENCY
+#define STM32_PLL3P_FREQUENCY
+#define STM32_PLL3Q_FREQUENCY
+#define STM32_PLL3R_FREQUENCY
+
+/* SYSCLK = PLL1P = 400 MHz
+ * CPUCLK = SYSCLK / 1 = 400 MHz
+ */
+
+#define STM32_RCC_D1CFGR_D1CPRE  (RCC_D1CFGR_D1CPRE_SYSCLK)
+#define STM32_SYSCLK_FREQUENCY   (STM32_PLL1P_FREQUENCY)
 #define STM32_CPUCLK_FREQUENCY   (STM32_SYSCLK_FREQUENCY / 1)
 
 /* Configure Clock Assignments */
 
-// TODO ....
-
-/* Several prescalers allow the configuration of the two AHB buses, the
- * high-speed APB (APB2) and the low-speed APB (APB1) domains. The maximum
- * frequency of the two AHB buses is 216 MHz while the maximum frequency of
- * the high-speed APB domains is 108 MHz. The maximum allowed frequency of
- * the low-speed APB domain is 54 MHz.
+/* AHB clock (HCLK) is SYSCLK/2 (200 MHz max)
+ * HCLK1 = HCLK2 = HCLK3 = HCLK4
  */
-
-/* AHB3 clock is SYSCLK (216 MHz) */
 
 #define STM32_RCC_D1CFGR_HPRE   RCC_D1CFGR_HPRE_SYSCLKd2        /* HCLK  = SYSCLK / 2 */
 #define STM32_ACLK_FREQUENCY    (STM32_CPUCLK_FREQUENCY / 2)    /* ACLK in D1, HCLK3 in D1 */
 #define STM32_HCLK_FREQUENCY    (STM32_CPUCLK_FREQUENCY / 2)    /* HCLK in D2, HCLK4 in D3 */
 #define STM32_BOARD_HCLK        STM32_HCLK_FREQUENCY            /* same as above, to satisfy compiler */
 
-/* APB3 clock (PCLK1) is HCLK/4 (54 MHz) */
-
-#define STM32_RCC_D1CFGR_D1PPRE   RCC_D1CFGR_D1PPRE_HCLKd4        /* PCLK1 = HCLK / 4 */
-#define STM32_PCLK3_FREQUENCY     (STM32_HCLK_FREQUENCY/4)
-
-/* APB1 clock is HCLK/4 (54 MHz) */
+/* APB1 clock (PCLK1) is HCLK/4 (54 MHz) */
 
 #define STM32_RCC_D2CFGR_D2PPRE1  RCC_D2CFGR_D2PPRE1_HCLKd4       /* PCLK1 = HCLK / 4 */
 #define STM32_PCLK1_FREQUENCY     (STM32_HCLK_FREQUENCY/4)
 
-/* APB2 clock is HCLK/4 (54 MHz) */
+/* APB2 clock (PCLK2) is HCLK/4 (54 MHz) */
 
-#define STM32_RCC_D2CFGR_D2PPRE2  RCC_D2CFGR_D2PPRE2_HCLKd4       /* PCLK1 = HCLK / 4 */
+#define STM32_RCC_D2CFGR_D2PPRE2  RCC_D2CFGR_D2PPRE2_HCLKd4       /* PCLK2 = HCLK / 4 */
 #define STM32_PCLK2_FREQUENCY     (STM32_HCLK_FREQUENCY/4)
 
-/* APB4 clock is HCLK/4 (54 MHz) */
+/* APB3 clock (PCLK3) is HCLK/4 (54 MHz) */
 
-#define STM32_RCC_D3CFGR_D3PPRE   RCC_D3CFGR_D3PPRE_HCLKd4       /* PCLK1 = HCLK / 4 */
+#define STM32_RCC_D1CFGR_D1PPRE   RCC_D1CFGR_D1PPRE_HCLKd4        /* PCLK3 = HCLK / 4 */
+#define STM32_PCLK3_FREQUENCY     (STM32_HCLK_FREQUENCY/4)
+
+/* APB4 clock (PCLK4) is HCLK/4 (54 MHz) */
+
+#define STM32_RCC_D3CFGR_D3PPRE   RCC_D3CFGR_D3PPRE_HCLKd4       /* PCLK4 = HCLK / 4 */
 #define STM32_PCLK4_FREQUENCY     (STM32_HCLK_FREQUENCY/4)
+
+/* Kernel Clock Configuration
+ *
+ * Note: look at Table 54 in ST Manual
+ */
+
+/* I2C123 clock source - HSI */
+
+#define STM32_RCC_D2CCIP2R_I2C123SRC RCC_D2CCIP2R_I2C123SEL_HSI
+
+/* I2C4 clock source - HSI */
+
+#define STM32_RCC_D2CCIP3R_I2C4SRC   RCC_D2CCIP3R_I2C4SEL_HSI
+
+/* SPI123 clock source - PLL1Q */
+
+#define STM32_RCC_D2CCIP1R_SPI123SRC RCC_D2CCIP1R_SPI123SEL_PLL1
+
+/* SPI45 clock source - APB (PCLK2?) */
+
+#define STM32_RCC_D2CCIP1R_SPI45SRC  RCC_D2CCIP1R_SPI45SEL_APB
+
+/* SPI6 clock source - APB (PCLK4) */
+
+#define STM32_RCC_D3CCIP1R_SPI6SRC   RCC_D3CCIP1R_SPI6SEL_PCLK4
+
+/* USB 1 and 2 clock source - HSI48 */
+
+#define STM32_RCC_D2CCIP2R_USBSRC RCC_D2CCIP2R_USBSEL_HSI48
 
 /* FLASH wait states
  *
@@ -266,7 +310,7 @@
 #define NUM_BUTTONS        1
 #define BUTTON_USER_BIT    (1 << BUTTON_USER)
 
-/* Pin Disambiguation ***************************************************************/
+/* Alternate function pin selections ************************************************/
 /* USART3 (Nucleo Virtual Console) */
 
 #define GPIO_USART3_RX     GPIO_USART3_RX_3  /* PD9 */
@@ -276,6 +320,23 @@
 
 #define GPIO_USART6_RX     GPIO_USART6_RX_2  /* PG9 */
 #define GPIO_USART6_TX     GPIO_USART6_TX_2  /* PG14 */
+
+/* I2C1 Use Nucleo I2C pins */
+
+#define GPIO_I2C1_SCL GPIO_I2C1_SCL_2 /* PB8 */
+#define GPIO_I2C1_SDA GPIO_I2C1_SDA_2 /* PB9 */
+
+/* SPI3 */
+
+#define GPIO_SPI3_MISO GPIO_SPI3_MISO_1 /* PB4 */
+#define GPIO_SPI3_MOSI GPIO_SPI3_MOSI_4 /* PB5 */
+#define GPIO_SPI3_SCK  GPIO_SPI3_SCK_1  /* PB3 */
+#define GPIO_SPI3_NSS  GPIO_SPI3_NSS_2  /* PA4 */
+
+/* DMA ******************************************************************************/
+
+#define DMAMAP_SPI3_RX DMAMAP_DMA12_SPI3RX_0 /* DMA1 */
+#define DMAMAP_SPI3_TX DMAMAP_DMA12_SPI3TX_0 /* DMA1 */
 
 /************************************************************************************
  * Public Data

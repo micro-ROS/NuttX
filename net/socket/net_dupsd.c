@@ -46,8 +46,6 @@
 
 #include "socket/socket.h"
 
-#if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -78,7 +76,6 @@ int psock_dupsd(FAR struct socket *psock, int minsd)
    * map it relative of the first socket descriptor.
    */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
   if (minsd >= CONFIG_NFILE_DESCRIPTORS)
     {
       minsd -= CONFIG_NFILE_DESCRIPTORS;
@@ -87,7 +84,6 @@ int psock_dupsd(FAR struct socket *psock, int minsd)
     {
       minsd = 0;
     }
-#endif
 
   /* Lock the scheduler throughout the following */
 
@@ -158,4 +154,3 @@ int net_dupsd(int sockfd, int minsd)
   return psock_dupsd(sockfd_socket(sockfd), minsd);
 }
 
-#endif /* defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0 */

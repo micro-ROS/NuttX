@@ -73,9 +73,9 @@
  *   Handle incoming TCP input
  *
  * Input Parameters:
- *   dev   - The device driver structure containing the received TCP packet.
+ *   dev    - The device driver structure containing the received TCP packet.
  *   domain - IP domain (PF_INET or PF_INET6)
- *   iplen - Lngth of the IP header (IPv4_HDRLEN or IPv6_HDRLEN).
+ *   iplen  - Length of the IP header (IPv4_HDRLEN or IPv6_HDRLEN).
  *
  * Returned Value:
  *   None
@@ -269,14 +269,14 @@ static void tcp_input(FAR struct net_driver_s *dev, uint8_t domain,
                     }
                   else
                     {
-                      /* All other options have a length field, so that we easily
-                       * can skip past them.
+                      /* All other options have a length field, so that we
+                       * easily can skip past them.
                        */
 
                       if (dev->d_buf[hdrlen + 1 + i] == 0)
                         {
-                          /* If the length field is zero, the options are malformed
-                           * and we don't process them further.
+                          /* If the length field is zero, the options are
+                           * malformed and we don't process them further.
                            */
 
                           break;
@@ -395,13 +395,14 @@ found:
   /* Check for a to KeepAlive probes.  These packets have these properties:
    *
    *   - TCP_ACK flag is set.  SYN/FIN/RST never appear in a Keepalive probe.
-   *   - Sequence number is the sequence number of previously ACKed data, i.e.,
-   *     the expected sequence number minus one.
+   *   - Sequence number is the sequence number of previously ACKed data,
+   *     i.e., the expected sequence number minus one.
    *   - The data payload is one or two bytes.
    *
    * We would expect a KeepAlive only in the ESTABLISHED state and only after
-   * some time has elapsed with no network activity.  If there is un-ACKed data,
-   * then we will let the normal TCP re-transmission logic handle that case.
+   * some time has elapsed with no network activity.  If there is un-ACKed
+   * data, then we will let the normal TCP re-transmission logic handle that
+   * case.
    */
 
   if ((tcp->flags & TCP_ACK) != 0 &&
@@ -512,7 +513,8 @@ found:
               nwarn("         sndseq=%u unacked=%u unackseq=%u ackseq=%u\n",
                     tcp_getsequence(conn->sndseq), conn->unacked, unackseq,
                     ackseq);
-              goto reset;
+
+              conn->unacked = 0;
             }
         }
 
@@ -589,7 +591,8 @@ found:
                  * handshake is not complete
                  */
 
-                nwarn("WARNING: Listen canceled while waiting for ACK on port %d\n",
+                nwarn("WARNING: Listen canceled while waiting for ACK on "
+                      "port %d\n",
                       tcp->destport);
 
                 /* Free the connection structure */
@@ -642,7 +645,8 @@ found:
          * state.
          */
 
-        if ((flags & TCP_ACKDATA) != 0 && (tcp->flags & TCP_CTL) == (TCP_SYN | TCP_ACK))
+        if ((flags & TCP_ACKDATA) != 0 &&
+            (tcp->flags & TCP_CTL) == (TCP_SYN | TCP_ACK))
           {
             /* Parse the TCP MSS option, if present. */
 
@@ -749,7 +753,8 @@ found:
          * sequence numbers will be screwed up.
          */
 
-        if ((tcp->flags & TCP_FIN) != 0 && (conn->tcpstateflags & TCP_STOPPED) == 0)
+        if ((tcp->flags & TCP_FIN) != 0 &&
+            (conn->tcpstateflags & TCP_STOPPED) == 0)
           {
             /* Needs to be investigated further.
              * Windows often sends FIN packets together with the last ACK for
@@ -810,8 +815,8 @@ found:
           {
             dev->d_urglen   = 0;
 #else /* CONFIG_NET_TCPURGDATA */
-            dev->d_appdata  = ((FAR uint8_t *)dev->d_appdata) + ((tcp->urgp[0] << 8) |
-                               tcp->urgp[1]);
+            dev->d_appdata  = ((FAR uint8_t *)dev->d_appdata) +
+                              ((tcp->urgp[0] << 8) | tcp->urgp[1]);
             dev->d_len     -= (tcp->urgp[0] << 8) | tcp->urgp[1];
 #endif /* CONFIG_NET_TCPURGDATA */
           }
@@ -822,7 +827,8 @@ found:
          * the keep alive timer.
          */
 
-        if (conn->keepalive && (dev->d_len > 0 || (tcp->flags & TCP_ACK) != 0))
+        if (conn->keepalive &&
+            (dev->d_len > 0 || (tcp->flags & TCP_ACK) != 0))
           {
             /* Reset the last known "alive" time.
              *
@@ -1047,7 +1053,10 @@ void tcp_ipv4_input(FAR struct net_driver_s *dev)
  *   Handle incoming TCP input with IPv4 header
  *
  * Input Parameters:
- *   dev - The device driver structure containing the received TCP packet.
+ *   dev   - The device driver structure containing the received TCP packet.
+ *   iplen - The size of the IPv6 header.  This may be larger than
+ *           IPv6_HDRLEN the IPv6 header if IPv6 extension headers are
+ *           present.
  *
  * Returned Value:
  *   None
@@ -1058,7 +1067,7 @@ void tcp_ipv4_input(FAR struct net_driver_s *dev)
  ****************************************************************************/
 
 #ifdef CONFIG_NET_IPv6
-void tcp_ipv6_input(FAR struct net_driver_s *dev)
+void tcp_ipv6_input(FAR struct net_driver_s *dev, unsigned int iplen)
 {
   /* Configure to receive an TCP IPv6 packet */
 
@@ -1066,7 +1075,7 @@ void tcp_ipv6_input(FAR struct net_driver_s *dev)
 
   /* Then process in the TCP IPv6 input */
 
-  tcp_input(dev, PF_INET6, IPv6_HDRLEN);
+  tcp_input(dev, PF_INET6, iplen);
 }
 #endif
 

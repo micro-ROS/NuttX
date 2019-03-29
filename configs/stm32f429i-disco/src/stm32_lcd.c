@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <stdbool.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -155,7 +156,7 @@
 #define ILI9341_MADCTL_LANDSCAPE_MX     0
 #define ILI9341_MADCTL_LANDSCAPE_MV     ILI9341_MEMORY_ACCESS_CONTROL_MV
 #define ILI9341_MADCTL_LANDSCAPE_ML     0
-#ifdef CONFIG_BIG_ENDIAN
+#ifdef CONFIG_ENDIAN_BIG
 #  define ILI9341_MADCTL_LANDSCAPE_BGR  0
 #else
 #  define ILI9341_MADCTL_LANDSCAPE_BGR  ILI9341_MEMORY_ACCESS_CONTROL_BGR
@@ -183,7 +184,7 @@
 #define ILI9341_MADCTL_PORTRAIT_MX      ILI9341_MEMORY_ACCESS_CONTROL_MX
 #define ILI9341_MADCTL_PORTRAIT_MV      0
 #define ILI9341_MADCTL_PORTRAIT_ML      0
-#ifdef CONFIG_BIG_ENDIAN
+#ifdef CONFIG_ENDIAN_BIG
 #  define ILI9341_MADCTL_PORTRAIT_BGR   0
 #else
 #  define ILI9341_MADCTL_PORTRAIT_BGR   ILI9341_MEMORY_ACCESS_CONTROL_BGR
@@ -211,7 +212,7 @@
 #define ILI9341_MADCTL_RLANDSCAPE_MX    ILI9341_MEMORY_ACCESS_CONTROL_MX
 #define ILI9341_MADCTL_RLANDSCAPE_MV    ILI9341_MEMORY_ACCESS_CONTROL_MV
 #define ILI9341_MADCTL_RLANDSCAPE_ML    0
-#ifdef CONFIG_BIG_ENDIAN
+#ifdef CONFIG_ENDIAN_BIG
 #  define ILI9341_MADCTL_RLANDSCAPE_BGR 0
 #else
 #  define ILI9341_MADCTL_RLANDSCAPE_BGR ILI9341_MEMORY_ACCESS_CONTROL_BGR
@@ -241,7 +242,7 @@
 #define ILI9341_MADCTL_RPORTRAIT_MX     0
 #define ILI9341_MADCTL_RPORTRAIT_MV     0
 #define ILI9341_MADCTL_RPORTRAIT_ML     0
-#ifdef CONFIG_BIG_ENDIAN
+#ifdef CONFIG_ENDIAN_BIG
 #  define ILI9341_MADCTL_RPORTRAIT_BGR  0
 #else
 #  define ILI9341_MADCTL_RPORTRAIT_BGR  ILI9341_MEMORY_ACCESS_CONTROL_BGR
@@ -528,25 +529,30 @@ int board_lcd_initialize(void)
 
 int up_fbinitialize(int display)
 {
-#ifdef CONFIG_STM32F429I_DISCO_ILI9341_FBIFACE
-  int ret;
+  static bool initialized = false;
+  int ret = OK;
 
-  /* Initialize the ili9341 LCD controller */
-
-  ret = stm32_ili9341_initialize();
-
-  if (ret == OK)
+  if (!initialized)
     {
+#ifdef CONFIG_STM32F429I_DISCO_ILI9341_FBIFACE
+      /* Initialize the ili9341 LCD controller */
+
+      ret = stm32_ili9341_initialize();
+      if (ret >= OK)
+        {
+          ret = stm32_ltdcinitialize();
+        }
+
+#else
+      /* Custom LCD display with RGB interface */
+
       ret = stm32_ltdcinitialize();
+#endif
+
+      initialized = (ret >= OK);
     }
 
   return ret;
-
-#else
-  /* Custom LCD display with RGB interface */
-
-  return stm32_ltdcinitialize();
-#endif
 }
 
 /****************************************************************************

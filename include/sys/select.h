@@ -43,9 +43,8 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
+#include <signal.h>
 #include <time.h>
-
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -53,7 +52,11 @@
 
 /* Get the total number of descriptors that we will have to support */
 
-#define FD_SETSIZE (CONFIG_NFILE_DESCRIPTORS + CONFIG_NSOCKET_DESCRIPTORS)
+#ifdef CONFIG_NSOCKET_DESCRIPTORS
+#  define FD_SETSIZE (CONFIG_NFILE_DESCRIPTORS + CONFIG_NSOCKET_DESCRIPTORS)
+#else
+#  define FD_SETSIZE CONFIG_NFILE_DESCRIPTORS
+#endif
 
 /* We will use a 32-bit bitsets to represent the set of descriptors.  How
  * many uint32_t's do we need to span all descriptors?
@@ -123,10 +126,13 @@ struct timeval;
 int select(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
            FAR fd_set *exceptfds, FAR struct timeval *timeout);
 
+int pselect(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
+            FAR fd_set *exceptfds, FAR const struct timespec *timeout,
+            FAR const sigset_t *sigmask);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }
 #endif
 
-#endif /* CONFIG_NFILE_DESCRIPTORS || CONFIG_NSOCKET_DESCRIPTORS */
 #endif /* __INCLUDE_SYS_SELECT_H */

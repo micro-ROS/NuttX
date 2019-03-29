@@ -48,8 +48,6 @@
 
 #include "socket/socket.h"
 
-#if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -69,11 +67,7 @@
  *
  ****************************************************************************/
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
 int net_dupsd2(int sockfd1, int sockfd2)
-#else
-int dup2(int sockfd1, int sockfd2)
-#endif
 {
   FAR struct socket *psock1;
   FAR struct socket *psock2;
@@ -116,4 +110,3 @@ errout:
   return ret;
 }
 
-#endif /* CONFIG_NET && CONFIG_NSOCKET_DESCRIPTORS > 0 */

@@ -66,6 +66,8 @@ static const char *dequote_list[] =
   "CONFIG_USER_ENTRYPOINT",               /* Name of entry point function */
   "CONFIG_EXECFUNCS_SYMTAB_ARRAY",        /* Symbol table array used by exec[l|v] */
   "CONFIG_EXECFUNCS_NSYMBOLS_VAR",        /* Variable holding number of symbols in the table */
+  "CONFIG_MODLIB_SYMTAB_ARRAY",           /* Symbol table array used by modlib functions */
+  "CONFIG_MODLIB_NSYMBOLS_VAR",           /* Variable holding number of symbols in the table */
   "CONFIG_PASS1_BUILDIR",                 /* Pass1 build directory */
   "CONFIG_PASS1_TARGET",                  /* Pass1 build target */
   "CONFIG_PASS1_OBJECT",                  /* Pass1 build object */
@@ -341,13 +343,20 @@ void generate_definitions(FILE *stream)
                   printf("#undef %s\n", varname);
                 }
 
-              /* Simply define the configuration variable if it has the special
-               * value "y"
+              /* Simply define the configuration variable to '1' if it has the
+               * special value "y"
                */
 
               else if (strcmp(varval, "y") == 0)
                 {
                   printf("#define %s 1\n", varname);
+                }
+
+              /* Or to '2' if it has the special value 'm' */
+
+              else if (strcmp(varval, "m") == 0)
+                {
+                  printf("#define %s 2\n", varname);
                 }
 
               /* Otherwise, use the value as provided */

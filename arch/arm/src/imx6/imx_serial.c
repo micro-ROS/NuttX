@@ -51,8 +51,8 @@
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <nuttx/init.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/serial/serial.h>
-#include <arch/serial.h>
 
 #include "chip.h"
 #include "up_arch.h"
@@ -962,7 +962,7 @@ int up_putc(int ch)
 
   locked = false;
 
-  if (!up_interrupt_context() && g_os_initstate >= OSINIT_HARDWARE)
+  if (!up_interrupt_context() && g_nx_initstate >= OSINIT_HARDWARE)
     {
       ret = nxsem_wait(&g_putc_lock);
       if (ret < 0)

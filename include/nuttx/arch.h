@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/arch.h
  *
- *   Copyright (C) 2007-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -72,18 +72,9 @@
  * 3. Common Board Interfaces.
  *
  *    Any interface that is common across all boards should be prefixed
- *    with board_ and should be prototyped in this header file. These
- *    board_ definitions provide the interface between the board-level
+ *    with board_ and should be prototyped in the board.h header file.
+ *    These board_ definitions provide the interface between the board-level
  *    logic and the architecture-specific logic.
- *
- *    Board related declarations are retained the file include/nuttx/board.h.
- *
- *    There is also a configs/<board>/include/board.h header file that
- *    can be used to communicate other board-specific information between
- *    the architecture logic and even application logic.  Any definitions
- *    which are common between a single architecture and several boards
- *    should go in this board.h header file; this file is reserved for
- *    board-related definitions common to all architectures.
  *
  * 4. Board-Specific Interfaces.
  *
@@ -105,11 +96,10 @@
 #include <stdbool.h>
 #include <sched.h>
 
-#if defined(CONFIG_ELF) || defined(CONFIG_MODULE)
-#  include <elf32.h>
-#endif
-
 #include <arch/arch.h>
+
+#include <nuttx/compiler.h>
+#include <nuttx/cache.h>
 
 /****************************************************************************
  * Pre-processor definitions
@@ -199,6 +189,18 @@ EXTERN volatile bool g_rtc_enabled;
  ****************************************************************************/
 
 void up_initialize(void);
+
+/****************************************************************************
+ * Name: up_systemreset
+ *
+ * Description:
+ *   The function up_systemreset() will reset the MCU.  Optional!
+ *   Availability of this function is dependent upon the architecture
+ *   support.
+ *
+ ****************************************************************************/
+
+void up_systemreset(void) noreturn_function;
 
 /****************************************************************************
  * Name: up_idle
@@ -735,7 +737,7 @@ uintptr_t pgalloc(uintptr_t brkaddr, unsigned int npages);
  * Name: up_sched_have_garbage and up_sched_garbage_collection
  *
  * Description:
- *   Some architectures may soft unique memory allocators.  If
+ *   Some architectures may support unique memory allocators.  If
  *   CONFIG_ARCH_HAVE_GARBAGE is defined, those architectures must provide
  *   both up_sched_have_garbage and up_sched_garbage_collection.  These will
  *   be tied into the NuttX memory garbage collection logic.
@@ -1323,77 +1325,14 @@ int up_shmdt(uintptr_t vaddr, unsigned int npages);
 
 /****************************************************************************
  * Interfaces required for ELF module support
- ****************************************************************************/
-/****************************************************************************
- * Name: up_checkarch
  *
- * Description:
- *   Given the ELF header in 'hdr', verify that the module is appropriate
- *   for the current, configured architecture.  Every architecture that uses
- *   the module loader must provide this function.
- *
- * Input Parameters:
- *   hdr - The ELF header read from the module file.
- *
- * Returned Value:
- *   True if the architecture supports this module file.
+ *   up_checkarch   - Perform architecture-specific ELF check
+ *   up_relocate    - Perform architecture-specific ELF relocation
+ *   up_relocateadd - Perform architecture-specific ELF relocation
  *
  ****************************************************************************/
 
-#if defined(CONFIG_ELF) || defined(CONFIG_MODULE)
-bool up_checkarch(FAR const Elf32_Ehdr *hdr);
-#endif
-
-/****************************************************************************
- * Name: up_relocate and up_relocateadd
- *
- * Description:
- *   Perform on architecture-specific ELF relocation.  Every architecture
- *   that uses the module loader must provide this function.
- *
- * Input Parameters:
- *   rel - The relocation type
- *   sym - The ELF symbol structure containing the fully resolved value.
- *         There are a few relocation types for a few architectures that do
- *         not require symbol information.  For those, this value will be
- *         NULL.  Implementations of these functions must be able to handle
- *         that case.
- *   addr - The address that requires the relocation.
- *
- * Returned Value:
- *   Zero (OK) if the relocation was successful.  Otherwise, a negated errno
- *   value indicating the cause of the relocation failure.
- *
- ****************************************************************************/
-
-#if defined(CONFIG_ELF) || defined(CONFIG_MODULE)
-int up_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
-                uintptr_t addr);
-int up_relocateadd(FAR const Elf32_Rela *rel,
-                   FAR const Elf32_Sym *sym, uintptr_t addr);
-#endif
-
-/****************************************************************************
- * Name: up_coherent_dcache
- *
- * Description:
- *   Ensure that the I and D caches are coherent within specified region
- *   by cleaning the D cache (i.e., flushing the D cache contents to memory
- *   and invalidating the I cache. This is typically used when code has been
- *   written to a memory region, and will be executed.
- *
- * Input Parameters:
- *   addr - virtual start address of region
- *   len  - Size of the address region in bytes
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-#ifdef CONFIG_ARCH_HAVE_COHERENT_DCACHE
-void up_coherent_dcache(uintptr_t addr, size_t len);
-#endif
+/* See prototype in include/nuttx/elf.h */
 
 /****************************************************************************
  * Name: up_interrupt_context
@@ -1505,10 +1444,10 @@ int up_prioritize_irq(int irq, int priority);
  * specific interval timer implementation:
  *
  * #ifdef CONFIG_SCHED_TICKLESS_ALARM
- *   void sched_alarm_expiration(FAR const struct timespec *ts):  Called
+ *   void nxsched_alarm_expiration(FAR const struct timespec *ts):  Called
  *     by the platform-specific logic when the alarm expires.
  * #else
- *   void sched_timer_expiration(void):  Called by the platform-specific
+ *   void nxsched_timer_expiration(void):  Called by the platform-specific
  *     logic when the interval timer expires.
  * #endif
  *
@@ -1562,7 +1501,7 @@ void up_timer_getmask(FAR uint64_t *mask);
  * Description:
  *   Cancel the alarm and return the time of cancellation of the alarm.
  *   These two steps need to be as nearly atomic as possible.
- *   sched_alarm_expiration() will not be called unless the alarm is
+ *   nxsched_alarm_expiration() will not be called unless the alarm is
  *   restarted with up_alarm_start().
  *
  *   If, as a race condition, the alarm has already expired when this
@@ -1598,14 +1537,14 @@ int up_alarm_cancel(FAR struct timespec *ts);
  * Name: up_alarm_start
  *
  * Description:
- *   Start the alarm.  sched_alarm_expiration() will be called when the
+ *   Start the alarm.  nxsched_alarm_expiration() will be called when the
  *   alarm occurs (unless up_alaram_cancel is called to stop it).
  *
  *   Provided by platform-specific code and called from the RTOS base code.
  *
  * Input Parameters:
  *   ts - The time in the future at the alarm is expected to occur.  When
- *        the alarm occurs the timer logic will call sched_alarm_expiration().
+ *        the alarm occurs the timer logic will call nxsched_alarm_expiration().
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
@@ -1628,7 +1567,7 @@ int up_alarm_start(FAR const struct timespec *ts);
  * Description:
  *   Cancel the interval timer and return the time remaining on the timer.
  *   These two steps need to be as nearly atomic as possible.
- *   sched_timer_expiration() will not be called unless the timer is
+ *   nxsched_timer_expiration() will not be called unless the timer is
  *   restarted with up_timer_start().
  *
  *   If, as a race condition, the timer has already expired when this
@@ -1666,14 +1605,14 @@ int up_timer_cancel(FAR struct timespec *ts);
  * Name: up_timer_start
  *
  * Description:
- *   Start the interval timer.  sched_timer_expiration() will be called at
+ *   Start the interval timer.  nxsched_timer_expiration() will be called at
  *   the completion of the timeout (unless up_timer_cancel is called to stop
  *   the timing.
  *
  *   Provided by platform-specific code and called from the RTOS base code.
  *
  * Input Parameters:
- *   ts - Provides the time interval until sched_timer_expiration() is
+ *   ts - Provides the time interval until nxsched_timer_expiration() is
  *        called.
  *
  * Returned Value:
@@ -2059,12 +1998,12 @@ void up_mdelay(unsigned int milliseconds);
 void up_udelay(useconds_t microseconds);
 
 /****************************************************************************
- * These are standard interfaces that are exported by the OS for use by the
+ * These are standard interfaces that are exported by the OS for use by thecd .
  * architecture specific logic
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_process_timer
+ * Name: nxsched_process_timer
  *
  * Description:
  *   This function handles system timer events (only when
@@ -2076,11 +2015,11 @@ void up_udelay(useconds_t microseconds);
  ****************************************************************************/
 
 #ifndef CONFIG_SCHED_TICKLESS
-void sched_process_timer(void);
+void nxsched_process_timer(void);
 #endif
 
 /****************************************************************************
- * Name:  sched_timer_expiration
+ * Name:  nxsched_timer_expiration
  *
  * Description:
  *   if CONFIG_SCHED_TICKLESS is defined, then this function is provided by
@@ -2100,11 +2039,11 @@ void sched_process_timer(void);
  ****************************************************************************/
 
 #if defined(CONFIG_SCHED_TICKLESS) && !defined(CONFIG_SCHED_TICKLESS_ALARM)
-void sched_timer_expiration(void);
+void nxsched_timer_expiration(void);
 #endif
 
 /****************************************************************************
- * Name:  sched_alarm_expiration
+ * Name:  nxsched_alarm_expiration
  *
  * Description:
  *   if CONFIG_SCHED_TICKLESS is defined, then this function is provided by
@@ -2124,14 +2063,17 @@ void sched_timer_expiration(void);
  ****************************************************************************/
 
 #if defined(CONFIG_SCHED_TICKLESS) && defined(CONFIG_SCHED_TICKLESS_ALARM)
-void sched_alarm_expiration(FAR const struct timespec *ts);
+void nxsched_alarm_expiration(FAR const struct timespec *ts);
 #endif
 
 /****************************************************************************
- * Name: sched_process_cpuload
+ * Name: nxsched_process_cpuload
  *
  * Description:
- *   Collect data that can be used for CPU load measurements.
+ *   Collect data that can be used for CPU load measurements.  When
+ *   CONFIG_SCHED_CPULOAD_EXTCLK is defined, this is an exported interface,
+ *   use the the external clock logic.  Otherwise, it is an OS Internal
+ *   interface.
  *
  * Input Parameters:
  *   None
@@ -2146,7 +2088,7 @@ void sched_alarm_expiration(FAR const struct timespec *ts);
  ****************************************************************************/
 
 #if defined(CONFIG_SCHED_CPULOAD) && defined(CONFIG_SCHED_CPULOAD_EXTCLK)
-void weak_function sched_process_cpuload(void);
+void weak_function nxsched_process_cpuload(void);
 #endif
 
 /****************************************************************************
@@ -2183,7 +2125,7 @@ size_t  up_check_tcbstack(FAR struct tcb_s *tcb);
 ssize_t up_check_tcbstack_remain(FAR struct tcb_s *tcb);
 size_t  up_check_stack(void);
 ssize_t up_check_stack_remain(void);
-#if CONFIG_ARCH_INTERRUPTSTACK > 3
+#if defined(CONFIG_ARCH_INTERRUPTSTACK) && CONFIG_ARCH_INTERRUPTSTACK > 3
 size_t  up_check_intstack(void);
 size_t  up_check_intstack_remain(void);
 #endif
@@ -2443,6 +2385,30 @@ void arch_sporadic_start(FAR struct tcb_s *tcb);
 void arch_sporadic_lowpriority(FAR struct tcb_s *tcb);
 void arch_sporadic_suspend(FAR struct tcb_s *tcb);
 void arch_sporadic_resume(FAR struct tcb_s *tcb);
+#endif
+
+/********************************************************************************
+ * Name: up_critmon_*
+ *
+ * Description:
+ *   The first interface simply provides the current time value in unknown
+ *   units.  NOTE:  This function may be called early before the timer has
+ *   been initialized.  In that event, the function should just return a
+ *   start time of zero.
+ *
+ *   Nothing is assumed about the units of this time value.  The following
+ *   are assumed, however: (1) The time is an unsigned integer value, (2)
+ *   the time is monotonically increasing, and (3) the elapsed time (also
+ *   in unknown units) can be obtained by subtracting a start time from
+ *   the current time.
+ *
+ *   The second interface simple converts an elapsed time into well known
+ *   units.
+ ********************************************************************************/
+
+#ifdef CONFIG_SCHED_CRITMONITOR
+uint32_t up_critmon_gettime(void);
+void up_critmon_convert(uint32_t elapsed, FAR struct timespec *ts);
 #endif
 
 #undef EXTERN

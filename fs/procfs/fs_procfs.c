@@ -73,15 +73,17 @@
 #define PROCFS_NATTRS  2
 
 /****************************************************************************
- * External Definitons
+ * External Definitions
  ****************************************************************************/
 
 extern const struct procfs_operations proc_operations;
 extern const struct procfs_operations irq_operations;
 extern const struct procfs_operations cpuload_operations;
+extern const struct procfs_operations critmon_operations;
 extern const struct procfs_operations meminfo_operations;
 extern const struct procfs_operations module_operations;
 extern const struct procfs_operations uptime_operations;
+extern const struct procfs_operations version_operations;
 
 /* This is not good.  These are implemented in other sub-systems.  Having to
  * deal with them here is not a good coupling. What is really needed is a
@@ -91,7 +93,6 @@ extern const struct procfs_operations uptime_operations;
 
 extern const struct procfs_operations net_procfsoperations;
 extern const struct procfs_operations net_procfs_routeoperations;
-extern const struct procfs_operations mtd_procfsoperations;
 extern const struct procfs_operations part_procfsoperations;
 extern const struct procfs_operations mount_procfsoperations;
 extern const struct procfs_operations smartfs_procfsoperations;
@@ -108,6 +109,7 @@ extern const struct procfs_operations ccm_procfsoperations;
 /****************************************************************************
  * Private Types
  ****************************************************************************/
+
 /* Table of all known / pre-registered procfs handlers / participants. */
 
 #ifdef CONFIG_FS_PROCFS_REGISTER
@@ -123,6 +125,10 @@ static const struct procfs_entry_s g_procfs_entries[] =
 
 #if defined(CONFIG_SCHED_CPULOAD) && !defined(CONFIG_FS_PROCFS_EXCLUDE_CPULOAD)
   { "cpuload",       &cpuload_operations,         PROCFS_FILE_TYPE   },
+#endif
+
+#if defined(CONFIG_SCHED_CRITMONITOR)
+  { "critmon",       &critmon_operations,         PROCFS_FILE_TYPE   },
 #endif
 
 #ifdef CONFIG_SCHED_IRQMONITOR
@@ -153,10 +159,6 @@ static const struct procfs_entry_s g_procfs_entries[] =
   { "fs/smartfs**",  &smartfs_procfsoperations,   PROCFS_UNKOWN_TYPE },
 #endif
 
-#if defined(CONFIG_MTD) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MTD)
-  { "mtd",           &mtd_procfsoperations,       PROCFS_FILE_TYPE   },
-#endif
-
 #if defined(CONFIG_NET) && !defined(CONFIG_FS_PROCFS_EXCLUDE_NET)
   { "net",           &net_procfsoperations,       PROCFS_DIR_TYPE    },
 #if defined(CONFIG_NET_ROUTE) && !defined(CONFIG_FS_PROCFS_EXCLUDE_ROUTE)
@@ -178,6 +180,10 @@ static const struct procfs_entry_s g_procfs_entries[] =
 #if !defined(CONFIG_FS_PROCFS_EXCLUDE_UPTIME)
   { "uptime",        &uptime_operations,          PROCFS_FILE_TYPE   },
 #endif
+
+#if !defined(CONFIG_FS_PROCFS_EXCLUDE_VERSION)
+  { "version",       &version_operations,         PROCFS_FILE_TYPE   },
+#endif
 };
 
 #ifdef CONFIG_FS_PROCFS_REGISTER
@@ -194,6 +200,7 @@ static const uint8_t g_procfs_entrycount = sizeof(g_procfs_entries) /
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 /* Helpers */
 
 static void    procfs_enum(FAR struct tcb_s *tcb, FAR void *arg);
@@ -353,7 +360,8 @@ static void procfs_enum(FAR struct tcb_s *tcb, FAR void *arg)
 static int procfs_open(FAR struct file *filep, FAR const char *relpath,
                       int oflags, mode_t mode)
 {
-  int x, ret = -ENOENT;
+  int x;
+  int ret = -ENOENT;
 
   finfo("Open '%s'\n", relpath);
 
@@ -548,7 +556,6 @@ static int procfs_opendir(FAR struct inode *mountpt, FAR const char *relpath,
   FAR struct procfs_level0_s *level0;
   FAR struct procfs_dir_priv_s *dirpriv;
   FAR void *priv = NULL;
-  irqstate_t flags;
 
   finfo("relpath: \"%s\"\n", relpath ? relpath : "NULL");
   DEBUGASSERT(mountpt && relpath && dir && !dir->u.procfs);
@@ -582,9 +589,7 @@ static int procfs_opendir(FAR struct inode *mountpt, FAR const char *relpath,
        */
 
 #ifndef CONFIG_FS_PROCFS_EXCLUDE_PROCESS
-      flags = enter_critical_section();
       sched_foreach(procfs_enum, level0);
-      leave_critical_section(flags);
 #else
       level0->base.index = 0;
       level0->base.nentries = 0;
@@ -710,7 +715,6 @@ static int procfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
   FAR struct tcb_s *tcb;
   FAR const char *name = NULL;
   unsigned int index;
-  irqstate_t flags;
   pid_t pid;
   int ret = -ENOENT;
 
@@ -834,10 +838,7 @@ static int procfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
 
           pid = level0->pid[index];
 
-          flags = enter_critical_section();
           tcb = sched_gettcb(pid);
-          leave_critical_section(flags);
-
           if (!tcb)
             {
               ferr("ERROR: PID %d is no longer valid\n", (int)pid);
@@ -847,7 +848,7 @@ static int procfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
           /* Save the filename=pid and file type=directory */
 
           dir->fd_dir.d_type = DTYPE_DIRECTORY;
-          snprintf(dir->fd_dir.d_name, NAME_MAX+1, "%d", (int)pid);
+          snprintf(dir->fd_dir.d_name, NAME_MAX + 1, "%d", (int)pid);
 
           /* Set up the next directory entry offset.  NOTE that we could use the
            * standard f_pos instead of our own private index.
@@ -1032,8 +1033,9 @@ static int procfs_stat(struct inode *mountpt, const char *relpath,
   memset(buf, 0, sizeof(struct stat));
   if (!relpath || relpath[0] == '\0')
     {
-      /* The path refers to the top level directory */
-      /* It's a read-only directory */
+      /* The path refers to the top level directory.
+       * It's a read-only directory.
+       */
 
       buf->st_mode = S_IFDIR | S_IROTH | S_IRGRP | S_IRUSR;
       ret = OK;

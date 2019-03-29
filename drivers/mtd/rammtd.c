@@ -101,6 +101,7 @@ struct ram_dev_s
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 /* The RAM MTD driver may be useful just as it is, but another good use of
  * the RAM MTD driver is as a FLASH simulation -- to support testing of FLASH
  * based logic without having FLASH.  CONFIG_RAMMTD_FLASHSIM will add some
@@ -128,10 +129,6 @@ static ssize_t ram_bytewrite(FAR struct mtd_dev_s *dev, off_t offset,
                              size_t nbytes, FAR const uint8_t *buf);
 #endif
 static int ram_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
 
 /****************************************************************************
  * Private Functions
@@ -190,7 +187,8 @@ static void *ram_write(FAR void *dest, FAR const void *src, size_t len)
  * Name: ram_erase
  ****************************************************************************/
 
-static int ram_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks)
+static int ram_erase(FAR struct mtd_dev_s *dev, off_t startblock,
+                     size_t nblocks)
 {
   FAR struct ram_dev_s *priv = (FAR struct ram_dev_s *)dev;
   off_t offset;
@@ -471,15 +469,10 @@ FAR struct mtd_dev_s *rammtd_initialize(FAR uint8_t *start, size_t size)
   priv->mtd.write  = ram_bytewrite;
 #endif
   priv->mtd.ioctl  = ram_ioctl;
+  priv->mtd.name   = "rammtd";
 
   priv->start      = start;
   priv->nblocks    = nblocks;
-
-  /* Register the MTD with the procfs system if enabled */
-
-#ifdef CONFIG_MTD_REGISTRATION
-  mtd_register(&priv->mtd, "rammtd");
-#endif
 
   return &priv->mtd;
 }

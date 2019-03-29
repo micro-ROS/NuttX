@@ -33,8 +33,14 @@
  *
  ****************************************************************************/
 
-#include "bcmf_sdio.h"
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
 #include <stdint.h>
+
+#include "bcmf_sdio.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -49,15 +55,16 @@
 extern const char ap6212_nvram_image[];
 extern const unsigned int ap6212_nvram_image_len;
 
+#ifndef CONFIG_IEEE80211_BROADCOM_FWFILES
 extern const uint8_t ap6212_firmware_image[];
 extern const unsigned int ap6212_firmware_len;
 
 extern const uint8_t ap6212_clm_blob[];
 extern const unsigned int ap6212_clm_blob_len;
+#endif
 
 const struct bcmf_sdio_chip bcmf_43438_config_sdio =
 {
-
   /* General chip stats */
 
   .ram_size = 512*1024,
@@ -78,12 +85,14 @@ const struct bcmf_sdio_chip bcmf_43438_config_sdio =
   /* Firmware images */
   /* TODO find something smarter than using image_len references */
 
-  .firmware_image      = (uint8_t *)ap6212_firmware_image,
-  .firmware_image_size = (unsigned int *)&ap6212_firmware_len,
+  .nvram_image         = (FAR uint8_t *)ap6212_nvram_image,
+  .nvram_image_size    = (FAR unsigned int *)&ap6212_nvram_image_len,
 
-  .nvram_image         = (uint8_t *)ap6212_nvram_image,
-  .nvram_image_size    = (unsigned int *)&ap6212_nvram_image_len,
+#ifndef CONFIG_IEEE80211_BROADCOM_FWFILES
+  .firmware_image      = (FAR uint8_t *)ap6212_firmware_image,
+  .firmware_image_size = (FAR unsigned int *)&ap6212_firmware_len,
 
-  .clm_blob_image      = (uint8_t *)ap6212_clm_blob,
-  .clm_blob_image_size = (unsigned int *)&ap6212_clm_blob_len,
+  .clm_blob_image      = (FAR uint8_t *)ap6212_clm_blob,
+  .clm_blob_image_size = (FAR unsigned int *)&ap6212_clm_blob_len,
+#endif
 };

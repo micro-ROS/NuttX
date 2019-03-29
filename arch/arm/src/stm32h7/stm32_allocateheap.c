@@ -58,7 +58,7 @@
 #include "up_internal.h"
 
 #include "chip/stm32_memorymap.h"
-// TODO: #include "stm32_mpuinit.h"
+#include "stm32_mpuinit.h"
 // TODO: #include "stm32_dtcm.h"
 
 /****************************************************************************
@@ -91,9 +91,6 @@
  */
 
 /* Set the start and end of the SRAMs */
-
-#define SRAM_START   STM32_SRAM_BASE
-#define SRAM_END     (SRAM_START + STM32H7_SRAM_SIZE)
 
 #define SRAM123_START STM32_SRAM123_BASE
 #define SRAM123_END   (SRAM123_START + STM32H7_SRAM123_SIZE)
@@ -203,21 +200,21 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
    */
 
   uintptr_t ubase = (uintptr_t)USERSPACE->us_bssend + CONFIG_MM_KERNEL_HEAPSIZE;
-  size_t    usize = SRAM_END - ubase;
+  size_t    usize = SRAM123_END - ubase;
   int       log2;
 
-  DEBUGASSERT(ubase < (uintptr_t)SRAM_END);
+  DEBUGASSERT(ubase < (uintptr_t)SRAM123_END);
 
   /* Adjust that size to account for MPU alignment requirements.
-   * NOTE that there is an implicit assumption that the SRAM_END
+   * NOTE that there is an implicit assumption that the SRAM123_END
    * is aligned to the MPU requirement.
    */
 
-  log2  = (int)mpu_log2regionfloor(ubase, usize);
-  DEBUGASSERT((SRAM_END & ((1 << log2) - 1)) == 0);
+  log2  = (int)mpu_log2regionfloor(usize);
+  DEBUGASSERT((SRAM123_END & ((1 << log2) - 1)) == 0);
 
   usize = (1 << log2);
-  ubase = SRAM_END - usize;
+  ubase = SRAM123_END - usize;
 
   /* Return the user-space heap settings */
 
@@ -231,14 +228,14 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 
   /* Allow user-mode access to the user heap memory */
 
-   stm32_mpu_uheap(ubase, usize);
+   stm32_mpu_uheap((uintptr_t)ubase, usize);
 #else
 
   /* Return the heap settings */
 
   board_autoled_on(LED_HEAPALLOCATE);
   *heap_start = (FAR void *)g_idle_topstack;
-  *heap_size  = SRAM_END - g_idle_topstack;
+  *heap_size  = SRAM123_END - g_idle_topstack;
 
   /* Colorize the heap for debug */
 
@@ -265,21 +262,21 @@ void up_allocate_kheap(FAR void **heap_start, size_t *heap_size)
    */
 
   uintptr_t ubase = (uintptr_t)USERSPACE->us_bssend + CONFIG_MM_KERNEL_HEAPSIZE;
-  size_t    usize = SRAM_END - ubase;
+  size_t    usize = SRAM123_END - ubase;
   int       log2;
 
-  DEBUGASSERT(ubase < (uintptr_t)SRAM_END);
+  DEBUGASSERT(ubase < (uintptr_t)SRAM123_END);
 
   /* Adjust that size to account for MPU alignment requirements.
-   * NOTE that there is an implicit assumption that the SRAM_END
+   * NOTE that there is an implicit assumption that the SRAM123_END
    * is aligned to the MPU requirement.
    */
 
-  log2  = (int)mpu_log2regionfloor(ubase, usize);
-  DEBUGASSERT((SRAM_END & ((1 << log2) - 1)) == 0);
+  log2  = (int)mpu_log2regionfloor(usize);
+  DEBUGASSERT((SRAM123_END & ((1 << log2) - 1)) == 0);
 
   usize = (1 << log2);
-  ubase = SRAM_END - usize;
+  ubase = SRAM123_END - usize;
 
   /* Return the kernel heap settings (i.e., the part of the heap region
    * that was not dedicated to the user heap).

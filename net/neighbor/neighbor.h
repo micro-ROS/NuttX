@@ -64,8 +64,6 @@
 #  define CONFIG_NET_IPv6_NCONF_ENTRIES 8
 #endif
 
-#define NEIGHBOR_MAXTIME 128
-
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -96,7 +94,7 @@ struct neighbor_entry
 {
   net_ipv6addr_t         ne_ipaddr;  /* IPv6 address of the Neighbor */
   struct neighbor_addr_s ne_addr;    /* Link layer address of the Neighbor */
-  uint8_t                ne_time;    /* For aging, units of half seconds */
+  clock_t                ne_time;    /* For aging, units of tick */
 };
 
 /****************************************************************************
@@ -114,25 +112,6 @@ extern struct neighbor_entry g_neighbors[CONFIG_NET_IPv6_NCONF_ENTRIES];
  ****************************************************************************/
 
 struct net_driver_s; /* Forward reference */
-
-/****************************************************************************
- * Name: neighbor_initialize
- *
- * Description:
- *   Initialize Neighbor table data structures.  This function is called
- *   prior to platform-specific driver initialization so that the networking
- *   subsystem is prepared to deal with network driver initialization
- *   actions.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void neighbor_initialize(void);
 
 /****************************************************************************
  * Name: neighbor_findentry
@@ -180,15 +159,18 @@ void neighbor_add(FAR struct net_driver_s *dev, FAR net_ipv6addr_t ipaddr,
  *
  * Input Parameters:
  *   ipaddr - The IPv6 address to use in the lookup;
+ *   laddr  - Location to return the corresponding link layer address.
+ *            This address may be NULL.  In that case, this function may be
+ *            used simply to determine if the link layer address is available.
  *
  * Returned Value:
- *   A read-only reference to the link layer address in the Neighbor Table is
- *   returned on success.  NULL is returned if there is no matching entry in
- *   the Neighbor Table.
+ *   Zero (OK) if the link layer address is returned.  A negated errno value
+ *   is returned on any error.
  *
  ****************************************************************************/
 
-FAR const struct neighbor_addr_s *neighbor_lookup(const net_ipv6addr_t ipaddr);
+int neighbor_lookup(FAR const net_ipv6addr_t ipaddr,
+                    FAR struct neighbor_addr_s *laddr);
 
 /****************************************************************************
  * Name: neighbor_update
@@ -209,21 +191,35 @@ FAR const struct neighbor_addr_s *neighbor_lookup(const net_ipv6addr_t ipaddr);
 void neighbor_update(const net_ipv6addr_t ipaddr);
 
 /****************************************************************************
- * Name: neighbor_periodic
+ * Name: neighbor_ethernet_out
  *
  * Description:
- *   Called from the timer poll logic in order to perform agin operations on
- *   entries in the Neighbor Table
+ *   This function should be called before sending out an IPv6 packet. The
+ *   function checks the destination IPv6 address of the IPv6 packet to see
+ *   what Ethernet MAC address that should be used as a destination MAC
+ *   address on the Ethernet.
  *
- * Input Parameters:
- *   hsec - Elapsed time in half seconds since the last check
+ *   If the destination IPv6 address is in the local network (determined
+ *   by logical ANDing of netmask and our IPv6 address), the function
+ *   checks the Neighbor Table to see if an entry for the destination IPv6
+ *   address is found.  If so, an Ethernet header is pre-pended at the
+ *   beginning of the packet and the function returns.
  *
- * Returned Value:
- *   None
+ *   If no Neighbor Table entry is found for the destination IPv6 address,
+ *   the packet in the d_buf is replaced by an ICMPv6 Neighbor Solicit
+ *   request packet for the IPv6 address. The IPv6 packet is dropped and
+ *   it is assumed that the higher level protocols (e.g., TCP) eventually
+ *   will retransmit the dropped packet.
+ *
+ *   Upon return in either the case, a packet to be sent is present in the
+ *   d_buf buffer and the d_len field holds the length of the Ethernet
+ *   frame that should be transmitted.
  *
  ****************************************************************************/
 
-void neighbor_periodic(int hsec);
+#ifdef CONFIG_NET_ETHERNET
+void neighbor_ethernet_out(FAR struct net_driver_s *dev);
+#endif
 
 /****************************************************************************
  * Name: neighbor_dumpentry

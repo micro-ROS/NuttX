@@ -143,7 +143,7 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
    * is aligned to the MPU requirement.
    */
 
-  log2  = (int)mpu_log2regionfloor(ubase, usize);
+  log2  = (int)mpu_log2regionfloor(usize);
   DEBUGASSERT((SRAM1_END & ((1 << log2) - 1)) == 0);
 
   usize = (1 << log2);
@@ -160,13 +160,18 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 
   /* Allow user-mode access to the user heap memory */
 
-   lc823450_mpu_uheap(ubase, usize);
+   lc823450_mpu_uheap((uintptr_t)ubase, usize);
 #else
 
   /* Return the heap settings */
 
-  *heap_start = (FAR void *)g_idle_topstack;
-  *heap_size  = SRAM1_END - g_idle_topstack;
+#ifdef CONFIG_LC823450_SPIFI_BOOT
+  *heap_start = (uintptr_t *)&_ebss + 4096; /* see ld-spif-boot.script */
+#else
+  *heap_start = (uintptr_t *)&_eronly; /* see ld.script */
+#endif
+
+  *heap_size  = SRAM1_END - (int)*heap_start;
 
   /* Colorize the heap for debug */
 
@@ -203,7 +208,7 @@ void up_allocate_kheap(FAR void **heap_start, size_t *heap_size)
    * is aligned to the MPU requirement.
    */
 
-  log2  = (int)mpu_log2regionfloor(ubase, usize);
+  log2  = (int)mpu_log2regionfloor(usize);
   DEBUGASSERT((SRAM1_END & ((1 << log2) - 1)) == 0);
 
   usize = (1 << log2);
@@ -230,6 +235,14 @@ void up_allocate_kheap(FAR void **heap_start, size_t *heap_size)
 #if CONFIG_MM_REGIONS > 1
 void up_addregion(void)
 {
-# error "TODO"
+  FAR void *region_start;
+  size_t region_size;
+
+  /* NOTE: add 1KB to avoid conflicts of initial stack */
+
+  region_start = (uintptr_t *)&_ebss + 1024;
+  region_size  = 0x02040000 - (int)region_start;
+
+  umm_addregion(region_start, region_size);
 }
 #endif

@@ -224,6 +224,13 @@
 
 #define GPIO_TIM4_CH2OUT GPIO_TIM4_CH2OUT_2
 
+#define GPIO_TIM1_CH1OUT  GPIO_TIM1_CH1OUT_2 /* PE9 */
+#define GPIO_TIM1_CH1NOUT GPIO_TIM1_CH1N_3   /* PE8 */
+#define GPIO_TIM1_CH2OUT  GPIO_TIM1_CH2OUT_2 /* PE11 */
+#define GPIO_TIM1_CH2NOUT GPIO_TIM1_CH2N_3   /* PE10 */
+#define GPIO_TIM1_CH3OUT  GPIO_TIM1_CH3OUT_2 /* PE13 */
+#define GPIO_TIM1_CH3NOUT GPIO_TIM1_CH3N_3   /* PE12 */
+
 /* I2C - There is a STMPE811 TouchPanel on I2C3 using these pins: */
 
 #define GPIO_I2C3_SCL GPIO_I2C3_SCL_1
@@ -436,4 +443,25 @@
 #define STM32_RCC_PLLSAICFGR_PLLSAIQ    RCC_PLLSAICFGR_PLLSAIQ(BOARD_LTDC_PLLSAIQ)
 
 #endif /* CONFIG_STM32_LTDC */
+
+/* Configuration specific to high priority interrupts example:
+ *   - TIM1 CC1 trigger for ADC if DMA transfer and TIM1 PWM
+ *   - ADC DMA transfer on DMA1_CH1
+ */
+
+#ifdef CONFIG_STM32F429I_DISCO_HIGHPRI
+
+#if defined(CONFIG_STM32_TIM1_PWM) && defined(CONFIG_STM32_ADC1_DMA)
+
+/* TIM1 - ADC trigger */
+
+#define ADC1_EXTSEL_VALUE ADC1_EXTSEL_T1CC1
+
+#endif  /* CONFIG_STM32_TIM1_PWM */
+#endif  /* CONFIG_STM32F429I_DISCO_HIGHPRI */
+
+/* DMA *************************************************************************/
+
+#define ADC1_DMA_CHAN DMAMAP_ADC1_1
+
 #endif  /* __CONFIG_STM32F429I_DISCO_INCLUDE_BOARD_H */

@@ -49,11 +49,10 @@
 #include "devif/devif.h"
 #include "netdev/netdev.h"
 #include "ipforward/ipforward.h"
-#include "arp/arp.h"
 #include "sixlowpan/sixlowpan.h"
-#include "neighbor/neighbor.h"
 #include "icmp/icmp.h"
 #include "icmpv6/icmpv6.h"
+#include "mld/mld.h"
 #include "tcp/tcp.h"
 #include "udp/udp.h"
 #include "pkt/pkt.h"
@@ -71,7 +70,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: net_setup
+ * Name: net_initialize
  *
  * Description:
  *   This is called from the OS initialization logic at power-up reset in
@@ -93,20 +92,18 @@
  *
  ****************************************************************************/
 
-void net_setup(void)
+void net_initialize(void)
 {
   /* Initialize the locking facility */
 
   net_lockinitialize();
 
-  /* Clear the ARP table */
-
-  arp_reset();
-
 #ifdef CONFIG_NET_IPv6
-  /* Initialize the Neighbor Table data structures */
+#ifdef CONFIG_NET_MLD
+  /* Initialize ICMPv6 Multicast Listener Discovery (MLD) logic */
 
-  neighbor_initialize();
+  mld_initialize();
+#endif
 
 #ifdef CONFIG_NET_6LOWPAN
   /* Initialize 6LoWPAN data structures */
@@ -210,30 +207,6 @@ void net_setup(void)
 
   usrsock_initialize();
 #endif
-}
-
-/****************************************************************************
- * Name: net_initialize
- *
- * Description:
- *   This function is called from the OS initialization logic at power-up
- *   reset AFTER initialization of hardware facilities such as timers and
- *   interrupts.   This logic completes the initialization started by
- *   net_setup().
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void net_initialize(void)
-{
-  /* Initialize the periodic ARP timer */
-
-  arp_timer_initialize();
 }
 
 #endif /* CONFIG_NET */

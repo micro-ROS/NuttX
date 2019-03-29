@@ -77,7 +77,7 @@
  * assumed.
  */
 
-#if !defined(CONFIG_DEV_CONSOLE) || CONFIG_NFILE_DESCRIPTORS <= 0
+#ifndef CONFIG_DEV_CONSOLE
 #  undef  USE_SERIALDRIVER
 #  undef  USE_EARLYSERIALINIT
 #  undef  CONFIG_DEV_LOWCONSOLE
@@ -146,13 +146,14 @@ void riscv_timer_initialize(void);
 
 /* Low level serial output **************************************************/
 
+void up_serialinit(void);
 void up_lowputc(char ch);
 void up_puts(const char *str);
 void up_lowputs(const char *str);
 
 /* The OS start routine    **************************************************/
 
-void os_start(void);
+void nx_start(void);
 
 #undef EXTERN
 #ifdef __cplusplus

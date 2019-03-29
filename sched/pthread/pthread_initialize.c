@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/pthread/pthread_initialize.c
  *
- *   Copyright (C) 2007-2010, 2013, 2017-2018 Gregory Nutt. All rights
+ *   Copyright (C) 2007-2010, 2013, 2017-2019 Gregory Nutt. All rights
  *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
@@ -97,7 +97,8 @@ void pthread_initialize(void)
  *
  ****************************************************************************/
 
-int pthread_sem_take(sem_t *sem, bool intr)
+int pthread_sem_take(FAR sem_t *sem, FAR const struct timespec *abs_timeout,
+                     bool intr)
 {
   int ret;
 
@@ -110,7 +111,15 @@ int pthread_sem_take(sem_t *sem, bool intr)
         {
           /* Take the semaphore (perhaps waiting) */
 
-          ret = nxsem_wait(sem);
+          if (abs_timeout == NULL)
+            {
+              ret = nxsem_wait(sem);
+            }
+          else
+            {
+              ret = nxsem_timedwait(sem, abs_timeout);
+            }
+
           if (ret < 0)
             {
               /* The only cases that an error should occur here is if the wait
@@ -118,7 +127,8 @@ int pthread_sem_take(sem_t *sem, bool intr)
                * the wait.
                */
 
-              DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
+              DEBUGASSERT(ret == -EINTR || ret == -ECANCELED ||
+                          ret == -ETIMEDOUT);
 
               /* When the error occurs in this case, should we errout?  Or
                * should we just continue waiting until we have the

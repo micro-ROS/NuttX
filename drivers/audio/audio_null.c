@@ -424,7 +424,7 @@ static void *null_workerthread(pthread_addr_t pvarg)
   FAR struct null_dev_s *priv = (struct null_dev_s *) pvarg;
   struct audio_msg_s msg;
   int msglen;
-  int prio;
+  unsigned int prio;
 
   audinfo("Entry\n");
 
@@ -666,8 +666,8 @@ static int null_enqueuebuffer(FAR struct audio_lowerhalf_s *dev,
 
   done = ((apb->flags & AUDIO_APB_FINAL) != 0);
 
-  /* The buffer belongs to to an upper level.  Just forward the event to
-   * the next level up.
+  /* The buffer belongs to an upper level.  Just forward the event to the
+   * next level up.
    */
 
 #ifdef CONFIG_AUDIO_MULTI_SESSION

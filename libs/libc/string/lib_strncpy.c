@@ -47,15 +47,43 @@
 
 /****************************************************************************
  * Name: strncpy
+ *
+ * Description:
+ *   Copies the string pointed to by 'src' (including the terminating NUL
+ *   character) into the array pointed to by 'dest'.  strncpy() will not
+ *   copy more than 'n' bytes from 'src' to 'dest' array (including the
+ *   NUL terminator).
+ *
+ *   If the array pointed to by 'src' is a string that is shorter than 'n'
+ *   bytes, NUL characters will be appended to the copy in the array
+ *   pointed to by 'dest', until 'n' bytes in all are written.
+ *
+ *   If copying takes place between objects that overlap, the behavior is
+ *   undefined.
+ *
+ * Returned Value:
+ *   The strncpy() function returns the pointer to 'dest'
+ *
  ****************************************************************************/
 
 #ifndef CONFIG_LIBC_ARCH_STRNCPY
-char *strncpy(FAR char *dest, FAR const char *src, size_t n)
+FAR char *strncpy(FAR char *dest, FAR const char *src, size_t n)
 {
-  char *ret = dest;     /* Value to be returned */
-  char *end = dest + n; /* End of dest buffer + 1 byte */
+  FAR char *ret = dest;     /* Value to be returned */
+  FAR char *end = dest + n; /* End of dest buffer + 1 byte */
 
-  while ((dest != end) && (*dest++ = *src++) != '\0');
+  /* Copy up n bytes, breaking out of the loop early if a NUL terminator is
+   * encountered.
+   */
+
+  while ((dest != end) && (*dest++ = *src++) != '\0')
+    {
+    }
+
+  /* Note that there may be no NUL terminator in 'dest' */
+
+  /* Pad the remainder of the array pointer to 'dest' with NULs */
+
   while (dest != end)
     {
       *dest++ = '\0';

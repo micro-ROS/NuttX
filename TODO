@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated August 30, 2018)
+NuttX TODO List (Last updated March 18, 2019)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with
@@ -9,21 +9,21 @@ issues related to each board port.
 
 nuttx/:
 
- (15)  Task/Scheduler (sched/)
-  (3)  SMP
+ (16)  Task/Scheduler (sched/)
+  (5)  SMP
   (1)  Memory Management (mm/)
   (0)  Power Management (drivers/pm)
-  (3)  Signals (sched/signal, arch/)
-  (2)  pthreads (sched/pthread)
+  (5)  Signals (sched/signal, arch/)
+  (2)  pthreads (sched/pthread, libs/libc/pthread)
   (0)  Message Queues (sched/mqueue)
-  (8)  Kernel/Protected Build
+  (9)  Kernel/Protected Build
   (3)  C++ Support
   (5)  Binary loaders (binfmt/)
- (16)  Network (net/, drivers/net)
+ (18)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
-  (1)  Other drivers (drivers/)
- (12)  Libraries (libc/, libm/)
- (10)  File system/Generic drivers (fs/, drivers/)
+  (2)  Other drivers (drivers/)
+  (9)  Libraries (libs/libc/, libs/libm/)
+ (12)  File system/Generic drivers (fs/, drivers/)
  (10)  Graphics Subsystem (graphics/)
   (1)  Build system / Toolchains
   (3)  Linux/Cywgin simulation (arch/sim)
@@ -44,7 +44,17 @@ o Task/Scheduler (sched/)
   Title:       CHILD PTHREAD TERMINATION
   Description: When a tasks exits, shouldn't all of its child pthreads also be
                terminated?
-  Status:      Closed.  No, this behavior will not be implemented.
+
+               This behavior was implemented as an options controlled by the
+               configuration setting CONFIG_SCHED_EXIT_KILL_CHILDREN.  This
+               option must be used with caution, however.  It  should not be
+               used unless you are certain of what you are doing.  Uninformed
+               of this option can often lead to memory leaks since, for
+               example, memory allocations held by threads are not
+               automatically freed!
+
+  Status:      Closed.  No, this behavior will not be implemented unless
+               specifically selected.
   Priority:    Medium, required for good emulation of process/pthread model.
                The current behavior allows for the main thread of a task to
                exit() and any child pthreads will persist.  That does raise
@@ -117,7 +127,7 @@ o Task/Scheduler (sched/)
                3. They do not obey any setup of PIC or address
                   environments. Do they need to?
                4. In the case of task_delete() and pthread_cancel() without
-                  defferred cancellation, these callbacks will run on the
+                  deferred cancellation, these callbacks will run on the
                   thread of execution and address context of the caller of
                   task_delete() or pthread_cancel().  That is very bad!
 
@@ -176,7 +186,7 @@ o Task/Scheduler (sched/)
   Status:      Closed.  The existing solution is better and compatible with
                thread-aware GLIBC (although its incompatibilities could show
                up in porting some code).  I will retain this issue for
-               referencei only.
+               reference only.
   Priority:    N/A
 
   Title:       SCALABILITY
@@ -228,14 +238,17 @@ o Task/Scheduler (sched/)
                and that sets the errno value on failures.
 
                On particularly difficult issue is the use of common memory
-               manager C, and NX libraries in the build.  For the FLAT
-               build, that is not such a issue because the OS internal
-               versions of the interfaces can be used.  But is a difficult
-               problem for PROTECTED and KERNEL builds where the OS links
-               with a different version of the libraries than does the
-               application:  The OS version would use the OS internal
+               manager C, and NX libraries in the build.  For the PROTECTED
+               and KERNEL builds, this issue is resolved.  In that case,
+               The OS links with a different version of the libraries than
+               does the application:  The OS version would use the OS internal
                interfaces and the application would use the standard
                interfaces.
+
+               But for the FLAT build, both the OS and the applications use
+               the same library functions.  For applications, the library
+               functions *must* support errno's and cancellation and, hence,
+               these are also used within the OS.
 
                But that raises yet another issue:  If the application
                version of the libraries use the standard interfaces
@@ -268,6 +281,10 @@ o Task/Scheduler (sched/)
                  scheduler functions used within the OS:  sched_getparam(),
                  sched_setparam(), sched_getscheduler(), sched_setschedule(),
                  and sched_setaffinity(),
+               2018-09-15:  This change has been completed for the case of
+                 open() used within the OS.  There are places under libs/ and
+                 configs/ that have not been converted.  I also note cases
+                 where fopen() is called under libs/libc/netdb/.
 
   Status:      Open
   Priority:    Low.  Things are working OK the way they are.  But the design
@@ -279,9 +296,9 @@ o Task/Scheduler (sched/)
 
                1. One problem is stack-related data in the IDLE threads TCB.
                   A solution might be to standardize the use of g_idle_topstack.
-                  That you could add initialization like this in os_start:
+                  That you could add initialization like this in nx_start:
 
-                  @@ -344,6 +347,11 @@ void os_start(void)
+                  @@ -344,6 +347,11 @@ void nx_start(void)
                      g_idleargv[1]  = NULL;
                      g_idletcb.argv = g_idleargv;
 
@@ -310,7 +327,7 @@ o Task/Scheduler (sched/)
 
                   That omits these architectures: sh1, sim, xtensa, z16, z80,
                   ez80, and z8.  All would have to support this common
-                  globlal variable.
+                  global variable.
 
                   Also, the stack itself may be 8-, 16-, or 32-bits wide,
                   depending upon the architecture and do have differing
@@ -318,18 +335,18 @@ o Task/Scheduler (sched/)
 
                2. Another problem is colorizing that stack to use with
                  stack usage monitoring logic.  There is logic in some
-                 start functions to do this in a function called go_os_start.
+                 start functions to do this in a function called go_nx_start.
                  It is available in these architectures:
 
-                 ./arm/src/efm32/efm32_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/kinetis/kinetis_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/sam34/sam_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/samv7/sam_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/stm32/stm32_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/stm32f7/stm32_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/stm32l4/stm32l4_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/tms570/tms570_boot.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/xmc4/xmc4_start.c:static void go_os_start(void *pv, unsigned int nbytes)
+                 ./arm/src/efm32/efm32_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/kinetis/kinetis_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/sam34/sam_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/samv7/sam_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/stm32/stm32_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/stm32f7/stm32_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/stm32l4/stm32l4_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/tms570/tms570_boot.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/xmc4/xmc4_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
 
                  But no others.
   Status:     Open
@@ -388,10 +405,10 @@ o Task/Scheduler (sched/)
   Priority:    Low.  This is an enhancement.  And does anyone actually use
                the sporadic scheduler?
 
-  Title:       REMOVE NESTED CANCELATION POINT SUPPORT
-  Description: The current implementation support nested cancelation points.
+  Title:       REMOVE NESTED CANCELLATION POINT SUPPORT
+  Description: The current implementation support nested cancellation points.
                The TCB field cpcount keeps track of that nesting level.
-               However, cancelation points should not be calling other
+               However, cancellation points should not be calling other
                cancellation points so this design could be simplified by
                removing all support for nested cancellation points.
   Status:      Open
@@ -399,6 +416,72 @@ o Task/Scheduler (sched/)
                This change is primarily for aesthetic reasons.  If would
                reduce memory usage by a very small but probably
                insignificant amount.
+
+  Title:       DAEMONIZE ELF PROGRAM
+  Description: It is a common practice to "daemonize" to detach a task from
+               its parent.  This is used with NSH, for example, so that NSH
+               will not stall, waiting in waitpid() for the child task to
+               exit.
+
+               Daemonization is done to creating a new task which continues
+               to run while the original task exits (sending the SIGCHLD
+               signal to the parent and awakening waitpid()).  In a pure
+               POSIX system, this is down with fork(), perhaps like:
+
+                 if (fork() != 0)
+                   {
+                     exit();
+                   }
+
+               but is usually done with task_create() in NuttX.  But when
+               task_create() is called from within an ELF program, a very
+               perverse situation is created:
+
+               The basic problem involves address environments and task groups:
+               "Task groups" are emulations of Linux processes.  For the
+               case of the FLAT, ELF module, the address environment is
+               allocated memory that contains the ELF module.
+
+               When you call task_create() from the ELF program, you now
+               have two task groups running in the same address environment.
+               That is a perverse situation for which there is no standard
+               solution.  There is nothing comparable to that.  Even in
+               Linux, fork() creates another address environment (although
+               it is an exact copy of the original).
+
+               When the ELF program was created, the function exec() in
+               binfmt/binfmt_exec.c runs.  It sets up a call back that will
+               be invoked when the ELF program exits.
+
+               When ELF program exits, the address environment is destroyed
+               and the other task running in the same address environment is
+               then running in stale memory and will eventually crash.
+
+               Nothing special happens when the other created task running
+               in the allocated address environment exits since has no such
+               call backs.
+
+               In order to make this work you would need logic like:
+
+               1. When the ELF task calls task_create(), it would need to:
+
+                 a. Detect that task_create() was called from an ELF program,
+                 b. increment a reference count on the address environment, and
+                 c. Set up the same exit hook for the newly created task.
+
+               2. Then when either the ELF program task or the created task
+                  in the same address environment exits, it would decrement
+                  the reference count.  When the last task exits, the reference
+                  count would go to zero and the address environement could be
+                  destroyed.
+
+               This is complex work and would take some effort and probably
+               requires redesign of existing code and interfaces to get a
+               proper, clean, modular solution.
+
+  Status:      Open
+  Priority:    Medium-Low.  A simple work-arounds when using NSH is to use
+               the '&' postfix to put the started ELF program into background.
 
 o SMP
   ^^^
@@ -442,22 +525,22 @@ o SMP
                The basic behavior is still correct:  The task that has
                locked pre-emption will not be suspended.  However, there
                is no longer any protection for use as a critical section:
-               tasks running on other CPUs may still execute that that
-               unprotect code regsion.
+               tasks running on other CPUs may still execute that
+               unprotected code region.
 
                The solution is to replace the use of sched_lock() with
                stronger protection such as spin_lock_irqsave().
   Status:      Open
   Priority:    Medium for SMP system.  Not critical to single CPU systems.
-               NOTE:  There are no known bugs from this protential problem.
+               NOTE:  There are no known bugs from this potential problem.
 
   Title:       CORTEX-A GIC SGI INTERRUPT MASKING
   Description: In the ARMv7-A GICv2 architecture, the inter-processor
                interrupts (SGIs) are non maskable and will occur even if
-               interrupts are disabled.  This adde a lot of complexity
+               interrupts are disabled.  This adds a lot of complexity
                to the ARMV7-A critical section design.
 
-               Masayuki Ishakawa has suggested the use of the GICv2 ICCMPR
+               Masayuki Ishikawa has suggested the use of the GICv2 ICCMPR
                register to control SGI interrupts.  This register (much like
                the ARMv7-M BASEPRI register) can be used to mask interrupts
                by interrupt priority.  Since SGIs may be assigned priorities
@@ -469,7 +552,7 @@ o SMP
                set/restore the ICCMPR register, (2) register setup logic in
                arch/arm/src/armv7-a for task start-up and signal dispatch
                would have to set the ICCMPR correctly, and (3) the 'xcp'
-               structure sould have to be extended to hold the ICCMPR
+               structure would have to be extended to hold the ICCMPR
                register;  logic would have to added be save/restore the
                ICCMPR register in the 'xcp' structure on each interrupt and
                context switch.
@@ -480,7 +563,62 @@ o SMP
   Priority:    Low.  There are no know issues with the current non-maskable
                SGI implementation.  This change would, however, lead to
                simplification in the design and permit commonality with
-               other, non-GIC imoplementations.
+               other, non-GIC implementations.
+
+  Title:       ISSUES WITH ACCESSING CPU INDEX
+  Description: The CPU number is accessed usually with the macro this_cpu().
+               The returned CPU number is then used for various things,
+               typically as an array index.  However, if pre-emption is
+               not disabled,then it is possible that a context switch
+               could occur and that logic could run on anothe CPU with
+               possible fatal consequences.
+
+               We need to evaluate all use of this_cpu() and assure that
+               it is used in a way that guarantees the the code continues
+               to execute on the same CPU.
+
+  Status:      Open
+  Prioity:     Medium.  This is a logical problem but I have nevers seen
+               an bugs caused by this.  But I believe that failures are
+               possible.
+
+  Title:       POSSIBLE FOR TWO CPUs TO HOLD A CRITICAL SECTION?
+  Description: The SMP design includes logic that will support multiple
+               CPUs holding a critical section.  Is this necessary?  How
+               can that occur?  I think it can occur in the following
+               situation:
+
+               CPU0 - Task A is running.
+                    - The CPU0 IDLE task is the only other task in the
+                      CPU0 ready-to-run list.
+               CPU1 - Task B is running.
+                    - Task C is blocked but remains in the g_assignedtasks[]
+                      list because of a CPU affinity selection.  Task C
+                      also holds the critical section which is temporarily
+                      relinquished because Task C is blocked by Task B.
+                    - The CPU1 IDLE task is at the end of the list.
+
+               Actions:
+               1. Task A/CPU 0 takes the critical section.
+               2. Task B/CPU 1 suspends waiting for an event
+               3. Task C is restarted.
+
+               Now both Task A and Task C hold the critical section.
+
+               This problem has never been observed, but seems to be a
+               possibility.  I believe it could only occur if CPU affinity
+               is used (otherwise, tasks will pend must as when pre-
+               emption is disabled).
+
+               A proper solution would probably involve re-designing how
+               CPU affinity is implemented.  The CPU1 IDLE thread should
+               more appropriately run, but cannot because the Task C TCB
+               is in the g_assignedtasks[] list.
+
+Status:        Open
+Priority:      Unknown.  Might be high, but first we would need to confirm
+               that this situation can occur and that is actually causes
+               a failure.
 
 o Memory Management (mm/)
   ^^^^^^^^^^^^^^^^^^^^^^^
@@ -611,8 +749,8 @@ o Signals (sched/signal, arch/)
                TCB of the parent so that the pthread could be bound to the correct
                group.
 
-               There is also some user-space logic in libc/aio/lio_listio.c.  That
-               logic could use the user-space work queue for the callbacks.
+               There is also some user-space logic in libs/libc/aio/lio_listio.c.
+               That logic could use the user-space work queue for the callbacks.
   Status:      Low, there are alternative designs.  However, these features
                are required by the POSIX standard.
   Priority:    Low for now
@@ -625,8 +763,49 @@ o Signals (sched/signal, arch/)
   Status:      Open
   Priority:    Low. Even if there are only 31 usable signals, that is still a lot.
 
-o pthreads (sched/pthreads)
-  ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Title:       NO QUEUING of SIGNAL ACTIONS
+  Description: In the architecture specific implemenation of struct xcptcontext,
+               there are fields used by signal handling logic to pass the state
+               information needed to dispatch signal actions to the appropriate
+               handler.
+
+               There is only one copy of this state information in the
+               implementations of struct xcptcontext and, as a consequence,
+               if there is a signal handler executing on a thread, then addition
+               signal actions will be lost until that signal handler completes
+               and releases those resources.
+  Status:      Open
+  Priority:    Low.  This design flaw has been around for ages and no one has yet
+               complained about it.  Apparently the visibility of the problem is
+               very low.
+
+  Title:       QUEUED SIGNAL ACTIONS ARE INAPPROPRIATELY DEFERRED
+  Descirption: The implement of nxsig_deliver() does the followin in a loop:
+               - It takes the next next queued signal action from a list
+               - Calls the architecture-specific up_sigdeliver() to perform
+                 the signal action (through some sleight of hand in
+                 up_schedule_sigaction())
+               - up_sigdeliver() is a trampoline function that performs the
+                 actual signal action as well as some housekeeping functions
+                 then 
+               - up_sigdeliver() performs a context switch back to the normal,
+                 uninterrupted thread instead of returning to nxsig_deliver().
+
+               The loop in nxsig_deliver() then will have the opportunity to
+               run until when that normal, uniterrupted thread is suspended.
+               Then the loop will continue with the next queued signal
+               action.
+
+               Normally signals execute immediately.  The is the whole reason
+               why almost all blocking APIs return when a signal is received
+               (with errno equal to EINTR).
+  Status:      Open
+  Priority:    Low.  This design flaw has been around for ages and no one has yet
+               complained about it.  Apparently the visibility of the problem is
+               very low.
+
+o pthreads (sched/pthreads libs/libc/pthread)
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       PTHREAD_PRIO_PROTECT
   Description: Extend pthread_mutexattr_setprotocol().  It should support
@@ -760,15 +939,6 @@ o Kernel/Protected Build
   Priority:    Medium/High -- the kernel build configuration is not fully fielded
                yet.
 
-  Title:       NxTERM PARTITIONING.
-  Description: NxTerm is implemented (correctly) as a driver that resides
-               in the nuttx/ directory.  However, the user interfaces must be
-               moved into a NuttX library or into apps/.  Currently
-               applications calls to the NxTerm user interfaces are
-               undefined in the Kernel/Protected builds.
-  Status:      Open
-  Priority:    Medium
-
   Title:       C++ CONSTRUCTORS HAVE TOO MANY PRIVILEGES (PROTECTED MODE)
   Description: When a C++ ELF module is loaded, its C++ constructors are called
                via sched/task_starthook.c logic.  This logic runs in protected mode.
@@ -817,8 +987,9 @@ o Kernel/Protected Build
                 by simply reading this variable.
 
                "This one would be easy: Just a change to include/nuttx/userspace.h,
-                configs/*/kernel/up_userspace.c, libc/, sched/sched_addreadytorun.c, and
-                sched/sched_removereadytorun.c. That would eliminate 59% of the syscalls."
+                configs/*/kernel/up_userspace.c, libs/libc/,
+                sched/sched_addreadytorun.c, and sched/sched_removereadytorun.c.
+                That would eliminate 59% of the syscalls."
 
                Update:
                This is probably also just a symptom of the OS test that does mostly
@@ -900,6 +1071,55 @@ o Kernel/Protected Build
   Status:      Open
   Priority:    Low for most embedded systems but would be a critical need if
                NuttX were used in a secure system.
+
+  Title:       ERRNO VARIABLE in KERNEL MODE
+  Description: In the FLAT and PROTECTED mode, the errno variable is retained
+               within the TCB.  It requires a call into the OS to access the
+               errno variable.
+
+               In the KERNEL build, TLS should be used:  The errno should be
+               stored at the base of the callers stack along with other TLS
+               data.
+
+               To do this, NuttX system calls should be reorganized.  The
+               system calls should go to the internal OS functions (like
+               nxsem_wait() vs sem_wait()) which do not set the errno value.
+               The implementation available to applications (sem_wait() in
+               this example) should call the internal OS function then set the
+               errno variable in TLS.
+  Status:      Open
+  Priority:    Low, this primarily an aesthetic issue but may also have some
+               performance implications if the the errno variable is accessed
+               via a system call at high rates.
+
+  Title:       SIGNAL ACTION VULNERABILITY
+  Description: When a signal action is peformed, the user stack is used.
+               Unlike Linux, applications do not have separate user and
+               supervisor stacks; everything is done on the user stack.
+
+               In the implementation of up_sigdeliver(), a copy of the
+               register contents that will be restored is present on the
+               stack and could be modified by the user application.  Thus,
+               if the user mucks with the return stack, problems could
+               occur when the user task returns to supervisor mode from
+               the the signal handler.
+
+               A recent commit (3 Feb 2019) does protect the status register
+               and return address so that a malicious task cannot change the
+               return address or switch to supervisor mode.  Other register
+               are still modifiable so there is other possible mayhem that
+               could be done.
+
+               A better solution, in lieu of a kernel stack, would be to
+               eliminate the stack-based register save area altogether and,
+               instead, save the registers in another, dedicated state save
+               area in the TCB.  The only hesitation to this option is that
+               it would significantly increase the size of the TCB structure
+               and, hence, the per-thread memory overhead.
+  Status:      Open
+  Priority:    Medium-ish if are attempting to make a secure environment that
+               may host malicious code.  Very low for the typical FLAT build,
+               however.
 
 o C++ Support
   ^^^^^^^^^^^
@@ -1102,18 +1322,40 @@ o Network (net/, drivers/net)
   Status:      Open
   Priority:    Low
 
-  Title:       CONCURRENT TCP SEND OPERATIONS
+  Title:       CONCURRENT, UNBUFFERED TCP SEND OPERATIONS
   Description: At present, there cannot be two concurrent active TCP send
-               operations in progress using the same socket.  This is because
-               the uIP ACK logic will support only one transfer at a time.  The
-               solution is simple: A mutex will be needed to make sure that each
-               send that is started is able to be the exclusive sender until all of
-               the data to be sent has been ACKed.
-  Status:      Open.  There is some temporary logic to apps/nshlib that does
-               this same fix and that temporary logic should be removed when
-               send() is fixed.
-  Priority:    Medium-Low.  This is an important issue for applications that
-               send on the same TCP socket from multiple threads.
+               operations in progress using the same socket *unless*
+               CONFIG_TCP_WRITE_BUFFER.  This is because the uIP ACK logic
+               will support only one transfer at a time.
+
+               Such a situation could occur if explicit TCP send operations
+               are performed using the same socket (or dup's of the same)
+               socket on two different threads.  It can also occur implicitly
+               when you execute more than one thread over and NSH Telenet
+               session.
+
+               There are two possible solutions:
+
+               1. Remove option to build the network without write buffering
+                  enabled.  This is is simplest and perhaps the best option.
+                  Certainly a system can be produced with a smaller RAM
+                  footprint without write buffering.  However, that probably
+                  does not justify permitted a crippled system.
+
+               2. Another option is to serialize the non-buffered writes for
+                  a socket with a mutex. i.e., add a mutex to make sure that
+                  each send that is started is able to be the exclusive
+                  sender until all of the data to be sent has been ACKed.
+                  That can be a very significant delay involving the send,
+                  waiting for the ACK or a timeout and possible retransmissions!
+
+                Although it uses more memory, I believe that option 1 is the
+                better solution and will avoid difficult TCP bugs in the future.
+
+  Status:      Open.
+  Priority:    Medium-Low.  This is only an important issue for people who
+               use multi-threaded, unbuffered TCP networking without a full
+               understanding of the issues.
 
   Title:       POLL/SELECT ON TCP/UDP SOCKETS NEEDS READ-AHEAD
   Description: poll()/select() only works for availability of buffered TCP/UDP
@@ -1161,7 +1403,7 @@ o Network (net/, drivers/net)
   Description: IPv6 requires that the Ethernet driver support NuttX address
                filter interfaces.  Several Ethernet drivers do support there,
                however.  Others support the address filtering interfaces but
-               have never been verifed:
+               have never been verified:
 
                C5471, LM3S, ez80, DM0x90 NIC, PIC, LPC54: Do not support
                  address filtering.
@@ -1266,7 +1508,7 @@ o Network (net/, drivers/net)
                window for that concurrency, but does not create it.
 
                The current Ethernet designs depend upon a single work queue to
-               serialize data.  In the case of muliple LP threads, some
+               serialize data.  In the case of multiple LP threads, some
                additional mechanism would have to be added to enforce that
                serialization.
 
@@ -1279,6 +1521,17 @@ o Network (net/, drivers/net)
 
   Status:      Open
   Priority:    High if you happen to be using Ethernet in this configuration.
+
+  Title:       NETWORK DRIVERS USING HIGH PRIORITY WORK QUEUE
+  Description: Many network drivers run the network on the high priority work
+               queue thread (or support an option to do so).  Networking should
+               not be done on the high priority work thread because it interferes
+               with real-time behavior.  Fix by forcing all network drivers to
+               run on the low priority work queue.
+  Status:      Open
+  Priority:    Low.  Not such big deal for demo network test and demo
+               configurations except that it provides a bad example for a product
+               OS configuration.
 
   Title:       REPARTITION DRIVER FUNCTIONALITY
   Description: Every network driver performs the first level of packet decoding.
@@ -1311,7 +1564,7 @@ o Network (net/, drivers/net)
   Title:       ICMPv6 FOR 6LoWPAN
   Description: The current ICMPv6 and neighbor-related logic only works with
                Ethernet MAC.  For 6LoWPAN, a new more conservative IPv6
-               neigbor discovery is provided by RFC 6775.  This RFC needs to
+               neighbour discovery is provided by RFC 6775.  This RFC needs to
                be supported in order to support ping6 on a 6LoWPAN network.
                If RFC 6775 were implemented, then arbitrary IPv6 addresses,
                including addresses from DHCPv6 could be used.
@@ -1350,7 +1603,6 @@ o Network (net/, drivers/net)
                MAC-based addressing in the 6LoWPAN implementation.
 
   Title:       ETHERNET LOCAL BROADCAST DOES NOT WORK
-
   Description: In case of "local broadcast" the system still send ARP
                request to the destination, but it shouldn't, it should
                broadcast.  For Example, the system has network with IP
@@ -1400,6 +1652,23 @@ o Network (net/, drivers/net)
   Priority:    Medium.  I have never heard of this problem being reported
                before, so I suspect it might not be so prevalent as one
                might expect.
+
+  Title:       TCP SOCKETS CLOSED TOO QUICKLY
+  Description: When a socket is closed, the resources are torn down
+               immediately (unless the SO_LINGER option is selected).  As a
+               result, the socket does not send the FIN and this looks like
+               an unexpected, abnormal loss of connection to the remote peer.
+
+               Actually, it is worse than this:  The is NO logic to send
+               FIN in when the file is close.  This is pretty easy to do,
+               however:
+
+                 - Wait for a TCP poll, then
+                 - Call tcp_append with TCP_CLOSE in the flags.  There is
+                   already logic in tcp_appsend to send the FIN in this case,
+                   it is just not being use.
+  Status:      Open
+  Priority:    Medium-Low.
 
   Title:       LOCAL DATAGRAM RECVFROM RETURNS WRONG SENDER ADDRESS
   Description: The recvfrom logic for local datagram sockets returns the
@@ -1552,7 +1821,7 @@ o USB (drivers/usbdev, drivers/usbhost)
 
               - I test for incoming data by doing 'nsh> cat /dev/ttyACM0' on
                 the Olimex LPC1766STK host.  The bulk data reception still
-                works okay whether or not the interupt IN channel is enabled.
+                works okay whether or not the interrupt IN channel is enabled.
                 If the interrupt IN channel is enabled, then polling of that
                 channel appears to stop when the bulk in channel becomes
                 active.
@@ -1605,7 +1874,7 @@ o USB (drivers/usbdev, drivers/usbhost)
                still immature and you could experience issues in some
                configurations if you use it.
 
-               That all being said, I know of know no issues with the current
+               That all being said, I know of no issues with the current
                CDC/ACM driver on the Olimex LPC1766STK platform if the interrupt
                IN endpoint is not used, i.e., in "reduced" mode.  The only loss
                of functionality is output flow control.
@@ -1616,8 +1885,8 @@ o USB (drivers/usbdev, drivers/usbhost)
   Status:      Open
   Priority:    Medium-Low unless you really need host CDC/ACM support.
 
-o Libraries (libc/, libm/)
-  ^^^^^^^^^^^^^^^^^^^^^^^^
+o Libraries (libs/libc/, libs/libm/)
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       SIGNED time_t
   Description: The NuttX time_t is type uint32_t. I think this is consistent
@@ -1639,25 +1908,12 @@ o Libraries (libc/, libm/)
   Description: Need some minimal termios support... at a minimum, enough to
                switch between raw and "normal" modes to support behavior like
                that needed for readline().
-               UPDATE:  There is growing functionality in libc/termios/ and in the
-               ioctl methods of several MCU serial drivers (stm32, lpc43, lpc17,
-               pic32).  However, as phrased, this bug cannot yet be closed since
-               this "growing functionality" does not address all termios.h
-               functionality and not all serial drivers support termios.
-  Status:      Open
-  Priority:    Low
-
-  Title:       RESETTING GETOPT()
-  Description: There is an issue with the way that getopt() handles errors that
-               return '?'.
-
-               1. Does getopt() reset its global variables after returning '?' so
-                  that it can be re-used?  That would be required to support where
-                  the caller terminates parsing before reaching the last parameter.
-               2. Or is the client expected to continue parsing after getopt()
-                  returns '?'  and parse until the final parameter?
-
-               The current getopt() implementation only supports #2.
+               UPDATE:  There is growing functionality in libs/libc/termios/
+               and in the ioctl methods of several MCU serial drivers (stm32,
+               lpc43, lpc17, pic32, and others).  However, as phrased, this
+               bug cannot yet be closed since this "growing functionality"
+               does not address all termios.h functionality and not all
+               serial drivers support termios.
   Status:      Open
   Priority:    Low
 
@@ -1694,22 +1950,21 @@ o Libraries (libc/, libm/)
   Priority:
 
   Title:       OLD dtoa NEEDS TO BE UPDATED
-  Description: This implementation of dtoa in libc/stdio is old and will not
+  Description: This implementation of dtoa in libs/libc/stdio is old and will not
                work with some newer compilers.  See
                http://patrakov.blogspot.com/2009/03/dont-use-old-dtoac.html
+               Update:  A new dtoa version is not available and enabled with
+               CONFIG_NANO_PRINF.  However, the old version of dtoa is still in
+               in place and lib_libvsprintf() has been dupliated.  I think this
+               issue should remain open until the implementations have been
+               unified.
   Status:      Open
   Priority:    ??
 
   Title:       FLOATING POINT FORMATS
   Description: Only the %f floating point format is supported.  Others are
                accepted but treated like %f.
-  Status:      Open
-  Priority:    Medium (this might important to someone).
-
-  Title:       FLOATING POINT PRECISION
-  Description: A fieldwidth and precision is required with the %f format.  If %f
-               is used with no format, than floating numbers will be printed with
-               a precision of 0 (effectively presented as integers).
+               Update:  %g is supported with CONFIG_NANO_PRINTF.
   Status:      Open
   Priority:    Medium (this might important to someone).
 
@@ -1767,63 +2022,6 @@ o Libraries (libc/, libm/)
                the process address environment where they belong.  It is
                difficult to make this compatible with the FLAT build,
                however.
-  Status:      Open
-  Priority:    Low
-
-  Title:       FORMATTING FIXED WIDTH INTEGERS
-  Description: Formats like this: lib_vsprintf(_, "%6.6u", 0) do not work.
-               There is no support for the precision/width option with
-               integer types.  The format is simply is ignored and so can
-               even cause crashes.
-
-               For example:
-
-               int hello_main(int argc, char *argv[])
-               {
-                 printf("Hello, World!!\n");
-                 printf("%3.3u %3.3u %3.3u %3.3u %3.3u\n", 9, 99, 999, 9999, 99999);
-                 return 0;
-               }
-
-               Generates this incorrect output:
-
-               NuttShell (NSH) NuttX-7.20
-               nsh> hello
-               Hello, World!!
-                 9  99 999 9999 99999
-               nsh>
-
-               That output, of course, should have been:
-
-                 9  99 999 999 999
-
-               The period and the precision value were being ignored (if
-               floating point was disabled).  In that case, parsing of the
-               variable arguments could get out of sync.  But a side
-               effect of the referenced change is that precision value is
-               now always parsed (but still incorrectly ignored for the
-               case of integer formats).
-
-               The fix would not be too difficult but would involve change
-               several functions.  It would involve clipping the size of the
-               number string.  For example:
-
-               /* Get the width of the output */
-
-               uwidth = getusize(FMT_CHAR, flags, n);
-               if (trunc > 0 && uwidth > trunc)
-                 {
-                   uwidth = trunc;
-                 }
-
-               Then limiting the length of the output string to uwidth.
-               This would probably mean passing an additional parameter to
-               the many *toascii() functions like:
-
-               /* Output the number */
-
-               utoascii(obj, FMT_CHAR, flags, (unsigned int)n, uwidth);
-
   Status:      Open
   Priority:    Low
 
@@ -1915,7 +2113,7 @@ o File system / Generic drivers (fs/, drivers/)
                socket descriptors: if a descriptor is in one range then it is
                recognized as a file descriptor; if it is in another range
                then it is recognized as a socket descriptor.  These separate
-               descriptor ranges can cause problems, for example, they makes
+               descriptor ranges can cause problems, for example, they make
                dup'ing descriptors with dup2() problematic.  The two groups
                of descriptors are really indices into two separate tables:
                On an array of file structures and the other an array of
@@ -1928,7 +2126,7 @@ o File system / Generic drivers (fs/, drivers/)
                (using pctl() instead sysctl()).  My objective was to be able
                to control the number of available file descriptors on a task-
                by-task basis.  The complexity due to the partitioning of
-               descriptor space in a range for file descriptors and a range
+               descriptor space into a range for file descriptors and a range
                for socket descriptors made this feature nearly impossible to
                implement.
   Status:      Open
@@ -1967,7 +2165,7 @@ o File system / Generic drivers (fs/, drivers/)
                  nsh> ls -l /mnt/sdcard
 
                I have determined that the problem is because, for some as-
-               of-yet-unkown reason the short file name is treated as a long
+               of-yet-unknown reason the short file name is treated as a long
                file name.  The name then fails the long filename checksum
                test and is skipped.
 
@@ -2013,6 +2211,159 @@ o File system / Generic drivers (fs/, drivers/)
                   ignored by readdir() logic.  This is why the file does
                   not appear in the 'ls'.
 
+  Title:       SILENT SPIFFS FILE TRUNCATION
+  Description: Under certain corner case conditions, SPIFFS will truncate
+               files.  All of the writes to the file will claim that the
+               data has been written but after the file is closed, it may
+               be a little shorter than expected.
+
+               This is due to how the caching is implemented in SPIFFS:
+
+               1. On each write, the data is not written to the FLASH but
+                  rather to an internal cache in memory.
+               2. When the a write causes the cache to become full, the
+                  content of cache is flushed to memory.  If that flush
+                  fails because the FLASH has become full, write will
+                  return the file system full error (ENOSPC).
+               3. The cache is also flushed when the file is closed (or
+                  when fsync() is called).  These will also fail if the
+                  file system becomes full.
+
+               The problem is when the file is closed, the final file
+               size could be smaller than the number of successful writes
+               to the file.
+
+               This error is probably not so significant in a real world
+               file system usage:  It requires that you write continuously
+               to SPIFFS, never deleting files or freeing FLASH resources
+               in any way.  And it requires the unlikely circumstance that
+               the final file written has its last few hundred bytes in
+               cache when the file is closed but there are even fewer bytes
+               available on the FLASH.  That would be rare with a cache
+               size of a few hundred bytes and very large serial FLASH.
+
+               This issue does cause the test at apps/testing/fstest to
+               fail.  That test fails with a "Partial Read" because the
+               file being read is smaller than number bytes written to the
+               file.  That test does write small files continuously until
+               file system is full and even the the error is rare.  The
+               configs/sim/spiffs test can used to demonstrate the error.
+  Status:      Open
+  Priority:    Medium.  It is certain a file system failure, but I think that
+               the exposure in real world uses cases is very small.
+
+  Title:       FAT:  CAN'T SEEK TO END OF FILE IF READ-ONLY
+  Description: If the size of the underlying file is an exact multiple of the
+               FAT cluster size, then you cannot seek to the end of the file
+               if the file was opened read-only.  In that case, the FAT lseek
+               logic will return ENOSPC.
+
+               This is because seeking to the end of the file involves seeking
+               to an offset that is the size of the file (number of bytes
+               allocated for file + 1).  In order to seek to a position, the
+               current FAT implementation insists that there be allocated file
+               space at the seek position.  Seeking beyond the end of the file
+               has the side effect of extending the file.
+
+               [NOTE: This automatic extension of the file cluster allocation
+                is probably unnecessary and another issue of its own.]
+
+               For example, suppose you have a cluster size that is 4096 bytes
+               and a file that is 8192 bytes long.  Then the file will consist
+               of 2 allocated clusters at offsets 0 through 8191.
+
+               If the file is opened O_RDWR or O_WRONLY, then the statement:
+
+                 offset = lseek(fd, 0, SET_SEEK);
+
+               will seek to offset 8192 which beyond the end of the file so a
+               new (empty) cluster will be added.  Now the file consists of
+               three clusters and the file position refers to the first byte of
+               the third cluster.
+
+               If the file is open O_RDONLY, however, then that same lseek
+               statement will fail.  It is not possible to seek to position
+               8192.  That is beyond the end of the allocated cluster chain
+               and since the file is read-only, it is not permitted to extend
+               the cluster chain.  Hence, the error ENOSPC is returned.
+
+               This code snippet will duplicate the problem. It assumes a
+               cluster size of 512 and that /tmp is a mounted FAT file system:
+
+                 #define BUFSIZE 1024 //8192, depends on cluster size
+                 static char buffer[BUFSIZE];
+
+                 #if defined(BUILD_MODULE)
+                 int main(int argc, FAR char *argv[])
+                 #else
+                 int hello_main(int argc, char *argv[])
+                 #endif
+                 {
+                   ssize_t nwritten;
+                   off_t pos;
+                   int fd;
+                   int ch;
+                   int i;
+
+                   for (i = 0, ch = ' '; i < BUFSIZE; i++)
+                     {
+                       buffer[i] = ch;
+
+                       if (++ch == 0x7f)
+                         {
+                           ch = ' ';
+                         }
+                     }
+
+                   fd = open("/tmp/testfile", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                   if (fd < 0)
+                     {
+                       printf("open failed: %d\n", errno);
+                       return 1;
+                     }
+
+                   nwritten = write(fd, buffer, BUFSIZE);
+                   if (nwritten < 0)
+                     {
+                       printf("write failed: %d\n", errno);
+                       return 1;
+                     }
+
+                   close(fd);
+
+                   fd = open("/tmp/testfile", O_RDONLY);
+                   if (fd < 0)
+                     {
+                       printf("open failed: %d\n", errno);
+                       return 1;
+                     }
+
+                   pos = lseek(fd, 0, SEEK_END);
+                   if (pos < 0)
+                     {
+                       printf("lseek failed: %d\n", errno);
+                       return 1;
+                     }
+                   else if (pos != BUFSIZE)
+                     {
+                       printf("lseek failed: %d\n", pos);
+                       return 1;
+                     }
+
+                   close(fd);
+                   return 0;
+                 }
+
+  Status:      Open
+  Priority:    Medium.  Although this is a significant design error, the problem
+               has existed for 11 years without being previously reported.  I
+               conclude, then that the exposure from this problem is not great.
+
+               Why would you seek to the end of a file using a read=only file
+               descriptor anyway?  Only one reason I can think of:  To get the
+               size of the file.  The alternative (and much more efficient) way
+               to do that is via stat().
+
 o Graphics Subsystem (graphics/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -2042,11 +2393,10 @@ o Graphics Subsystem (graphics/)
   Priority:    Low
 
   Title:       AUTO-RAISE DISABLED
-  Description: Auto-raise is currently disabled in NX multi-server mode.  The
-               reason is complex:
+  Description: Auto-raise is currently disabled.  The reason is complex:
                - Most touchscreen controls send touch data a high rates
                - In multi-server mode, touch events get queued in a message
-                  queue.
+                 queue.
                - The logic that receives the messages performs the auto-raise.
                  But it can do stupid things after the first auto-raise as
                  it operates on the stale data in the message queue.
@@ -2062,25 +2412,6 @@ o Graphics Subsystem (graphics/)
                commands.
   Status:      Open
   Priority:    Low, the need has not yet arisen.
-
-  Title:       PER-WINDOW FRAMEBUFFERS
-  Description: One of the most awkward things to handle in the NX windowing
-               system is the re-draw callback.  This is difficult because it
-               requires ad hoc, custom logic to be able to do the redrawing
-               in most cases.
-
-               One solution would be to provide a per-window framebuffer.
-               All rending would be performed into the per-window framebuffer
-               and the rended bits would be copied the LCD or framebuffer
-               device memory on demand when the redraw is required.
-
-               This would (a) greatly simplify the graphics interface, (b)
-               greatly improve redraw performance, and (c) enable a more
-               generic use of the windowing.  The downside would be a large
-               usage of memory to hold all of the framebuffers, one for each
-               window.
-  Status:      Open
-  Priority:    Low, of mostly strategic value.
 
   Title:       VERTICAL ANTI-ALIASING
   Description: Anti-aliasing is implemented along the horizontal raster line
@@ -2098,8 +2429,8 @@ o Graphics Subsystem (graphics/)
   Status:      Open
   Priority:    Low for many, but I imagine higher in countries that use wide fonts
 
-  Title:       LOW-RES FRAMEBUFFER RENDERERING
-  Description: There are obvious issues in the low-res, < 8 BPP, implemenation of
+  Title:       LOW-RES FRAMEBUFFER RENDERING
+  Description: There are obvious issues in the low-res, < 8 BPP, implementation of
                the framebuffer rendering logic of graphics/nxglib/fb.  I see two
                obvious problems in reviewing nxglib_copyrectangle():
 
@@ -2112,12 +2443,32 @@ o Graphics Subsystem (graphics/)
                derives from nxglib_copyrectangle() and all of those issues have been
                resolved in that file.
 
-               Other frambuffer rendering functions probably have similar issues.
+               Other framebuffer rendering functions probably have similar issues.
   Status:      Open
   Priority:    Low.  It is not surprising that there would be bugs in this logic:
                I have never encountered a hardware framebuffer with sub-byte pixel
                depth.  If such a beast ever shows up, then this priority would be
                higher.
+
+  Title:       INCOMPLATE PLANAR COLOR SUPPORT
+  Description: The original NX design included support for planar colors,
+               i.e,. for devices that provide separate framebuffers for each
+               color component.  Planar graphics hard was common some years
+               back but is rarely encountered today.  In fact, I am not aware
+               of any MCU that implements planar framebuffers.
+
+               Support for planar colors is, however, unverified and
+               incomplete.  In fact, many recent changes explicitly assume a
+               single color plane:  Planar colors are specified by a array
+               of components; some recent logic uses only component [0],
+               ignoring the possible existence of other color componet frames.
+
+               Completely removing planar color support is one reasonable
+               options; it is not likely that NuttX will encounter planar
+               color hardware and this would greatly simplify the logic and
+               eliminate inconsistencies in the immplementation.
+  Status:      Open
+  Priority:    Low.  There is no problem other than one of aesthetics.
 
 o Build system
   ^^^^^^^^^^^^
@@ -2139,7 +2490,7 @@ o Other drivers (drivers/)
   ^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       SYSLOG OUTPUT LOST ON A CRASH
-  Desription:  Flush syslog output on crash.  I don't know how to do in the
+  Description: Flush syslog output on crash.  I don't know how to do in the
                character driver case with interrupts disabled.  It would be
                easy to flush the interrupt interrupt buffer, but not the
                data buffered within a character driver (such as the serial
@@ -2151,6 +2502,21 @@ o Other drivers (drivers/)
   Priority:    Low.  It would be a convenience and would simplify crash
                debug if you could see all of the SYSLOG output up to the
                time of the crash.  But not essential.
+
+  Title:       SERIAL DRIVER WITH DMA DOES NOT DISCARD OOB CHARACTERS
+  Description: If Ctrl-Z or Ctrl-C actions are enabled, the the OOB
+               character that generates the signal action must not be placed
+               in the serial driver Rx buffer.  This behavior is correct for
+               the non-DMA case (serial_io.c), but not for the DMA case
+               (serial_dma.c).  In the DMA case, the OOB character is left
+               in the Rx buffer and will be received as normal Rx data by
+               the application.  It should not work that way.
+
+               Perhaps in the DMA case, the OOB characters could be filtered
+               out later, just before returning the Rx data to the application?
+  Status:      Open
+  Priority:    Low, provided that the application can handle these characters
+               in the data stream.
 
 o Linux/Cywgin simulation (arch/sim)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

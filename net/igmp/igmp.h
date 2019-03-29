@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/igmp/igmp.h
  *
- *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/*
- *                              ________________
+
+/*                              ________________
  *                             |                |
  *                             |                |
  *                             |                |
@@ -77,9 +77,36 @@
 
 #include <sys/types.h>
 
+#include <nuttx/wqueue.h>
 #include <nuttx/net/ip.h>
 
 #ifdef CONFIG_NET_IGMP
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* Group flags */
+
+#define IGMP_IDLEMEMBER          (1 << 0)
+#define IGMP_LASTREPORT          (1 << 1)
+#define IGMP_SCHEDMSG            (1 << 2)
+#define IGMP_WAITMSG             (1 << 3)
+
+#define SET_IDLEMEMBER(f)        do { (f) |= IGMP_IDLEMEMBER; } while (0)
+#define SET_LASTREPORT(f)        do { (f) |= IGMP_LASTREPORT; } while (0)
+#define SET_SCHEDMSG(f)          do { (f) |= IGMP_SCHEDMSG; } while (0)
+#define SET_WAITMSG(f)           do { (f) |= IGMP_WAITMSG; } while (0)
+
+#define CLR_IDLEMEMBER(f)        do { (f) &= ~IGMP_IDLEMEMBER; } while (0)
+#define CLR_LASTREPORT(f)        do { (f) &= ~IGMP_LASTREPORT; } while (0)
+#define CLR_SCHEDMSG(f)          do { (f) &= ~IGMP_SCHEDMSG; } while (0)
+#define CLR_WAITMSG(f)           do { (f) &= ~IGMP_WAITMSG; } while (0)
+
+#define IS_IDLEMEMBER(f)         (((f) & IGMP_IDLEMEMBER) != 0)
+#define IS_LASTREPORT(f)         (((f) & IGMP_LASTREPORT) != 0)
+#define IS_SCHEDMSG(f)           (((f) & IGMP_SCHEDMSG) != 0)
+#define IS_WAITMSG(f)            (((f) & IGMP_WAITMSG) != 0)
 
 /****************************************************************************
  * Public Type Definitions
@@ -97,10 +124,12 @@ typedef FAR struct wdog_s *WDOG_ID;
 struct igmp_group_s
 {
   struct igmp_group_s *next;    /* Implements a singly-linked list */
+  struct work_s        work;    /* For deferred timeout operations */
   in_addr_t            grpaddr; /* Group IPv4 address */
   WDOG_ID              wdog;    /* WDOG used to detect timeouts */
   sem_t                sem;     /* Used to wait for message transmission */
-  volatile uint8_t     flags;   /* See IGMP_ flags definitions */
+  uint8_t              ifindex; /* Interface index */
+  uint8_t              flags;   /* See IGMP_ flags definitions */
   uint8_t              msgid;   /* Pending message ID (if non-zero) */
 };
 
@@ -207,7 +236,7 @@ void igmp_grpfree(FAR struct net_driver_s *dev,
  *
  ****************************************************************************/
 
-void igmp_schedmsg(FAR struct igmp_group_s *group, uint8_t msgid);
+int igmp_schedmsg(FAR struct igmp_group_s *group, uint8_t msgid);
 
 /****************************************************************************
  * Name: igmp_waitmsg
@@ -218,7 +247,7 @@ void igmp_schedmsg(FAR struct igmp_group_s *group, uint8_t msgid);
  *
  ****************************************************************************/
 
-void igmp_waitmsg(FAR struct igmp_group_s *group, uint8_t msgid);
+int igmp_waitmsg(FAR struct igmp_group_s *group, uint8_t msgid);
 
 /****************************************************************************
  * Name:  igmp_poll
@@ -246,6 +275,7 @@ void igmp_poll(FAR struct net_driver_s *dev);
  *   group      - Describes the multicast group member and identifies the
  *                message to be sent.
  *   destipaddr - The IP address of the recipient of the message
+ *   msgid      - ID of message to send
  *
  * Returned Value:
  *   None
@@ -256,7 +286,7 @@ void igmp_poll(FAR struct net_driver_s *dev);
  ****************************************************************************/
 
 void igmp_send(FAR struct net_driver_s *dev, FAR struct igmp_group_s *group,
-                  FAR in_addr_t *dest);
+               FAR in_addr_t *destipaddr, uint8_t msgid);
 
 /****************************************************************************
  * Name:  igmp_joingroup

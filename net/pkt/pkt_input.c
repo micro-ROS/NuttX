@@ -45,10 +45,10 @@
 #include <nuttx/config.h>
 #if defined(CONFIG_NET) && defined(CONFIG_NET_PKT)
 
+#include <errno.h>
 #include <debug.h>
 
 #include <nuttx/net/netdev.h>
-#include <nuttx/net/arp.h>
 #include <nuttx/net/pkt.h>
 
 #include "devif/devif.h"
@@ -74,10 +74,10 @@
  *   dev - The device driver structure containing the received packet
  *
  * Returned Value:
- *   OK    The packet has been processed  and can be deleted
- *   ERROR There is a matching connection, but could not dispatch the packet
- *         yet.  Useful when a packet arrives before a recv call is in
- *         place.
+ *   OK     The packet has been processed  and can be deleted
+ *  -EAGAIN There is a matching connection, but could not dispatch the packet
+ *          yet.  Useful when a packet arrives before a recv call is in
+ *          place.
  *
  * Assumptions:
  *   The network is locked.
@@ -110,20 +110,19 @@ int pkt_input(struct net_driver_s *dev)
 
       if ((flags & PKT_NEWDATA) != 0)
         {
-          /* No.. the packet was not processed now.  Return ERROR so
+          /* No.. the packet was not processed now.  Return -EAGAIN so
            * that the driver may retry again later.  We still need to
            * set d_len to zero so that the driver is aware that there
            * is nothing to be sent.
            */
 
            nwarn("WARNING: Packet not processed\n");
-           //dev->d_len = 0; REVISIT
-           ret = ERROR;
+           ret = -EAGAIN;
         }
     }
   else
     {
-      nerr("ERROR: No listener\n");
+      ninfo("No PKT listener\n");
     }
 
   return ret;

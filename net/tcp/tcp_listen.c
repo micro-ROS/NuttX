@@ -268,7 +268,7 @@ int tcp_accept_connection(FAR struct net_driver_s *dev,
                           FAR struct tcp_conn_s *conn, uint16_t portno)
 {
   FAR struct tcp_conn_s *listener;
-  int ret = ERROR;
+  int ret = -EINVAL;
 
   /* The event processing logic has already allocated and initialized a TCP
    * connection -- now check there if is an application in place to accept
@@ -294,7 +294,8 @@ int tcp_accept_connection(FAR struct net_driver_s *dev,
       else
         {
           /* Add the connection to the backlog and notify any threads that
-           * may be waiting on poll()/select() that the connection is available.
+           * may be waiting on poll()/select() that the connection is
+           * available.
            */
 
           ret = tcp_backlogadd(listener, conn);

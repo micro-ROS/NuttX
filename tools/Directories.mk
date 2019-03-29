@@ -1,7 +1,7 @@
 ############################################################################
 # tools/Directories.mk
 #
-#   Copyright (C) 2007-2012, 2014, 2016-2017 Gregory Nutt. All rights
+#   Copyright (C) 2007-2012, 2014, 2016-2018 Gregory Nutt. All rights
 #     reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
@@ -83,13 +83,13 @@ NONFSDIRS = sched drivers configs $(ARCH_SRC) $(NUTTX_ADDONS)
 FSDIRS = fs binfmt
 CONTEXTDIRS = configs $(APPDIR)
 USERDIRS =
-OTHERDIRS = lib
+OTHERDIRS = pass1
 
 ifeq ($(CONFIG_BUILD_PROTECTED),y)
 
 USERDIRS += libs$(DELIM)libc mm $(USER_ADDONS)
 ifeq ($(CONFIG_HAVE_CXX),y)
-USERDIRS += libs$(DELIM)$(LIBXX)
+USERDIRS += libs$(DELIM)libxx
 endif
 
 else
@@ -97,7 +97,7 @@ ifeq ($(CONFIG_BUILD_KERNEL),y)
 
 USERDIRS += libs$(DELIM)libc mm
 ifeq ($(CONFIG_HAVE_CXX),y)
-USERDIRS += libs$(DELIM)$(LIBXX)
+USERDIRS += libs$(DELIM)libxx
 endif
 
 else
@@ -105,9 +105,9 @@ else
 NONFSDIRS += libs$(DELIM)libc mm
 OTHERDIRS += $(USER_ADDONS)
 ifeq ($(CONFIG_HAVE_CXX),y)
-NONFSDIRS += libs$(DELIM)$(LIBXX)
+NONFSDIRS += libs$(DELIM)libxx
 else
-OTHERDIRS += libs$(DELIM)$(LIBXX)
+OTHERDIRS += libs$(DELIM)libxx
 endif
 
 endif
@@ -170,16 +170,7 @@ USERDEPDIRS = $(USERDIRS)
 
 # Add file system directories to KERNDEPDIRS (they are already in CLEANDIRS)
 
-ifeq ($(CONFIG_NFILE_DESCRIPTORS),0)
-ifeq ($(CONFIG_NET),y)
-ifneq ($(CONFIG_NSOCKET_DESCRIPTORS),0)
-KERNDEPDIRS += fs
-endif
-KERNDEPDIRS += drivers
-endif
-else
 KERNDEPDIRS += $(FSDIRS)
-endif
 
 # Add networking directories to KERNDEPDIRS and CLEANDIRS
 

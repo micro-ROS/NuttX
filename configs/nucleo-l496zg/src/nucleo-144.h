@@ -139,7 +139,6 @@
 #define SDIO_SLOTNO 0  /* Only one slot */
 
 #ifdef HAVE_SDIO
-
 #  if defined(CONFIG_STM32L4_SDMMC1)
 #    define GPIO_SDMMC1_NCD (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI | GPIO_PORTC | GPIO_PIN6)
 #  endif
@@ -153,19 +152,6 @@
 #    define SDIO_MINOR CONFIG_NSH_MMCSDMINOR
 #  else
 #    define SDIO_MINOR 0
-#  endif
-
-  /* SD card bringup does not work if performed on the IDLE thread because it
-   * will cause waiting.  Use either:
-   *
-   *  CONFIG_LIB_BOARDCTL=y, OR
-   *  CONFIG_BOARD_INITIALIZE=y && CONFIG_BOARD_INITTHREAD=y
-   */
-
-#  if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_LIB_BOARDCTL) && \
-     !defined(CONFIG_BOARD_INITTHREAD)
-#    warning SDIO initialization cannot be perfomed on the IDLE thread
-#    undef HAVE_SDIO
 #  endif
 #endif
 

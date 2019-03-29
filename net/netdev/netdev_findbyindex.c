@@ -48,8 +48,6 @@
 #include "utils/utils.h"
 #include "netdev/netdev.h"
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -161,12 +159,12 @@ int netdev_nextindex(int ifindex)
         {
           if ((g_devset & (1L << ifindex)) != 0)
             {
-               /* NOTE that the index + 1 is returned.  Zero is reserved to
-                * mean no-index in the POSIX standards.
-                */
+              /* NOTE that the index + 1 is returned.  Zero is reserved to
+               * mean no-index in the POSIX standards.
+               */
 
-               net_unlock();
-               return ifindex + 1;
+              net_unlock();
+              return ifindex + 1;
            }
         }
 
@@ -177,4 +175,3 @@ int netdev_nextindex(int ifindex)
 }
 #endif
 
-#endif /* CONFIG_NSOCKET_DESCRIPTORS */

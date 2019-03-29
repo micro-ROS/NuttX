@@ -85,15 +85,20 @@ static void _up_assert(int errorcode)
 
   (void)syslog_flush();
 
-  /* Are we in an interrupt handler or the idle task? */
+  /* Are we in an interrupt handler or the idle task?
+   * NOTE:  You cannot use the PID to determine if this is an IDLE task.  In
+   * the SMP case, there may be multiple IDLE tasks with different PIDs.  The
+   * only consistent way to test for the IDLE task is to check it is at the
+   * end of the list (flink == NULL)
+   */
 
-  if (g_current_regs || this_task()->pid == 0)
+  if (g_current_regs || running_task()->flink == NULL)
     {
        (void)up_irq_save();
         for (; ; )
           {
 #if CONFIG_BOARD_RESET_ON_ASSERT >= 1
-            board_reset(0);
+            board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 #endif
 #ifdef CONFIG_ARCH_LEDS
             board_autoled_on(LED_PANIC);
@@ -106,7 +111,7 @@ static void _up_assert(int errorcode)
   else
     {
 #if CONFIG_BOARD_RESET_ON_ASSERT >= 2
-      board_reset(0);
+      board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 #endif
       exit(errorcode);
     }
@@ -148,7 +153,7 @@ static int assert_tracecallback(FAR struct usbtrace_s *trace, FAR void *arg)
 void up_assert(const uint8_t *filename, int lineno)
 {
 #if CONFIG_TASK_NAME_SIZE > 0 && defined(CONFIG_DEBUG_ALERT)
-  struct tcb_s *rtcb = this_task();
+  struct tcb_s *rtcb = running_task();
 #endif
 
   board_autoled_on(LED_ASSERTION);
@@ -178,7 +183,7 @@ void up_assert(const uint8_t *filename, int lineno)
   (void)syslog_flush();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
-  board_crashdump(up_getsp(), this_task(), filename, lineno);
+  board_crashdump(up_getsp(), running_task(), filename, lineno);
 #endif
 
   _up_assert(EXIT_FAILURE);

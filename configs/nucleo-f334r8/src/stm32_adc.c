@@ -142,7 +142,7 @@ static const uint32_t g_pinlist1[3] =
 
 /* Identifying number of each ADC channel */
 
-static const uint8_t g_chanlist2[1] =
+static const uint8_t g_chanlist2[3] =
 {
   1,
   6,

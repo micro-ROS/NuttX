@@ -77,7 +77,8 @@ const net_ipv6addr_t g_ipv6_allnodes =    /* All link local nodes */
   HTONS(0x0001)
 };
 
-#if defined(CONFIG_NET_ICMPv6_AUTOCONF) || defined(CONFIG_NET_ICMPv6_ROUTER)
+#if defined(CONFIG_NET_ICMPv6_AUTOCONF) || defined(CONFIG_NET_ICMPv6_ROUTER) || \
+    defined(CONFIG_NET_MLD)
 const net_ipv6addr_t g_ipv6_allrouters =  /* All link local routers */
 {
   HTONS(0xff02),
@@ -88,7 +89,7 @@ const net_ipv6addr_t g_ipv6_allrouters =  /* All link local routers */
 #ifdef CONFIG_NET_ICMPv6_AUTOCONF
 /* Link-Local Address: Link-local addresses have "1111 1110 10" for the
  * first ten bits followed by 54 zeroes and then the 64 bit interface
- * identifier (typically derived from the data link layer address).
+ * identifier (typically derived from the link layer MAC address).
  */
 
 const net_ipv6addr_t g_ipv6_llnetmask =   /* Netmask for local link address */
@@ -96,6 +97,20 @@ const net_ipv6addr_t g_ipv6_llnetmask =   /* Netmask for local link address */
   0xffff, 0xffff, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000
 };
 #endif /* CONFIG_NET_ICMPv6_AUTOCONF */
+
+#ifdef CONFIG_NET_MLD
+/* Version 2 Multicast Listener Reports are sent with an IP destination
+ * address of FF02:0:0:0:0:0:0:16 on which all MLDv2-capable multicast
+ * routers listen (RFC 3810)
+ */
+
+const net_ipv6addr_t g_ipv6_allmldv2routers =  /* All MLDv2 link local routers */
+{
+  HTONS(0xff02),
+  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+  HTONS(0x0016)
+};
+#endif
 
 #ifdef CONFIG_NET_ETHERNET
 
@@ -117,7 +132,7 @@ const struct ether_addr g_ipv6_ethallrouters =   /* All link local routers */
 };
 
 #endif /* CONFIG_NET_ETHERNET */
-#endif /* CONFIG_NET_ICMPv6_AUTOCONF || CONFIG_NET_ICMPv6_ROUTER */
+#endif /* CONFIG_NET_ICMPv6_AUTOCONF || CONFIG_NET_ICMPv6_ROUTER || CONFIG_NET_MLD */
 #endif /* CONFIG_NET_IPv6 */
 
 /****************************************************************************

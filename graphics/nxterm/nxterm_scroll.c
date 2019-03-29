@@ -107,7 +107,8 @@ static inline void nxterm_movedisplay(FAR struct nxterm_state_s *priv,
       for (i = 0; i < priv->nchars; i++)
         {
           bm = &priv->bm[i];
-          if (bm->pos.y <= rect.pt2.y && bm->pos.y + priv->fheight >= rect.pt1.y)
+          if (bm->pos.y <= rect.pt2.y &&
+              bm->pos.y + priv->fheight >= rect.pt1.y)
             {
               nxterm_fillchar(priv, &rect, bm);
             }
@@ -198,9 +199,9 @@ void nxterm_scroll(FAR struct nxterm_state_s *priv, int scrollheight)
         {
           /* Yes... Delete the character by moving all of the data */
 
-          for (j = i; j < priv->nchars-1; j++)
+          for (j = i; j < priv->nchars - 1; j++)
             {
-              memcpy(&priv->bm[j], &priv->bm[j+1],
+              memcpy(&priv->bm[j], &priv->bm[j + 1],
                      sizeof(struct nxterm_bitmap_s));
             }
 

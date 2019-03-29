@@ -512,8 +512,9 @@ bool nxsig_iscatchable(int signo)
 
   if (handler == SIG_IGN)
     {
-      /* We are unsetting the default action */
-      /* sigdelset() is not atomic (but neither is sigaction()) */
+      /* We are unsetting the default action.  NOTE that sigdelset() is not
+       * atomic (but neither is sigaction()).
+       */
 
       flags = spin_lock_irqsave();
       (void)sigdelset(&group->tg_sigdefault, signo);
@@ -527,7 +528,7 @@ bool nxsig_iscatchable(int signo)
  * Name: nxsig_default_initialize
  *
  * Description:
- *   Set all signals to their default action.  This is called from task_start
+ *   Set all signals to their default action.  This is called from nxtask_start
  *   to configure the newly started task.
  *
  * Input Parameters:

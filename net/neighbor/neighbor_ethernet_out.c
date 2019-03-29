@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/neighbor/neighbor_ethernet_out.c
  *
- *   Copyright (C) 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@
 #include <string.h>
 #include <debug.h>
 
-#include <nuttx/net/arp.h>
+#include <nuttx/net/ethernet.h>
 #include <nuttx/net/ip.h>
 #include <nuttx/net/netdev.h>
 
@@ -54,48 +54,27 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define ETHBUF  ((struct eth_hdr_s *)dev->d_buf)
-#define IPv6BUF ((struct ipv6_hdr_s *)&dev->d_buf[NET_LL_HDRLEN(dev)])
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
+#define ETHBUF  ((FAR struct eth_hdr_s *)dev->d_buf)
+#define IPv6BUF ((FAR struct ipv6_hdr_s *)&dev->d_buf[NET_LL_HDRLEN(dev)])
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-/* Support for broadcast address */
-
-static const struct ether_addr g_broadcast_ethaddr =
-{
-  {
-    0xff, 0xff, 0xff, 0xff, 0xff, 0xff
-  }
-};
-
-/* Support for IGMP multicast addresses.
+/* Support for MLD multicast addresses.
  *
  * Well-known ethernet multicast address:
  *
  * ADDRESS           TYPE   USAGE
- * 01-00-0c-cc-cc-cc 0x0802 CDP (Cisco Discovery Protocol), VTP (Virtual Trunking Protocol)
+ * 01-00-0c-cc-cc-cc 0x0802 CDP (Cisco Discovery Protocol), VTP (Virtual
+ *                          Trunking Protocol)
  * 01-00-0c-cc-cc-cd 0x0802 Cisco Shared Spanning Tree Protocol Address
  * 01-80-c2-00-00-00 0x0802 Spanning Tree Protocol (for bridges) IEEE 802.1D
  * 01-80-c2-00-00-02 0x0809 Ethernet OAM Protocol IEEE 802.3ah
  * 01-00-5e-xx-xx-xx 0x0800 IPv4 IGMP Multicast Address
  * 33-33-00-00-00-00 0x86DD IPv6 Neighbor Discovery
  * 33-33-xx-xx-xx-xx 0x86DD IPv6 Multicast Address (RFC3307)
- *
- * The following is the first three octects of the IGMP address:
  */
-
-#ifdef CONFIG_NET_IGMP
-static const uint8_t g_multicast_ethaddr[3] =
-{
-  0x01, 0x00, 0x5e
-};
-#endif
 
 /****************************************************************************
  * Private Functions
@@ -106,7 +85,7 @@ static const uint8_t g_multicast_ethaddr[3] =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: neighbor_out
+ * Name: neighbor_ethernet_out
  *
  * Description:
  *   This function should be called before sending out an IPv6 packet. The
@@ -132,16 +111,14 @@ static const uint8_t g_multicast_ethaddr[3] =
  *
  ****************************************************************************/
 
-void neighbor_out(FAR struct net_driver_s *dev)
+void neighbor_ethernet_out(FAR struct net_driver_s *dev)
 {
-  FAR const struct neighbor_addr_s *naddr;
   FAR struct eth_hdr_s *eth = ETHBUF;
   FAR struct ipv6_hdr_s *ip = IPv6BUF;
-  net_ipv6addr_t ipaddr;
+  struct neighbor_addr_s laddr;
 
   /* Skip sending Neighbor Solicitations when the frame to be transmitted was
-   * written into a packet socket or if we are sending certain Neighbor
-   * messages (solicitation, advertisement, echo request).
+   * written into a packet socket.
    */
 
   if (IFF_IS_NOARP(dev->d_flags))
@@ -160,34 +137,12 @@ void neighbor_out(FAR struct net_driver_s *dev)
    * packet with an Neighbor Solicitation Request for the IPv6 address.
    */
 
-  /* First check if destination is a IPv6 multicast address.
-   *
-   * REVISIT: Need to revisit IPv6 broadcast support.  Broadcast
-   * IP addresses are not used with IPv6; multicast is used instead.
-   * Does this mean that all multicast address should go to the
-   * broadcast Ethernet address?
-   */
+  /* First check if destination isn't IPv6 multicast address. */
 
-  if (net_is_addr_mcast(ip->destipaddr))
+  if (!net_is_addr_mcast(ip->destipaddr))
     {
-      memcpy(eth->dest, g_broadcast_ethaddr.ether_addr_octet,
-             ETHER_ADDR_LEN);
-    }
+      net_ipv6addr_t ipaddr;
 
-#ifdef CONFIG_NET_IGMP
-  /* Check if the destination address is a multicast address
-   *
-   *   IPv6 multicast addresses are have the high-order octet of the
-   *   addresses=0xff (ff00::/8.)
-   *
-   * REVISIT:  See comments above.  How do we distinguish broadcast
-   * from IGMP multicast?
-   */
-#warning Missing logic
-#endif
-
-  else
-    {
       /* Check if the destination address is on the local network. */
 
       if (!net_ipv6addr_maskcmp(ip->destipaddr, dev->d_ipv6addr,
@@ -220,8 +175,7 @@ void neighbor_out(FAR struct net_driver_s *dev)
 
       /* Check if we already have this destination address in the Neighbor Table */
 
-      naddr = neighbor_lookup(ipaddr);
-      if (!naddr)
+      if (neighbor_lookup(ipaddr, &laddr) < 0)
         {
            ninfo("IPv6 Neighbor solicitation for IPv6\n");
 
@@ -231,12 +185,19 @@ void neighbor_out(FAR struct net_driver_s *dev)
            */
 
           icmpv6_solicit(dev, ipaddr);
-          return;
         }
+    }
 
-      /* Build an Ethernet header. */
+  /* Build an Ethernet header. */
 
-      memcpy(eth->dest, naddr->u.na_ethernet.ether_addr_octet, ETHER_ADDR_LEN);
+  if (net_is_addr_mcast(ip->destipaddr))
+    {
+      eth->dest[0] = eth->dest[1] = 0x33;
+      memcpy(&eth->dest[2], &ip->destipaddr[6], 4);
+    }
+  else
+    {
+      memcpy(eth->dest, laddr.u.na_ethernet.ether_addr_octet, ETHER_ADDR_LEN);
     }
 
   /* Finish populating the Ethernet header */

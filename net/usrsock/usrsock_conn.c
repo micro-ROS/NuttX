@@ -124,12 +124,14 @@ FAR struct usrsock_conn_s *usrsock_alloc(void)
   /* The free list is protected by a semaphore (that behaves like a mutex). */
 
   _usrsock_semtake(&g_free_sem);
-  conn = (FAR struct usrsock_conn_s *)dq_remfirst(&g_free_usrsock_connections);
+  conn = (FAR struct usrsock_conn_s *)
+    dq_remfirst(&g_free_usrsock_connections);
   if (conn)
     {
       /* Make sure that the connection is marked as uninitialized */
 
       memset(conn, 0, sizeof(*conn));
+      nxsem_init(&conn->resp.sem, 0, 1);
       conn->dev = NULL;
       conn->usockid = -1;
       conn->state = USRSOCK_CONN_STATE_UNINITIALIZED;
@@ -168,6 +170,7 @@ void usrsock_free(FAR struct usrsock_conn_s *conn)
 
   /* Reset structure */
 
+  nxsem_destroy(&conn->resp.sem);
   memset(conn, 0, sizeof(*conn));
   conn->dev = NULL;
   conn->usockid = -1;
@@ -258,12 +261,21 @@ int usrsock_setup_request_callback(FAR struct usrsock_conn_s *conn,
   pstate->conn   = conn;
   pstate->result = -EAGAIN;
   pstate->completed = false;
+  pstate->unlock = false;
 
   /* Set up the callback in the connection */
 
   pstate->cb = devif_callback_alloc(NULL, &conn->list);
   if (pstate->cb)
     {
+      /* Take a lock since only one outstanding request is allowed */
+
+      if ((flags & USRSOCK_EVENT_REQ_COMPLETE) != 0)
+        {
+          _usrsock_semtake(&conn->resp.sem);
+          pstate->unlock = true;
+        }
+
       /* Set up the connection event handler */
 
       pstate->cb->flags = flags;
@@ -287,7 +299,8 @@ int usrsock_setup_data_request_callback(FAR struct usrsock_conn_s *conn,
 {
   pstate->valuelen = 0;
   pstate->valuelen_nontrunc = 0;
-  return usrsock_setup_request_callback(conn, &pstate->reqstate, event, flags);
+  return usrsock_setup_request_callback(conn, &pstate->reqstate, event,
+                                        flags);
 }
 
 /****************************************************************************
@@ -297,6 +310,11 @@ int usrsock_setup_data_request_callback(FAR struct usrsock_conn_s *conn,
 void usrsock_teardown_request_callback(FAR struct usrsock_reqstate_s *pstate)
 {
   FAR struct usrsock_conn_s *conn = pstate->conn;
+
+  if (pstate->unlock)
+    {
+      _usrsock_semgive(&conn->resp.sem);
+    }
 
   /* Make sure that no further events are processed */
 

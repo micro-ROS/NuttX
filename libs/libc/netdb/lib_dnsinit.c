@@ -54,8 +54,9 @@
  * Private Data
  ****************************************************************************/
 
-static sem_t g_dns_sem;           /* Protects g_seqno and DNS cache */
-static bool  g_dns_initialized;   /* DNS data structures initialized */
+/* Protects g_seqno, DNS cache and notify */
+
+static sem_t g_dns_sem = SEM_INITIALIZER(1);
 
 /****************************************************************************
  * Public Data
@@ -92,14 +93,6 @@ static const uint16_t g_ipv6_hostaddr[8] =
 
 bool dns_initialize(void)
 {
-  /* Have DNS data structures been initialized? */
-
-  if (!g_dns_initialized)
-    {
-      (void)nxsem_init(&g_dns_sem, 0, 1);
-      g_dns_initialized = true;
-    }
-
 #ifndef CONFIG_NETDB_RESOLVCONF
   /* Has the DNS server IP address been assigned? */
 

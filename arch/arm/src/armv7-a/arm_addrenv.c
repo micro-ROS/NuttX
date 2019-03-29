@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/armv7/arm_addrenv.c
  *
- *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -116,10 +116,11 @@
 #include <nuttx/arch.h>
 #include <nuttx/pgalloc.h>
 #include <nuttx/irq.h>
+#include <nuttx/cache.h>
 
 #include "pgalloc.h"
-#include "cache.h"
 #include "mmu.h"
+#include "cp15_cacheops.h"
 #include "addrenv.h"
 
 #ifdef CONFIG_ARCH_ADDRENV
@@ -181,8 +182,8 @@ static int up_addrenv_initdata(uintptr_t l2table)
 
   /* Invalidate D-Cache so that we read from the physical memory */
 
-  arch_invalidate_dcache((uintptr_t)virtptr,
-                         (uintptr_t)virtptr + sizeof(uint32_t));
+  up_invalidate_dcache((uintptr_t)virtptr,
+                       (uintptr_t)virtptr + sizeof(uint32_t));
 
   /* Get the physical address of the first page of of .bss/.data */
 
@@ -208,8 +209,8 @@ static int up_addrenv_initdata(uintptr_t l2table)
 
   /* Make sure that the initialized data is flushed to physical memory. */
 
-  arch_flush_dcache((uintptr_t)virtptr,
-                    (uintptr_t)virtptr + ARCH_DATA_RESERVE_SIZE);
+  up_flush_dcache((uintptr_t)virtptr,
+                  (uintptr_t)virtptr + ARCH_DATA_RESERVE_SIZE);
 
 #ifndef CONFIG_ARCH_PGPOOL_MAPPING
   /* Restore the scratch section L1 page table entry */
@@ -715,18 +716,18 @@ int up_addrenv_coherent(FAR const group_addrenv_t *addrenv)
 
 #warning REVISIT... causes crashes
 #if 0
-  arch_clean_dcache(CONFIG_ARCH_TEXT_VBASE,
-                    CONFIG_ARCH_TEXT_VBASE +
-                    CONFIG_ARCH_TEXT_NPAGES * MM_PGSIZE - 1);
+  up_clean_dcache(CONFIG_ARCH_TEXT_VBASE,
+                  CONFIG_ARCH_TEXT_VBASE +
+                  CONFIG_ARCH_TEXT_NPAGES * MM_PGSIZE - 1);
 
-  arch_clean_dcache(CONFIG_ARCH_DATA_VBASE,
-                    CONFIG_ARCH_DATA_VBASE +
-                    CONFIG_ARCH_DATA_NPAGES * MM_PGSIZE - 1);
+  up_clean_dcache(CONFIG_ARCH_DATA_VBASE,
+                  CONFIG_ARCH_DATA_VBASE +
+                  CONFIG_ARCH_DATA_NPAGES * MM_PGSIZE - 1);
 #endif
 
 #ifdef CONFIG_BUILD_KERNEL
-  arch_clean_dcache(CONFIG_ARCH_HEAP_VBASE,
-                    CONFIG_ARCH_HEAP_VBASE + addrenv->heapsize);
+  up_clean_dcache(CONFIG_ARCH_HEAP_VBASE,
+                  CONFIG_ARCH_HEAP_VBASE + addrenv->heapsize);
 #endif
 
   return OK;

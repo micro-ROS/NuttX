@@ -64,10 +64,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IPv6
-#  error "IGMP for IPv6 not supported"
-#endif
-
 /* IGMP packet types */
 
 #define IGMP_MEMBERSHIP_QUERY    0x11    /* Membership Query */
@@ -85,31 +81,7 @@
 #define IGMP_HDRLEN              8
 #define IPIGMP_HDRLEN            (IGMP_HDRLEN + IPv4_HDRLEN + 4)
 
-/* Group flags */
-
-#define IGMP_PREALLOCATED        (1 << 0)
-#define IGMP_LASTREPORT          (1 << 1)
-#define IGMP_IDLEMEMBER          (1 << 2)
-#define IGMP_SCHEDMSG            (1 << 3)
-#define IGMP_WAITMSG             (1 << 4)
-
-#define SET_PREALLOCATED(f)      do { (f) |= IGMP_PREALLOCATED; } while (0)
-#define SET_LASTREPORT(f)        do { (f) |= IGMP_LASTREPORT; } while (0)
-#define SET_IDLEMEMBER(f)        do { (f) |= IGMP_IDLEMEMBER; } while (0)
-#define SET_SCHEDMSG(f)          do { (f) |= IGMP_SCHEDMSG; } while (0)
-#define SET_WAITMSG(f)           do { (f) |= IGMP_WAITMSG; } while (0)
-
-#define CLR_PREALLOCATED(f)      do { (f) &= ~IGMP_PREALLOCATED; } while (0)
-#define CLR_LASTREPORT(f)        do { (f) &= ~IGMP_LASTREPORT; } while (0)
-#define CLR_IDLEMEMBER(f)        do { (f) &= ~IGMP_IDLEMEMBER; } while (0)
-#define CLR_SCHEDMSG(f)          do { (f) &= ~IGMP_SCHEDMSG; } while (0)
-#define CLR_WAITMSG(f)           do { (f) &= ~IGMP_WAITMSG; } while (0)
-
-#define IS_PREALLOCATED(f)       (((f) & IGMP_PREALLOCATED) != 0)
-#define IS_LASTREPORT(f)         (((f) & IGMP_LASTREPORT) != 0)
-#define IS_IDLEMEMBER(f)         (((f) & IGMP_IDLEMEMBER) != 0)
-#define IS_SCHEDMSG(f)           (((f) & IGMP_SCHEDMSG) != 0)
-#define IS_WAITMSG(f)            (((f) & IGMP_WAITMSG) != 0)
+/* Time-to-Live must be one */
 
 #define IGMP_TTL                 1
 
@@ -125,7 +97,6 @@
  * (0x11); in other messages it is set to 0 and ignored by the receiver.
  */
 
-#ifdef CONFIG_NET_IPv4
 struct igmp_iphdr_s
 {
   /* IPv4 IP header */
@@ -143,7 +114,7 @@ struct igmp_iphdr_s
 
   /* Router Alert IP header option */
 
-  uint16_t ra[2];
+  uint16_t ra[2];            /* RFC 2113 */
 
   /* IGMPv2 header:
    *
@@ -161,43 +132,6 @@ struct igmp_iphdr_s
   uint16_t chksum;           /* 16-bit Checksum */
   uint16_t grpaddr[2];       /* 32-bit Group address */
 };
-#endif
-
-#ifdef CONFIG_NET_IPv6
-struct igmp_ipv6hdr_s
-{
-  /* IPv6 Ip header */
-
-  uint8_t  vtc;              /* Bits 0-3: version, bits 4-7: traffic class (MS) */
-  uint8_t  tcf;              /* Bits 0-3: traffic class (LS), bits 4-7: flow label (MS) */
-  uint16_t flow;             /* 16-bit flow label (LS) */
-  uint8_t  len[2];           /* 16-bit Payload length */
-  uint8_t  proto;            /*  8-bit Next header (same as IPv4 protocol field) */
-  uint8_t  ttl;              /*  8-bit Hop limit (like IPv4 TTL field) */
-  net_ipv6addr_t srcipaddr;  /* 128-bit Source address */
-  net_ipv6addr_t destipaddr; /* 128-bit Destination address */
-
-  /* Router Alert IP header option */
-
-  uint16_t ra[2];
-
-  /* IGMPv2 header:
-   *
-   *  0                   1                   2                   3
-   *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-   * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   * |      Type     | Max Resp Time |           Checksum            |
-   * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   * |                         Group Address                         |
-   * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   */
-
-  uint8_t  type;             /* 8-bit IGMP packet type */
-  uint8_t  maxresp;          /* 8-bit Max response time */
-  uint16_t chksum;           /* 16-bit Checksum */
-  uint16_t grpaddr[2];       /* 32-bit Group address */
-};
-#endif
 
 #ifdef CONFIG_NET_STATISTICS
 struct igmp_stats_s

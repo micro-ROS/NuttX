@@ -47,6 +47,18 @@ config NET_MAX_LISTENPORTS
 	---help---
 		Maximum number of listening TCP/IP ports (all tasks).  Default: 20
 
+config TCP_NOTIFIER
+	bool "Support TCP notifications"
+	default n
+	depends on SCHED_WORKQUEUE
+	select WQUEUE_NOTIFIER
+	---help---
+		Enable building of TCP notifier logic that will execute a worker
+		function on the low priority work queue when read-ahead data
+		is available or when a TCP connection is lost.  This is is a general
+		purpose notifier, but was developed specifically to support poll()
+		logic where the poll must wait for these events.
+
 config NET_TCP_READAHEAD
 	bool "Enable TCP/IP read-ahead buffering"
 	default y
@@ -65,9 +77,6 @@ config NET_TCP_READAHEAD
 		Make sure that you check the setting in the I/O Buffering menu.
 		These settings are critical to the reasonable operation of read-
 		ahead buffering.
-
-if NET_TCP_READAHEAD
-endif # NET_TCP_READAHEAD
 
 config NET_TCP_WRITE_BUFFERS
 	bool "Enable TCP/IP write buffering"
@@ -137,6 +146,16 @@ config NET_TCPBACKLOG
 	---help---
 		Incoming connections pend in a backlog until accept() is called.
 		The size of the backlog is selected when listen() is called.
+
+if NET_TCPBACKLOG
+
+config NET_TCPBACKLOG_CONNS
+	int "TCP backlog conns threshold"
+	default 8
+	---help---
+		Maximum number of TCP backlog connections (all tasks).
+
+endif # NET_TCPBACKLOG
 
 config NET_TCP_SPLIT
 	bool "Enable packet splitting"

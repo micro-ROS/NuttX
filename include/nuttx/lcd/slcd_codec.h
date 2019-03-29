@@ -1,5 +1,5 @@
 /************************************************************************************
- * include/nuttx/input/slcd_codec.h
+ * include/nuttx/lcd/slcd_codec.h
  * Serialize and marshaling data and events for character-based, segment LCDs
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
@@ -34,8 +34,8 @@
  *
  ************************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_INPUT_SLCD_CODEC_H
-#define __INCLUDE_NUTTX_INPUT_SLCD_CODEC_H
+#ifndef __INCLUDE_NUTTX_LCD_SLCD_CODEC_H
+#define __INCLUDE_NUTTX_LCD_SLCD_CODEC_H
 
 /****************************************************************************
  * Included Files
@@ -204,5 +204,5 @@ enum slcdret_e slcd_decode(FAR struct lib_instream_s *stream,
 #endif
 
 #endif /* CONFIG_LIB_SLCDCODEC */
-#endif /* __INCLUDE_NUTTX_INPUT_SLCD_CODEC_H */
+#endif /* __INCLUDE_NUTTX_LCD_SLCD_CODEC_H */
 

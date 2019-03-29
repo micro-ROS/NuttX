@@ -105,6 +105,7 @@ struct djoy_open_s
 
   pid_t do_pid;
   struct djoy_notify_s do_notify;
+  struct sigwork_s do_work;
 #endif
 
 #ifndef CONFIG_DISABLE_POLL
@@ -374,15 +375,9 @@ static void djoy_sample(FAR struct djoy_upperhalf_s *priv)
         {
           /* Yes.. Signal the waiter */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-          union sigval value;
-          value.sival_int = (int)sample;
-          (void)nxsig_queue(opriv->do_pid, opriv->do_notify.dn_signo,
-                            value);
-#else
-          (void)nxsig_queue(opriv->do_pid, opriv->do_notify.dn.signo,
-                            (FAR void *)sample);
-#endif
+          opriv->do_notify.dn_event.sigev_value.sival_int = sample;
+          nxsig_notification(opriv->do_pid, &opriv->do_notify.dn_event,
+                             SI_QUEUE, &opriv->do_work);
         }
 #endif
     }
@@ -538,6 +533,10 @@ static int djoy_close(FAR struct file *filep)
       priv->du_open = opriv->do_flink;
     }
 
+  /* Cancel any pending notification */
+
+  nxsig_cancel_notification(&opriv->do_work);
+
   /* And free the open structure */
 
   kmm_free(opriv);
@@ -634,10 +633,10 @@ static int djoy_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     {
     /* Command:     DJOYIOC_SUPPORTED
      * Description: Report the set of button events supported by the hardware;
-     * Argument:    A pointer to writeable integer value in which to return the
-     *              set of supported buttons.
-     * Return:      Zero (OK) on success.  Minus one will be returned on failure
-     *              with the errno value set appropriately.
+     * Argument:    A pointer to writeable integer value in which to return
+     *              the set of supported buttons.
+     * Return:      Zero (OK) on success.  Minus one will be returned on
+     *              failure with the errno value set appropriately.
      */
 
     case DJOYIOC_SUPPORTED:
@@ -710,7 +709,7 @@ static int djoy_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
             opriv->do_notify.dn_press   = notify->dn_press;
             opriv->do_notify.dn_release = notify->dn_release;
-            opriv->do_notify.dn_signo  = notify->dn_signo;
+            opriv->do_notify.dn_event   = notify->dn_event;
             opriv->do_pid               = getpid();
 
             /* Enable/disable interrupt handling */

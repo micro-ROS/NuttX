@@ -79,18 +79,15 @@
 #ifdef CONFIG_DUMP_ON_EXIT
 static void _up_dumponexit(FAR struct tcb_s *tcb, FAR void *arg)
 {
-#if CONFIG_NFILE_DESCRIPTORS > 0
   FAR struct filelist *filelist;
 #if CONFIG_NFILE_STREAMS > 0
   FAR struct streamlist *streamlist;
 #endif
   int i;
-#endif
 
   sinfo("  TCB=%p name=%s pid=%d\n", tcb, tcb->argv[0], tcb->pid);
   sinfo("    priority=%d state=%d\n", tcb->sched_priority, tcb->task_state);
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
   filelist = tcb->group->tg_filelist;
   for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
     {
@@ -101,7 +98,6 @@ static void _up_dumponexit(FAR struct tcb_s *tcb, FAR void *arg)
                 i, inode->i_crefssinfo);
         }
     }
-#endif
 
 #if CONFIG_NFILE_STREAMS > 0
   streamlist = tcb->group->tg_streamlist;
@@ -145,7 +141,7 @@ static void _up_dumponexit(FAR struct tcb_s *tcb, FAR void *arg)
 
 void _exit(int status)
 {
-  struct tcb_s *tcb;
+  struct tcb_s *tcb = this_task();
 
   /* Make sure that we are in a critical section with local interrupts.
    * The IRQ state will be restored when the next task is started.
@@ -153,16 +149,20 @@ void _exit(int status)
 
   (void)enter_critical_section();
 
-  sinfo("TCB=%p exiting\n", this_task());
+  sinfo("TCB=%p exiting\n", tcb);
 
 #ifdef CONFIG_DUMP_ON_EXIT
   sinfo("Other tasks:\n");
   sched_foreach(_up_dumponexit, NULL);
 #endif
 
+  /* Update scheduler parameters */
+
+  sched_suspend_scheduler(tcb);
+
   /* Destroy the task at the head of the ready to run list. */
 
-  (void)task_exit();
+  (void)nxtask_exit();
 
   /* Now, perform the context switch to the new ready-to-run task at the
    * head of the list.
@@ -179,6 +179,10 @@ void _exit(int status)
 
   (void)group_addrenv(tcb);
 #endif
+
+  /* Reset scheduler parameters */
+
+  sched_resume_scheduler(tcb);
 
   /* Then switch contexts */
 

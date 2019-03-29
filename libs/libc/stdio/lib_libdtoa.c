@@ -46,6 +46,7 @@
 
 #include <nuttx/config.h>
 
+#include <stdbool.h>
 #include <math.h>
 #include <assert.h>
 
@@ -57,15 +58,26 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define MAX_PREC 16
-
 #ifndef MIN
-#  define MIN(a,b) (a < b ? a : b)
+#  define MIN(a,b)          (a < b ? a : b)
 #endif
 
 #ifndef MAX
-#  define MAX(a,b) (a > b ? a : b)
+#  define MAX(a,b)          (a > b ? a : b)
 #endif
+
+/* Use the maximim precision with %g format if no precision is specified.
+ * NOTE:  This may result in numbers with precision that exceeds the
+ * precision of type double.
+ */
+
+#define DOUBLE_PRECISON_MAX 15
+
+/* Use a default precision of 6 for the %f format if no precision is
+ * specified.
+ */
+
+#define DEFAULT_PRECISON    6
 
 /****************************************************************************
  * Private Functions
@@ -87,6 +99,24 @@ static void zeroes(FAR struct lib_outstream_s *obj, int nzeroes)
     {
       obj->put(obj, '0');
     }
+}
+
+/****************************************************************************
+ * Name: truncate_zeroes
+ *
+ * Description:
+ *   Adjust the string length to eliminate zeros in the fractional part of
+ *   the string.
+ *
+ ****************************************************************************/
+
+static inline int truncate_zeroes(FAR char *digits, int expt, int numlen)
+{
+  for (; numlen > expt && digits[numlen - 1] == '0'; numlen--)
+    {
+    }
+
+  return numlen;
 }
 
 /****************************************************************************
@@ -128,10 +158,11 @@ static void lib_dtoa_string(FAR struct lib_outstream_s *obj, const char *str)
  ****************************************************************************/
 
 static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
-                     uint8_t flags, double value)
+                     uint16_t flags, double value)
 {
   FAR char *digits;     /* String returned by __dtoa */
   FAR char *rve;        /* Points to the end of the return value */
+  bool notrailing;      /* True:  No trailing zeros */
   int  expt;            /* Integer value of exponent */
   int  numlen;          /* Actual number of digits returned by cvt */
   int  nchars;          /* Number of characters to print */
@@ -148,6 +179,22 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
 
   DEBUGASSERT(up_interrupt_context() == false);
 #endif
+
+  /* Set to default precision if none specified */
+
+  notrailing = false;
+  if (!IS_HASDOT(flags) && prec == 0)
+    {
+      if (IS_NOTRAILINGZERO(flags))
+        {
+          prec       = DOUBLE_PRECISON_MAX;
+          notrailing = true;
+        }
+      else
+        {
+          prec       = DEFAULT_PRECISON;
+        }
+    }
 
   /* Special handling for NaN and Infinity */
 
@@ -178,8 +225,30 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
 
   /* Perform the conversion */
 
-  digits   = __dtoa(value, 3, prec, &expt, &dsgn, &rve);
-  numlen   = rve - digits;
+  digits = __dtoa(value, 3, prec, &expt, &dsgn, &rve);
+  numlen = rve - digits;
+
+  /* If we are going to truncate trailing zeros, then make sure we have not
+   * exceeded the precision of type double.
+   */
+
+  if (notrailing && numlen > DOUBLE_PRECISON_MAX)
+    {
+      /* Make sure there are fractional digits to truncate */
+
+      if (expt <= DOUBLE_PRECISON_MAX)
+        {
+          numlen = DOUBLE_PRECISON_MAX;
+        }
+      else
+        {
+          numlen = expt;
+        }
+
+      /* Shortening the string probably now exposes some trailing zeroes */
+
+      numlen =  truncate_zeroes(digits, expt, numlen);
+    }
 
   /* Avoid precision error from missing trailing zeroes */
 
@@ -198,7 +267,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
    * the print precision.
    */
 
-  if (value == 0 || expt < -prec)
+  if (value == 0.0 || (expt < (notrailing ? 0 : -prec)))
     {
       /* kludge for __dtoa irregularity */
 
@@ -208,13 +277,20 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
        * particular precision is requested.
        */
 
-      if (prec > 0 || IS_ALTFORM(flags))
+      if ((prec > 0 && !notrailing) || IS_ALTFORM(flags))
         {
           obj->put(obj, '.');
 
           /* Always print at least one digit to the right of the decimal point. */
 
-          prec = MAX(1, prec);
+          if (notrailing)
+            {
+              prec = MAX(1, numlen);
+            }
+          else
+            {
+              prec = MAX(1, prec);
+            }
         }
     }
 
@@ -222,7 +298,6 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
 
   else
     {
-
       /* Handle the case where the value is less than 1.0 (in magnitude) and
        * will need a leading zero.
        */
@@ -239,7 +314,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
 
           /* Print any leading zeros to the right of the decimal point */
 
-          if (expt < 0)
+          if (expt < 0 || !notrailing)
             {
               nchars = MIN(-expt, prec);
               zeroes(obj, nchars);
@@ -277,7 +352,8 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
            * requested.
            */
 
-          if (numlen > 0 || prec > 0 || IS_ALTFORM(flags))
+          if (numlen > 0 || (prec > 0 && !notrailing) ||
+              IS_ALTFORM(flags))
             {
               /* Print the decimal point */
 
@@ -287,7 +363,14 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
                * point.
                */
 
-              prec = MAX(1, prec);
+              if (notrailing)
+                {
+                  prec = MAX(1, numlen);
+                }
+              else
+                {
+                  prec = MAX(1, prec);
+                }
             }
         }
 
@@ -319,7 +402,10 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
 
   /* Finally, print any trailing zeroes */
 
-  zeroes(obj, prec);
+  if (!notrailing)
+    {
+      zeroes(obj, prec);
+    }
 }
 
 /****************************************************************************

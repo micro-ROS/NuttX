@@ -160,7 +160,7 @@ static inline void up_registerdump(void)
 
 void up_dumpstate(void)
 {
-  struct tcb_s *rtcb = this_task();
+  struct tcb_s *rtcb = running_task();
   uint16_t sp = up_getsp();
   uint16_t ustackbase;
   uint16_t ustacksize;
@@ -169,9 +169,13 @@ void up_dumpstate(void)
   uint16_t istacksize;
 #endif
 
+  /* Dump the registers (if available) */
+
+  up_registerdump();
+
   /* Get the limits on the user stack memory */
 
-  if (rtcb->pid == 0)
+  if (rtcb->pid == 0) /* Check for CPU0 IDLE thread */
     {
       ustackbase = g_idle_topstack - 1;
       ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
@@ -208,6 +212,11 @@ void up_dumpstate(void)
 
       up_stackdump(sp, istackbase);
     }
+  else if (g_current_regs)
+    {
+      _alert("ERROR: Stack pointer is not within the interrupt stack\n");
+      up_stackdump(istackbase - istacksize, istackbase);
+    }
 
   /* Extract the user stack pointer if we are in an interrupt handler.
    * If we are not in an interrupt handler.  Then sp is the user stack
@@ -235,6 +244,11 @@ void up_dumpstate(void)
     {
       up_stackdump(sp, ustackbase);
     }
+  else
+    {
+      _alert("ERROR: Stack pointer is not within allocated stack\n");
+      up_stackdump(ustackbase - ustacksize, ustackbase);
+    }
 #else
   _alert("sp:         %04x\n", sp);
   _alert("stack base: %04x\n", ustackbase);
@@ -250,16 +264,13 @@ void up_dumpstate(void)
   if (sp > ustackbase || sp <= ustackbase - ustacksize)
     {
       _alert("ERROR: Stack pointer is not within allocated stack\n");
+      up_stackdump(ustackbase - ustacksize, ustackbase);
     }
   else
     {
       up_stackdump(sp, ustackbase);
     }
 #endif
-
-  /* Then dump the registers (if available) */
-
-  up_registerdump();
 }
 
 #endif /* CONFIG_ARCH_STACKDUMP */

@@ -1,7 +1,7 @@
 /****************************************************************************
  * libs/libc/modlib/modlib_init.c
  *
- *   Copyright (C) 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,11 +44,10 @@
 #include <stdint.h>
 #include <string.h>
 #include <fcntl.h>
-#include <elf32.h>
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/module.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/lib/modlib.h>
 
 #include "modlib/modlib.h"
@@ -160,10 +159,10 @@ int modlib_initialize(FAR const char *filename,
 
   /* Open the binary file for reading (only) */
 
-  loadinfo->filfd = open(filename, O_RDONLY);
+  loadinfo->filfd = _NX_OPEN(filename, O_RDONLY);
   if (loadinfo->filfd < 0)
     {
-      int errval = get_errno();
+      int errval = _NX_GETERRNO(loadinfo->filfd);
       berr("ERROR: Failed to open ELF binary %s: %d\n", filename, errval);
       return -errval;
     }

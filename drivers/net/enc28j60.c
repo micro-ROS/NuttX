@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/net/enc28j60.c
  *
- *   Copyright (C) 2010-2012, 2014-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010-2012, 2014-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
@@ -117,15 +117,18 @@
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error "Worker thread support is required (CONFIG_SCHED_WORKQUEUE)"
-#else
-#  if defined(CONFIG_ENC28J60_HPWORK)
-#    define ENCWORK HPWORK
-#  elif defined(CONFIG_ENC28J60_LPWORK)
-#    define ENCWORK LPWORK
-#  else
-#    error "Neither CONFIG_ENC28J60_HPWORK nor CONFIG_ENC28J60_LPWORK defined"
-#  endif
 #endif
+
+/* The low priority work queue is preferred.  If it is not enabled, LPWORK
+ * will be the same as HPWORK.
+ *
+ * NOTE:  However, the network should NEVER run on the high priority work
+ * queue!  That queue is intended only to service short back end interrupt
+ * processing that never suspends.  Suspending the high priority work queue
+ * may bring the system to its knees!
+ */
+
+#define ENCWORK LPWORK
 
 /* CONFIG_ENC28J60_DUMPPACKET will dump the contents of each packet to the console. */
 
@@ -341,7 +344,7 @@ static void enc_polltimer(int argc, uint32_t arg, ...);
 static int  enc_ifup(struct net_driver_s *dev);
 static int  enc_ifdown(struct net_driver_s *dev);
 static int  enc_txavail(struct net_driver_s *dev);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  enc_addmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 static int  enc_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
@@ -570,7 +573,9 @@ static inline void enc_src(FAR struct enc_driver_s *priv)
    */
 
   up_mdelay(2);
-  /* while ((enc_rdgreg(priv, ENC_ESTAT) & ESTAT_CLKRDY) != 0); */
+#if 0
+  while ((enc_rdgreg(priv, ENC_ESTAT) & ESTAT_CLKRDY) != 0);
+#endif
 
   /* De-select ENC28J60 chip. */
 
@@ -1162,11 +1167,13 @@ static int enc_transmit(FAR struct enc_driver_s *priv)
  * Name: enc_txpoll
  *
  * Description:
- *   The transmitter is available, check if the network has any outgoing packets ready
- *   to send.  This is a callback from devif_poll().  devif_poll() may be called:
+ *   The transmitter is available, check if the network has any outgoing
+ *   packets ready to send.  This is a callback from devif_poll().
+ *   devif_poll() may be called:
  *
  *   1. When the preceding TX packet send is complete,
- *   2. When the preceding TX packet send timesout and the interface is reset
+ *   2. When the preceding TX packet send timesout and the interface is
+ *      reset
  *   3. During normal TX polling
  *
  * Input Parameters:
@@ -1486,7 +1493,8 @@ static void enc_rxdispatch(FAR struct enc_driver_s *priv)
   else
 #endif
     {
-      nerr("ERROR: Unsupported packet type dropped (%02x)\n", htons(BUF->type));
+      nwarn("WARNING: Unsupported packet type dropped (%02x)\n",
+            htons(BUF->type));
       NETDEV_RXDROPPED(&priv->dev);
     }
 }
@@ -1558,7 +1566,8 @@ static void enc_pktif(FAR struct enc_driver_s *priv)
 
   /* Check for a usable packet length (4 added for the CRC) */
 
-  else if (pktlen > (CONFIG_NET_ETH_PKTSIZE + 4) || pktlen <= (ETH_HDRLEN + 4))
+  else if (pktlen > (CONFIG_NET_ETH_PKTSIZE + 4) ||
+           pktlen <= (ETH_HDRLEN + 4))
     {
       nerr("ERROR: Bad packet size dropped (%d)\n", pktlen);
       NETDEV_RXERRORS(&priv->dev);
@@ -1638,8 +1647,8 @@ static void enc_irqworker(FAR void *arg)
   enc_bfcgreg(priv, ENC_EIE, EIE_INTIE);
 
   /* Loop until all interrupts have been processed (EIR==0).  Note that
-   * there is no infinite loop check... if there are always pending interrupts,
-   * we are just broken.
+   * there is no infinite loop check... if there are always pending
+   * interrupts, we are just broken.
    */
 
   while ((eir = enc_rdgreg(priv, ENC_EIR) & EIR_ALLINTS) != 0)
@@ -1713,9 +1722,9 @@ static void enc_irqworker(FAR void *arg)
        * 3. A collision after transmitting 64 bytes occurred (ESTAT.LATECOL
        *    set).
        * 4. The transmission was unable to gain an opportunity to transmit
-       *    the packet because the medium was constantly occupied for too long.
-       *    The deferral limit (2.4287 ms) was reached and the MACON4.DEFER bit
-       *    was clear.
+       *    the packet because the medium was constantly occupied for too
+       *    long.  The deferral limit (2.4287 ms) was reached and the
+       *    MACON4.DEFER bit was clear.
        * 5. An attempt to transmit a packet larger than the maximum frame
        *    length defined by the MAMXFL registers was made without setting
        *    the MACON3.HFRMEN bit or per packet POVERRIDE and PHUGEEN bits.
@@ -1754,21 +1763,23 @@ static void enc_irqworker(FAR void *arg)
        * EIR.PKTIF will be set. In other words, this interrupt flag will be
        * set anytime the Ethernet Packet Count register (EPKTCNT) is non-zero.
        *
-       * The PKTIF bit can only be cleared by the host controller or by a Reset
-       * condition. In order to clear PKTIF, the EPKTCNT register must be
-       * decremented to 0. If the last data packet in the receive buffer is
-       * processed, EPKTCNT will become zero and the PKTIF bit will automatically
-       * be cleared.
+       * The PKTIF bit can only be cleared by the host controller or by a
+       * Reset condition. In order to clear PKTIF, the EPKTCNT register must
+       * be decremented to 0. If the last data packet in the receive buffer is
+       * processed, EPKTCNT will become zero and the PKTIF bit will
+       * automatically be cleared.
        */
 
+#if 0
       /* Ignore PKTIF because is unreliable. Use EPKTCNT instead */
-      /* if ((eir & EIR_PKTIF) != 0) */
 
+      if ((eir & EIR_PKTIF) != 0)
+#endif
         {
           uint8_t pktcnt = enc_rdbreg(priv, ENC_EPKTCNT);
           if (pktcnt > 0)
             {
-              nerr("EPKTCNT: %02x\n", pktcnt);
+              ninfo("EPKTCNT: %02x\n", pktcnt);
 
               /* Handle packet receipt */
 
@@ -1796,7 +1807,7 @@ static void enc_irqworker(FAR void *arg)
        * clear the EIR.RXERIF bit.
        */
 
-      if ((eir & EIR_RXERIF) != 0) /* Receive Errror Interrupts */
+      if ((eir & EIR_RXERIF) != 0) /* Receive Error Interrupts */
         {
           enc_rxerif(priv);                       /* Handle the RX error */
           enc_bfcgreg(priv, ENC_EIR, EIR_RXERIF); /* Clear the RXERIF interrupt */
@@ -1856,7 +1867,8 @@ static int enc_interrupt(int irq, FAR void *context, FAR void *arg)
    */
 
   priv->lower->disable(priv->lower);
-  return work_queue(ENCWORK, &priv->irqwork, enc_irqworker, (FAR void *)priv, 0);
+  return work_queue(ENCWORK, &priv->irqwork, enc_irqworker,
+                    (FAR void *)priv, 0);
 }
 
 /****************************************************************************
@@ -1934,7 +1946,7 @@ static void enc_txtimeout(int argc, uint32_t arg, ...)
   FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)arg;
   int ret;
 
-  /* In complex environments, we cannot do SPI transfers from the timout
+  /* In complex environments, we cannot do SPI transfers from the timeout
    * handler because semaphores are probably used to lock the SPI bus.  In
    * this case, we will defer processing to the worker thread.  This is also
    * much kinder in the use of system resources and is, therefore, probably
@@ -1988,9 +2000,9 @@ static void enc_pollworker(FAR void *arg)
 
   if ((enc_rdgreg(priv, ENC_ECON1) & ECON1_TXRTS) == 0)
     {
-      /* Yes.. update TCP timing states and poll the network for new XMIT data. Hmmm..
-       * looks like a bug here to me.  Does this mean if there is a transmit
-       * in progress, we will missing TCP time state updates?
+      /* Yes.. update TCP timing states and poll the network for new XMIT
+       * data.  Hmmm.. looks like a bug here to me.  Does this mean if there
+       * is a transmit in progress, we will missing TCP time state updates?
        */
 
       (void)devif_timer(&priv->dev, enc_txpoll);
@@ -2029,7 +2041,7 @@ static void enc_polltimer(int argc, uint32_t arg, ...)
   FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)arg;
   int ret;
 
-  /* In complex environments, we cannot do SPI transfers from the timout
+  /* In complex environments, we cannot do SPI transfers from the timeout
    * handler because semaphores are probably used to lock the SPI bus.  In
    * this case, we will defer processing to the worker thread.  This is also
    * much kinder in the use of system resources and is, therefore, probably
@@ -2042,7 +2054,8 @@ static void enc_polltimer(int argc, uint32_t arg, ...)
    * occur until we restart the poll timeout watchdog.
    */
 
-  ret = work_queue(ENCWORK, &priv->pollwork, enc_pollworker, (FAR void *)priv, 0);
+  ret = work_queue(ENCWORK, &priv->pollwork, enc_pollworker,
+                   (FAR void *)priv, 0);
   DEBUGASSERT(ret == OK);
   UNUSED(ret);
 }
@@ -2207,9 +2220,9 @@ static int enc_txavail(struct net_driver_s *dev)
   if (priv->ifstate == ENCSTATE_UP)
     {
       /* Check if the hardware is ready to send another packet.  The driver
-       * starts a transmission process by setting ECON1.TXRTS. When the packet is
-       * finished transmitting or is aborted due to an error/cancellation, the
-       * ECON1.TXRTS bit will be cleared.
+       * starts a transmission process by setting ECON1.TXRTS. When the packet
+       * is finished transmitting or is aborted due to an error/cancellation,
+       * the ECON1.TXRTS bit will be cleared.
        */
 
       if ((enc_rdgreg(priv, ENC_ECON1) & ECON1_TXRTS) == 0)
@@ -2245,7 +2258,7 @@ static int enc_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int enc_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)dev->d_private;
@@ -2269,8 +2282,8 @@ static int enc_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  * Name: enc_rmmac
  *
  * Description:
- *   NuttX Callback: Remove the specified MAC address from the hardware multicast
- *   address filtering
+ *   NuttX Callback: Remove the specified MAC address from the hardware
+ *   multicast address filtering
  *
  * Input Parameters:
  *   dev  - Reference to the NuttX driver state structure
@@ -2283,7 +2296,7 @@ static int enc_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int enc_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)dev->d_private;
@@ -2356,10 +2369,11 @@ static void enc_pwrsave(FAR struct enc_driver_s *priv)
 
       enc_waitbreg(priv, ENC_ECON1, ECON1_TXRTS, 0);
 
-      /* 4. Set ECON2.VRPS (if not already set). */
-      /* enc_bfsgreg(priv, ENC_ECON2, ECON2_VRPS); <-- Set in enc_reset() */
-
-      /* 5. Enter Sleep by setting ECON2.PWRSV. */
+      /* 4. Set ECON2.VRPS (if not already set).
+       *    (Set in enc_reset()
+       *
+       * 5. Enter Sleep by setting ECON2.PWRSV.
+       */
 
       enc_bfsgreg(priv, ENC_ECON2, ECON2_PWRSV);
     }
@@ -2534,16 +2548,19 @@ static int enc_reset(FAR struct enc_driver_s *priv)
 
   /* Set filter mode: unicast OR broadcast AND crc valid */
 
-  enc_wrbreg(priv, ENC_ERXFCON, ERXFCON_UCEN | ERXFCON_CRCEN | ERXFCON_BCEN);
+  enc_wrbreg(priv, ENC_ERXFCON, ERXFCON_UCEN | ERXFCON_CRCEN |
+                                ERXFCON_BCEN);
 
   /* Enable MAC receive */
 
-  enc_wrbreg(priv, ENC_MACON1, MACON1_MARXEN | MACON1_TXPAUS | MACON1_RXPAUS);
+  enc_wrbreg(priv, ENC_MACON1, MACON1_MARXEN | MACON1_TXPAUS |
+                               MACON1_RXPAUS);
 
   /* Enable automatic padding and CRC operations */
 
 #ifdef CONFIG_ENC28J60_HALFDUPLEX
-  enc_wrbreg(priv, ENC_MACON3, MACON3_PADCFG0 | MACON3_TXCRCEN | MACON3_FRMLNEN);
+  enc_wrbreg(priv, ENC_MACON3, MACON3_PADCFG0 | MACON3_TXCRCEN |
+                               MACON3_FRMLNEN);
   enc_wrbreg(priv, ENC_MACON4, MACON4_DEFER);        /* Defer transmission enable */
 
   /* Set Non-Back-to-Back Inter-Packet Gap */
@@ -2558,7 +2575,8 @@ static int enc_reset(FAR struct enc_driver_s *priv)
   /* Set filter mode: unicast OR broadcast AND crc valid AND Full Duplex */
 
   enc_wrbreg(priv, ENC_MACON3,
-             MACON3_PADCFG0 | MACON3_TXCRCEN | MACON3_FRMLNEN | MACON3_FULDPX);
+             MACON3_PADCFG0 | MACON3_TXCRCEN | MACON3_FRMLNEN |
+             MACON3_FULDPX);
 
   /* Set Non-Back-to-Back Inter-Packet Gap */
 
@@ -2575,7 +2593,6 @@ static int enc_reset(FAR struct enc_driver_s *priv)
   enc_wrbreg(priv, ENC_MAMXFLH, CONFIG_NET_ETH_PKTSIZE >> 8);
 
   /* Configure LEDs (No, just use the defaults for now) */
-  /* enc_wrphy(priv, ENC_PHLCON, ??); */
 
   /* Setup up PHCON1 & 2 */
 
@@ -2624,12 +2641,14 @@ int enc_initialize(FAR struct spi_dev_s *spi,
 
   /* Initialize the driver structure */
 
-  memset(g_enc28j60, 0, CONFIG_ENC28J60_NINTERFACES*sizeof(struct enc_driver_s));
+  memset(g_enc28j60, 0,
+         CONFIG_ENC28J60_NINTERFACES * sizeof(struct enc_driver_s));
+
   priv->dev.d_buf     = g_pktbuf;     /* Single packet buffer */
   priv->dev.d_ifup    = enc_ifup;     /* I/F down callback */
   priv->dev.d_ifdown  = enc_ifdown;   /* I/F up (new IP address) callback */
   priv->dev.d_txavail = enc_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = enc_addmac;   /* Add multicast MAC address */
   priv->dev.d_rmmac   = enc_rmmac;    /* Remove multicast MAC address */
 #endif
@@ -2642,12 +2661,12 @@ int enc_initialize(FAR struct spi_dev_s *spi,
   priv->spi          = spi;           /* Save the SPI instance */
   priv->lower        = lower;         /* Save the low-level MCU interface */
 
-  /* The interface should be in the down state.  However, this function is called
-   * too early in initalization to perform the ENC28J60 reset in enc_ifdown.  We
-   * are depending upon the fact that the application level logic will call enc_ifdown
-   * later to reset the ENC28J60.  NOTE:  The MAC address will not be set up until
-   * enc_ifup() is called. That gives the app time to set the MAC address before
-   * bringing the interface up.
+  /* The interface should be in the down state.  However, this function is
+   * called too early in initialization to perform the ENC28J60 reset in
+   * enc_ifdown.  We are depending upon the fact that the application level
+   * logic will call enc_ifdown later to reset the ENC28J60.  NOTE:  The MAC
+   * address will not be set up until enc_ifup() is called. That gives the
+   * app time to set the MAC address before bringing the interface up.
    */
 
   priv->ifstate = ENCSTATE_UNINIT;

@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs/boardctl.c
  *
- *   Copyright (C) 2015-2017, 2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015-2017, 2018-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,13 +48,20 @@
 #include <nuttx/board.h>
 #include <nuttx/lib/modlib.h>
 #include <nuttx/binfmt/symtab.h>
-#include <nuttx/nx/nx.h>
+
+#ifdef CONFIG_NX
+#  include <nuttx/nx/nxmu.h>
+#endif
 
 #ifdef CONFIG_BOARDCTL_USBDEVCTRL
 #  include <nuttx/usb/cdcacm.h>
 #  include <nuttx/usb/pl2303.h>
 #  include <nuttx/usb/usbmsc.h>
 #  include <nuttx/usb/composite.h>
+#endif
+
+#ifdef CONFIG_BOARDCTL_TESTSET
+#  include <nuttx/spinlock.h>
 #endif
 
 #ifdef CONFIG_LIB_BOARDCTL
@@ -405,14 +412,139 @@ int boardctl(unsigned int cmd, uintptr_t arg)
 #ifdef CONFIG_NX
       /* CMD:           BOARDIOC_NX_START
        * DESCRIPTION:   Start the NX servier
-       * ARG:           None
+       * ARG:           Integer display number to be served by this NXMU
+       (                instance.
        * CONFIGURATION: CONFIG_NX
-       * DEPENDENCIES:  Base graphics logic provides nx_start()
+       * DEPENDENCIES:  Base graphics logic provides nxmu_start()
        */
 
       case BOARDIOC_NX_START:
         {
-          ret = nx_start();
+          /* REVISIT:  Plane number is forced to zero.  On multiplanar
+           * displays there may be multiple planes.  Only one is supported
+           * here.
+           */
+
+          ret = nxmu_start((int)arg, 0);
+        }
+        break;
+#endif
+
+#ifdef CONFIG_NXTERM
+      /* CMD:           BOARDIOC_NXTERM
+       * DESCRIPTION:   Create an NX terminal device
+       * ARG:           A reference readable/writable instance of struct
+       *                boardioc_nxterm_create_s
+       * CONFIGURATION: CONFIG_NXTERM
+       * DEPENDENCIES:  Base NX terminal logic provides nx_register() and
+       *                nxtk_register()
+       */
+
+      case BOARDIOC_NXTERM:
+        {
+          FAR struct boardioc_nxterm_create_s *nxterm =
+            (FAR struct boardioc_nxterm_create_s *)arg;
+
+          if (nxterm == NULL)
+            {
+              ret = -EINVAL;
+            }
+          else if (nxterm->type == BOARDIOC_XTERM_RAW)
+            {
+              nxterm->nxterm = nx_register((NXWINDOW)nxterm->hwnd,
+                                           &nxterm->wndo,
+                                           (int)nxterm->minor);
+
+              ret = nxterm->nxterm == NULL ? -ENODEV : OK;
+            }
+          else if (nxterm->type == BOARDIOC_XTERM_FRAMED)
+            {
+              nxterm->nxterm = nxtk_register((NXTKWINDOW)nxterm->hwnd,
+                                             &nxterm->wndo,
+                                             (int)nxterm->minor);
+
+              ret = nxterm->nxterm == NULL ? -ENODEV : OK;
+            }
+          else if (nxterm->type == BOARDIOC_XTERM_TOOLBAR)
+            {
+              nxterm->nxterm = nxtool_register((NXTKWINDOW)nxterm->hwnd,
+                                               &nxterm->wndo,
+                                               (int)nxterm->minor);
+
+              ret = nxterm->nxterm == NULL ? -ENODEV : OK;
+            }
+          else
+            {
+              ret = -EINVAL;
+            }
+        }
+        break;
+
+      /* CMD:           BOARDIOC_NXTERM_REDRAW
+       * DESCRIPTION:   Re-draw a portion of the NX console.  This function
+       *                should be called from the appropriate window callback
+       *                logic.
+       * ARG:           A reference readable instance of struct
+       *                boardioc_nxterm_redraw_s
+       * CONFIGURATION: CONFIG_NXTERM
+       * DEPENDENCIES:  Base NX terminal logic provides nxterm_redraw()
+       */
+
+       case BOARDIOC_NXTERM_REDRAW:
+         {
+           FAR struct boardioc_nxterm_redraw_s *redraw =
+             (FAR struct boardioc_nxterm_redraw_s *)((uintptr_t)arg);
+
+           nxterm_redraw(redraw->handle, &redraw->rect, redraw->more);
+           ret = OK;
+         }
+         break;
+
+      /* CMD:           BOARDIOC_NXTERM_KBDIN
+       * DESCRIPTION:   Provide NxTerm keyboard input to NX.
+       * ARG:           A reference readable instance of struct
+       *                boardioc_nxterm_kbdin_s
+       * CONFIGURATION: CONFIG_NXTERM_NXKBDIN
+       * DEPENDENCIES:  Base NX terminal logic provides nxterm_kbdin()
+       */
+
+       case BOARDIOC_NXTERM_KBDIN:
+         {
+#ifdef CONFIG_NXTERM_NXKBDIN
+           FAR struct boardioc_nxterm_kbdin_s *kbdin =
+             (FAR struct boardioc_nxterm_kbdin_s *)((uintptr_t)arg);
+
+           nxterm_kbdin(kbdin->handle, kbdin->buffer, kbdin->buflen);
+           ret = OK;
+#else
+           ret = -ENOSYS;
+#endif
+         }
+         break;
+#endif /* CONFIG_NXTERM */
+
+#ifdef CONFIG_BOARDCTL_TESTSET
+      /* CMD:           BOARDIOC_TESTSET
+       * DESCRIPTION:   Access architecture-specific up_testset() operation
+       * ARG:           A pointer to a write-able spinlock object.  On success
+       *                the  preceding spinlock state is returned:  0=unlocked,
+       *                1=locked.
+       * CONFIGURATION: CONFIG_BOARDCTL_TESTSET
+       * DEPENDENCIES:  Architecture-specific logic provides up_testset()
+       */
+
+      case BOARDIOC_TESTSET:
+        {
+          volatile FAR spinlock_t *lock = (volatile FAR spinlock_t *)arg;
+
+          if (lock == NULL)
+            {
+              ret = -EINVAL;
+            }
+          else
+            {
+              ret = up_testset(lock) == SP_LOCKED ? 1 : 0;
+            }
         }
         break;
 #endif

@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/sam34/sam_emac.c
  *
- *   Copyright (C) 2014-2015, 2017-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014-2015, 2017-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * This logic derives from the SAM34D3 Ethernet driver.
@@ -99,18 +99,18 @@
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error Work queue support is required
-#else
-
-  /* Select work queue */
-
-#  if defined(CONFIG_SAM34_EMAC_HPWORK)
-#    define ETHWORK HPWORK
-#  elif defined(CONFIG_SAM34_EMAC_LPWORK)
-#    define ETHWORK LPWORK
-#  else
-#    error Neither CONFIG_SAM34_EMAC_HPWORK nor CONFIG_SAM34_EMAC_LPWORK defined
-#  endif
 #endif
+
+/* The low priority work queue is preferred.  If it is not enabled, LPWORK
+ * will be the same as HPWORK.
+ *
+ * NOTE:  However, the network should NEVER run on the high priority work
+ * queue!  That queue is intended only to service short back end interrupt
+ * processing that never suspends.  Suspending the high priority work queue
+ * may bring the system to its knees!
+ */
+
+#define ETHWORK LPWORK
 
 /* Number of buffer for RX */
 
@@ -292,10 +292,10 @@ struct sam_emac_s
   /* Debug stuff */
 
 #ifdef CONFIG_SAM34_EMAC_REGDEBUG
-   bool               wrlast;     /* Last was a write */
-   uintptr_t          addrlast;   /* Last address */
-   uint32_t           vallast;    /* Last value */
-   int                ntimes;     /* Number of times */
+  bool                  wrlast;     /* Last was a write */
+  uintptr_t             addrlast;   /* Last address */
+  uint32_t              vallast;    /* Last value */
+  int                   ntimes;     /* Number of times */
 #endif
 };
 
@@ -400,11 +400,11 @@ static int  sam_ifdown(struct net_driver_s *dev);
 static void sam_txavail_work(FAR void *arg);
 static int  sam_txavail(struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static unsigned int sam_hashindx(const uint8_t *mac);
 static int  sam_addmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  sam_rmmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
 
@@ -1163,9 +1163,23 @@ static int sam_recvframe(struct sam_emac_s *priv)
                           (uintptr_t)rxdesc + sizeof(struct emac_rxdesc_s));
     }
 
-  /* No packet was found */
+  /* isframe indicates that we have found a SOF. If we've received a SOF,
+   * but not an EOF in the sequential buffers we own, it must mean that we
+   * have a partial packet. This should only happen if there was a Buffer
+   * Not Available (BNA) error.  When bursts of data come in, quickly
+   * filling the available buffers, before our interrupts can even service
+   * them. Eventually, the ring buffer loops back on itself and the
+   * peripheral sees it cannot write the next fragment of the packet.
+   *
+   * In this case, we keep the rxndx at the start of the last frame, since
+   * the peripheral will finish writing the packet there next.
+   */
 
-  priv->rxndx = rxndx;
+  if (!isframe)
+    {
+      priv->rxndx = rxndx;
+    }
+
   ninfo("rxndx: %d\n", priv->rxndx);
   return -EAGAIN;
 }
@@ -2022,7 +2036,7 @@ static int sam_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static unsigned int sam_hashindx(const uint8_t *mac)
 {
   unsigned int ndx;
@@ -2120,7 +2134,7 @@ static unsigned int sam_hashindx(const uint8_t *mac)
 
   return ndx & 0x3f;
 }
-#endif /* CONFIG_NET_IGMP || CONFIG_NET_ICMPv6 */
+#endif /* CONFIG_NET_MCASTGROUP || CONFIG_NET_ICMPv6 */
 
 /****************************************************************************
  * Function: sam_addmac
@@ -2140,7 +2154,7 @@ static unsigned int sam_hashindx(const uint8_t *mac)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int sam_addmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   struct sam_emac_s *priv = (struct sam_emac_s *)dev->d_private;
@@ -2193,7 +2207,7 @@ static int sam_addmac(struct net_driver_s *dev, const uint8_t *mac)
 
   return OK;
 }
-#endif /* CONFIG_NET_IGMP || CONFIG_NET_ICMPv6 */
+#endif /* CONFIG_NET_MCASTGROUP || CONFIG_NET_ICMPv6 */
 
 /****************************************************************************
  * Function: sam_rmmac
@@ -2213,7 +2227,7 @@ static int sam_addmac(struct net_driver_s *dev, const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int sam_rmmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   struct sam_emac_s *priv = (struct sam_emac_s *)dev->d_private;
@@ -2326,9 +2340,9 @@ static int sam_ioctl(struct net_driver_s *dev, int cmd, unsigned long arg)
 #ifdef CONFIG_ARCH_PHY_INTERRUPT
       case SIOCMIINOTIFY: /* Set up for PHY event notifications */
         {
-          struct mii_iotcl_notify_s *req = (struct mii_iotcl_notify_s *)((uintptr_t)arg);
+          struct mii_ioctl_notify_s *req = (struct mii_ioctl_notify_s *)((uintptr_t)arg);
 
-          ret = phy_notify_subscribe(dev->d_ifname, req->pid, req->signo, req->arg);
+          ret = phy_notify_subscribe(dev->d_ifname, req->pid, &req->event);
           if (ret == OK)
             {
               /* Enable PHY link up/down interrupts */
@@ -3633,7 +3647,7 @@ void up_netinitialize(void)
   priv->dev.d_ifup    = sam_ifup;        /* I/F up (new IP address) callback */
   priv->dev.d_ifdown  = sam_ifdown;      /* I/F down callback */
   priv->dev.d_txavail = sam_txavail;     /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = sam_addmac;      /* Add multicast MAC address */
   priv->dev.d_rmmac   = sam_rmmac;       /* Remove multicast MAC address */
 #endif

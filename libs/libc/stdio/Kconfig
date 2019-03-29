@@ -48,21 +48,24 @@ config NUNGET_CHARS
 	int "Number unget() characters"
 	default 2
 	---help---
-		Number of characters that can be buffered by ungetc() (Only if NFILE_STREAMS > 0)
+		Number of characters that can be buffered by ungetc() (Only if
+		NFILE_STREAMS > 0)
 
-config NOPRINTF_FIELDWIDTH
-	bool "Disable sprintf support fieldwidth"
+config LIBC_PRINT_LEGACY
+	bool "Enable legacy printf logic"
 	default n
 	---help---
-		sprintf-related logic is a little smaller if we do not support field
-		widths.
+		By default, printf (and friends) are implemented using a port from
+		newlib-nano.  That port can be signifcantly smaller, especially if
+		floating support is enabled.  This option may is avaiable, however,
+		to revert to the legacy printf version is so desired.
 
 config LIBC_FLOATINGPOINT
 	bool "Enable floating point in printf"
 	default n
 	---help---
-		By default, floating point
-		support in printf, sscanf, etc. is disabled.
+		By default, floating point support in printf, sscanf, etc. is
+		disabled.  This option will enable floating point support.
 
 config LIBC_LONG_LONG
 	bool "Enable long long support in printf"
@@ -76,6 +79,32 @@ config LIBC_LONG_LONG
 		formats, but rather from omitting the large long long arithmetic
 		libraries that will be drawn into the build if long long support
 		is enabled.
+
+config LIBC_NUMBERED_ARGS
+	bool "Enable numbered arguments in printf"
+	default n
+	depends on (LIBC_FLOATINGPOINT || LIBC_LONG_LONG) && !LIBC_PRINT_LEGACY
+	---help---
+		Enables support for numbered arguments in printf.
+
+		  printf("%3$s %3$s %1$s %2$s\n", "1", "2", "3"); --> "3 3 1 2"
+		  printf("%3$*2$.*1$f\n", 4, 8, 1.234567); --> "  1.2346"
+
+		Attention: Mixing of numbered and sequential arguments in one
+		format string is not allowed according to POSIX.
+
+config LIBC_NL_ARGMAX
+	int "Maximum number of numbered arguments for printf"
+	default 16
+	range 9 999999
+	depends on LIBC_NUMBERED_ARGS
+	---help---
+		Applies only if there are numbered arguments in your format string.
+		The number of sequential arguments isn't affected.
+		Will be copied into stdio POSIX macro NL_ARGMAX.
+
+		Attention: Increasing this value will increase stack usage
+		of printf.
 
 config LIBC_SCANSET
 	bool "Scanset support"

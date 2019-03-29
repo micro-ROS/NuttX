@@ -46,8 +46,6 @@
 
 #include "socket/socket.h"
 
-#if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -157,13 +155,11 @@ int listen(int sockfd, int backlog)
        * descriptor used in the wrong context.
        */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
       if ((unsigned int)sockfd < CONFIG_NFILE_DESCRIPTORS)
         {
           errcode = ENOTSOCK;
         }
       else
-#endif
         {
           errcode = EBADF;
         }
@@ -186,4 +182,3 @@ int listen(int sockfd, int backlog)
   return OK;
 }
 
-#endif /* CONFIG_NET && CONFIG_NSOCKET_DESCRIPTORS */

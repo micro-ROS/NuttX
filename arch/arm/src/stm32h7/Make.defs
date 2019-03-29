@@ -64,15 +64,7 @@ CMN_ASRCS += up_exception.S
 endif
 CMN_CSRCS += up_vectors.c
 
-ifeq ($(CONFIG_ARMV7M_DCACHE),y)
-CMN_CSRCS += arch_enable_dcache.c arch_disable_dcache.c
-CMN_CSRCS += arch_invalidate_dcache.c arch_invalidate_dcache_all.c
-ifneq ($(CONFIG_ARMV7M_DCACHE_WRITETHROUGH),y)
-CMN_CSRCS += arch_clean_dcache.c arch_clean_dcache_all.c
-CMN_CSRCS += arch_flush_dcache.c arch_flush_dcache_all.c
-endif
-endif
-
+CMN_CSRCS += up_cache.c
 ifeq ($(CONFIG_ARCH_FPU),y)
 CMN_ASRCS += up_fpu.S
 CMN_CSRCS += up_copyarmstate.c
@@ -94,12 +86,6 @@ CMN_UASRCS += up_signal_handler.S
 endif
 endif
 
-ifeq ($(CONFIG_ELF),y)
-CMN_CSRCS += up_coherent_dcache.c
-else ifeq ($(CONFIG_MODULE),y)
-CMN_CSRCS += up_coherent_dcache.c
-endif
-
 ifeq ($(CONFIG_STACK_COLORATION),y)
 CMN_CSRCS += up_checkstack.c
 endif
@@ -112,4 +98,28 @@ CHIP_CSRCS += stm32_start.c stm32_rcc.c stm32_lowputc.c stm32_serial.c
 
 ifneq ($(CONFIG_SCHED_TICKLESS),y)
 CHIP_CSRCS += stm32_timerisr.c
+endif
+
+ifeq ($(CONFIG_BUILD_PROTECTED),y)
+CHIP_CSRCS += stm32_userspace.c stm32_mpuinit.c
+endif
+
+ifeq ($(CONFIG_STM32H7_DMA),y)
+CHIP_CSRCS += stm32_dma.c
+endif
+
+ifeq ($(CONFIG_STM32H7_I2C),y)
+CHIP_CSRCS += stm32_i2c.c
+endif
+
+ifeq ($(CONFIG_STM32H7_SPI),y)
+CHIP_CSRCS += stm32_spi.c
+endif
+
+ifeq ($(CONFIG_USBDEV),y)
+CHIP_CSRCS += stm32_otgdev.c
+endif
+
+ifeq ($(CONFIG_USBHOST),y)
+CHIP_CSRCS += stm32_otghost.c
 endif

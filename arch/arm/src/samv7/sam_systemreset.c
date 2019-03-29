@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include <assert.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/board.h>
 #include <arch/samv7/chip.h>
 

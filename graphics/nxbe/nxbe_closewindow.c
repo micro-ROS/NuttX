@@ -45,6 +45,10 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/nx/nxglib.h>
 
+#if defined(CONFIG_NX_RAMBACKED) && defined(CONFIG_BUILD_KERNEL)
+#  include "nuttx/pgalloc.h"
+#endif
+
 #include "nxbe.h"
 
 /****************************************************************************
@@ -66,16 +70,11 @@
  *
  ****************************************************************************/
 
-void nxbe_closewindow(struct nxbe_window_s *wnd)
+void nxbe_closewindow(FAR struct nxbe_window_s *wnd)
 {
   FAR struct nxbe_state_s *be;
 
-#ifdef CONFIG_DEBUG_FEATURES
-  if (!wnd)
-    {
-      return;
-    }
-#endif
+  DEBUGASSERT(wnd != NULL);
   be = wnd->be;
 
   /* The background window should never be closed */
@@ -112,6 +111,25 @@ void nxbe_closewindow(struct nxbe_window_s *wnd)
   /* Redraw the windows that were below us (and may now be exposed) */
 
   nxbe_redrawbelow(be, wnd->below, &wnd->bounds);
+
+#ifdef CONFIG_NX_RAMBACKED
+  /* Free any allocated, per-window framebuffer */
+
+  if (wnd->fbmem != NULL)
+    {
+#ifdef CONFIG_BUILD_KERNEL
+      DEBUGASSERT(wnd->npages > 0);
+
+      /* Return the pages to the poll */
+
+      mm_pgfree((uintptr_t)wnd->fbmem, wnd->npages);
+#else
+      /* Return the memory to the user heap */
+
+      kumm_free(wnd->fbmem);
+#endif
+    }
+#endif
 
   /* Then discard the window structure.  Here we assume that the user-space
    * allocator was used.

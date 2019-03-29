@@ -121,7 +121,7 @@ int elf_addrenv_alloc(FAR struct elf_loadinfo_s *loadinfo, size_t textsize,
   ret = up_addrenv_vdata(&loadinfo->addrenv, textsize, &vdata);
   if (ret < 0)
     {
-      berr("ERROR: up_adup_addrenv_vdatadrenv_vtext failed: %d\n", ret);
+      berr("ERROR: up_addrenv_vdata failed: %d\n", ret);
       return ret;
     }
 
@@ -131,7 +131,7 @@ int elf_addrenv_alloc(FAR struct elf_loadinfo_s *loadinfo, size_t textsize,
 #else
   /* Allocate memory to hold the ELF image */
 
-  loadinfo->textalloc = (uintptr_t)kumm_zalloc(textsize + datasize);
+  loadinfo->textalloc = (uintptr_t)kumm_malloc(textsize + datasize);
   if (!loadinfo->textalloc)
     {
       return -ENOMEM;

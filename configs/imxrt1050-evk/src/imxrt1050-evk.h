@@ -59,6 +59,28 @@
 
 /* i.MX RT 1050 GPIO Pin Definitions ****************************************/
 
+/* Test points */
+
+#define BOARD_NGPIOIN   0 /* Amount of GPIO Input pins */
+#define BOARD_NGPIOOUT  4 /* Amount of GPIO Output pins */
+#define BOARD_NGPIOINT  0 /* Amount of GPIO Input w/ Interruption pins */
+
+#define IOMUX_GOUT      (IOMUX_PULL_NONE | IOMUX_CMOS_OUTPUT | \
+                         IOMUX_DRIVE_40OHM | IOMUX_SPEED_MEDIUM | \
+                         IOMUX_SLEW_SLOW)
+
+#define GPIO_GOUT1      (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GPIO_PORT1 | \
+                         GPIO_PIN19 | IOMUX_GOUT)
+
+#define GPIO_GOUT2      (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GPIO_PORT1 | \
+                         GPIO_PIN18 | IOMUX_GOUT)
+
+#define GPIO_GOUT3      (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GPIO_PORT1 | \
+                         GPIO_PIN10 | IOMUX_GOUT)
+
+#define GPIO_GOUT4      (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GPIO_PORT1 | \
+                         GPIO_PIN9 | IOMUX_GOUT)
+
 /* LEDs
  *
  * There are four LED status indicators located on the EVK Board.  The
@@ -83,13 +105,21 @@
 #define GPIO_LED        (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GPIO_PORT1 | \
                          GPIO_PIN9 | IOMUX_LED)
 
+/* Backlight of LCD */
+
+#define IOMUX_LCD_BL    (IOMUX_PULL_NONE | IOMUX_CMOS_OUTPUT | \
+                         IOMUX_DRIVE_40OHM | IOMUX_SPEED_MEDIUM | \
+                         IOMUX_SLEW_SLOW)
+#define GPIO_LCD_BL     (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GPIO_PORT2 | \
+                         GPIO_PIN31 | IOMUX_LCD_BL)
+
 /* Buttons
  *
  * The IMXRT board has one external user button
  *
  * 1. SW8 (IRQ88)   GPIO5-00
- *
  */
+
 #define IOMUX_SW8       (IOMUX_SLEW_FAST | IOMUX_DRIVE_50OHM | \
                          IOMUX_SPEED_MEDIUM | IOMUX_PULL_UP_100K | \
                          _IOMUX_PULL_ENABLE)
@@ -121,6 +151,28 @@
 #define GPIO_ENET_RST   (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | \
                           GPIO_PORT1 | GPIO_PIN9 | IOMUX_ENET_RST)
 
+/* LPSPI1 CS:  GPIO_SD_B0_01 */
+
+#define IOMUX_LPSPI1_CS (IOMUX_SLEW_FAST | IOMUX_DRIVE_50OHM | \
+                         IOMUX_SPEED_MEDIUM | IOMUX_PULL_UP_100K | \
+                         _IOMUX_PULL_ENABLE)
+#define GPIO_LPSPI1_CS  (GPIO_OUTPUT | GPIO_OUTPUT_ONE | \
+                         GPIO_PORT3 | GPIO_PIN13 | IOMUX_LPSPI1_CS)
+
+#define IOMUX_MMCSD_EN  (IOMUX_SLEW_FAST | IOMUX_DRIVE_50OHM | \
+                         IOMUX_SPEED_MEDIUM | IOMUX_PULL_UP_100K | \
+                         _IOMUX_PULL_ENABLE)
+#define GPIO_MMCSD_EN   (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | \
+                         GPIO_PORT3 | GPIO_PIN2 | IOMUX_MMCSD_EN)
+
+/* LPSPI3 CS:  GPIO_AD_B0_03 */
+
+#define IOMUX_LPSPI3_CS (IOMUX_SLEW_FAST | IOMUX_DRIVE_50OHM | \
+                         IOMUX_SPEED_MEDIUM | IOMUX_PULL_UP_100K | \
+                         _IOMUX_PULL_ENABLE)
+#define GPIO_LPSPI3_CS  (GPIO_OUTPUT | GPIO_OUTPUT_ONE | \
+                         GPIO_PORT1 | GPIO_PIN3 | IOMUX_LPSPI3_CS)
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -143,8 +195,30 @@
  *
  ****************************************************************************/
 
-#if defined(CONFIG_LIB_BOARDCTL) || defined(CONFIG_BOARD_INITIALIZE)
+#if defined(CONFIG_LIB_BOARDCTL) || defined(CONFIG_BOARD_LATE_INITIALIZE)
 int imxrt_bringup(void);
+#endif
+
+/****************************************************************************
+ * Name: imxrt_spidev_initialize
+ *
+ * Description:
+ *   Called to configure SPI chip select GPIO pins for the i.MXRT1050 EVK.
+ *
+ ****************************************************************************/
+
+void imxrt_spidev_initialize(void);
+
+/*****************************************************************************
+ * Name: imxrt_mmcsd_spi_initialize
+ *
+ * Description:
+ *   Initialize SPI-based SD card and card detect thread.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_MMCSD_SPI
+int imxrt_mmcsd_spi_initialize(int minor);
 #endif
 
 /****************************************************************************
@@ -165,16 +239,17 @@ int imxrt_bringup(void);
 void imxrt_autoled_initialize(void);
 #endif
 
+#ifdef CONFIG_DEV_GPIO
+
 /****************************************************************************
- * Name: imxrt_spidev_initialize
+ * Name: imxrt_gpio_initialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the i.MXRT1050 EVK.
+ *   Initialize GPIO drivers for use with /apps/examples/gpio
  *
  ****************************************************************************/
 
-#ifdef CONFIG_IMXRT_HAVE_SPI
-void imxrt_spidev_initialize(void);
+int imxrt_gpio_initialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */

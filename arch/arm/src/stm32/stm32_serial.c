@@ -50,6 +50,7 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/serial/serial.h>
 #include <nuttx/power/pm.h>
 
@@ -57,7 +58,6 @@
 #  include <termios.h>
 #endif
 
-#include <arch/serial.h>
 #include <arch/board/board.h>
 
 #include "chip.h"
@@ -1070,12 +1070,12 @@ static inline void up_setusartint(struct up_dev_s *priv, uint16_t ie)
 
   /* And restore the interrupt state (see the interrupt enable/usage table above) */
 
-  cr = up_serialin(priv, STM32_USART_CR1_OFFSET);
+  cr  = up_serialin(priv, STM32_USART_CR1_OFFSET);
   cr &= ~(USART_CR1_USED_INTS);
   cr |= (ie & (USART_CR1_USED_INTS));
   up_serialout(priv, STM32_USART_CR1_OFFSET, cr);
 
-  cr = up_serialin(priv, STM32_USART_CR3_OFFSET);
+  cr  = up_serialin(priv, STM32_USART_CR3_OFFSET);
   cr &= ~USART_CR3_EIE;
   cr |= (ie & USART_CR3_EIE);
   up_serialout(priv, STM32_USART_CR3_OFFSET, cr);

@@ -42,14 +42,13 @@ host=linux
 wenv=cygwin
 sizet=uint
 APPSDIR=../apps
-NXWDIR=../NxWidgets
 MAKE_FLAGS=-i
 MAKE=make
 unset testfile
 
 function showusage {
     echo ""
-    echo "USAGE: $progname [-w|l] [-c|u|n] [-s] [-a <appsdir>] [-n <nxdir>] <testlist-file>"
+    echo "USAGE: $progname [-w|l] [-c|u|n] [-s] [-d] [-x] [-a <apps-dir>] [-t <nuttx-dir><testlist-file>"
     echo "       $progname -h"
     echo ""
     echo "Where:"
@@ -57,11 +56,10 @@ function showusage {
     echo "  -c|u|n selects Windows environment option:  Cygwin (c), Ubuntu under"
     echo "     Windows 10 (u), or Windows native (n).  Default Cygwin"
     echo "  -s Use C++ unsigned long size_t in new operator. Default unsigned int"
-    echo "  -a <appsdir> provides the relative path to the apps/ directory.  Default ../apps"
-    echo "  -t <topdir> provides the absolute path to top nuttx/ directory.  Default $PWD/../nuttx"
-    echo "  -n <nxdir> provides the relative path to the NxWidgets/ directory.  Default ../NxWidgets"
     echo "  -d enables script debug output"
     echo "  -x exit on build failures"
+    echo "  -a <appsdir> provides the relative path to the apps/ directory.  Default ../apps"
+    echo "  -t <topdir> provides the absolute path to top nuttx/ directory.  Default $PWD/../nuttx"
     echo "  -h will show this help test and terminate"
     echo "  <testlist-file> selects the list of configurations to test.  No default"
     echo ""
@@ -111,10 +109,6 @@ while [ ! -z "$1" ]; do
     -t )
     shift
     nuttx="$1"
-    ;;
-    -n )
-    shift
-    NXWDIR="$1"
     ;;
     -h )
     showusage
@@ -240,40 +234,6 @@ function configure {
     ${MAKE} ${MAKE_FLAGS} olddefconfig 1>/dev/null 2>&1
 }
 
-# Build the NxWidgets libraries
-
-function nxbuild {
-    if [ -e $APPSDIR/external ]; then
-        $UNLINK $APPSDIR/external
-    fi
-
-    unset nxconfig
-    if [ -d $NXWDIR ]; then
-        nxconfig=`grep CONFIG_NXWM=y $nuttx/.config` || true
-    fi
-
-    if [ ! -z "$nxconfig" ]; then
-        echo "  Building NxWidgets..."
-        echo "------------------------------------------------------------------------------------"
-
-        cd $nuttx/$NXTOOLS || { echo "Failed to CD to $NXTOOLS"; exit 1; }
-        ./install.sh $nuttx/$APPSDIR nxwm 1>/dev/null
-
-        ${MAKE} ${MAKE_FLAGS} -C $nuttx/$APPSDIR/external TOPDIR=$nuttx APPDIR=$nuttx/$APPSDIR TOPDIR=$nuttx clean 1>/dev/null
-
-        cd $nuttx || { echo "Failed to CD to $nuttx"; exit 1; }
-        ${MAKE} ${MAKE_FLAGS} context 1>/dev/null
-
-        cd $nuttx/$NXWIDGETSDIR || { echo "Failed to CD to $NXWIDGETSDIR"; exit 1; }
-        ${MAKE} ${MAKE_FLAGS} TOPDIR=$nuttx clean 1>/dev/null
-        ${MAKE} ${MAKE_FLAGS} TOPDIR=$nuttx  1>/dev/null
-
-        cd $nuttx/$NXWMDIR || { echo "Failed to CD to $NXWMDIR"; exit 1; }
-        ${MAKE} ${MAKE_FLAGS} TOPDIR=$nuttx clean 1>/dev/null
-        ${MAKE} ${MAKE_FLAGS} TOPDIR=$nuttx  1>/dev/null
-    fi
-}
-
 # Perform the next build
 
 function build {
@@ -289,7 +249,6 @@ function dotest {
     echo "------------------------------------------------------------------------------------"
     distclean
     configure
-    nxbuild
     build
 }
 
@@ -301,12 +260,6 @@ if [ ! -d $APPSDIR ]; then
 fi
 
 export APPSDIR
-
-if [ -d $NXWDIR ]; then
-    NXWIDGETSDIR=$NXWDIR/libnxwidgets
-    NXWMDIR=$NXWDIR/nxwm
-    NXTOOLS=$NXWDIR/tools
-fi
 
 # Shouldn't have to do this
 

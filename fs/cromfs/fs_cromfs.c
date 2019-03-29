@@ -207,7 +207,7 @@ static FAR void *cromfs_offset2addr(FAR const struct cromfs_volume_s *fs,
 {
   /* Zero offset is a specials case:  It corresponds to a NULL address */
 
-  if (offset == 0)
+  if (offset == 0 || offset >= fs->cv_fsize)
     {
       return NULL;
     }
@@ -222,7 +222,7 @@ static FAR void *cromfs_offset2addr(FAR const struct cromfs_volume_s *fs,
 }
 
 /****************************************************************************
- * Name: cromfs_offset2addr
+ * Name: cromfs_addr2offset
  ****************************************************************************/
 
 static uint32_t cromfs_addr2offset(FAR const struct cromfs_volume_s *fs,
@@ -1030,6 +1030,15 @@ static int cromfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
    */
 
   node = (FAR const struct cromfs_node_s *)cromfs_offset2addr(fs, offset);
+  if (node == NULL)
+    {
+      /* We signal the end of the directory by returning the
+       * special error -ENOENT
+       */
+
+      finfo("Entry %d: End of directory\n", offset);
+      return -ENOENT;
+    }
 
   /* Save the filename and file type */
 
@@ -1050,7 +1059,9 @@ static int cromfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
       case S_IFIFO:  /* FIFO */
       case S_IFCHR:  /* Character driver */
       case S_IFBLK:  /* Block driver */
-   /* case S_IFSOCK:    Socket */
+#if 0
+      case S_IFSOCK: /* Socket */
+#endif
       case S_IFMQ:   /* Message queue */
       case S_IFSEM:  /* Semaphore */
       case S_IFSHM:  /* Shared memory */
@@ -1174,7 +1185,7 @@ static int cromfs_stat(FAR struct inode *mountpt, FAR const char *relpath,
 
   /* Sanity checks */
 
-  DEBUGASSERT(mountpt != NULL && mountpt->i_private != NULL && buf != NULL );
+  DEBUGASSERT(mountpt != NULL && mountpt->i_private != NULL && buf != NULL);
   memset(buf, 0, sizeof(struct stat));
 
   /* Recover our private data from the inode instance */

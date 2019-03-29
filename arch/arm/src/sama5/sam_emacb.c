@@ -8,7 +8,7 @@
  * separate (mostly because the 'B' driver needs to support two EMAC blocks.
  * But the 'B' driver should replace the 'A' driver someday.
  *
- *   Copyright (C) 2014-2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014-2015, 2017-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * This logic derives from the SAM4E Ethernet driver which, in turn, derived
@@ -91,7 +91,6 @@
 
 #include "up_arch.h"
 #include "up_internal.h"
-#include "cache.h"
 
 #include "chip.h"
 #include "chip/sam_pinmap.h"
@@ -115,18 +114,18 @@
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error Work queue support is required
-#else
-
-  /* Select work queue */
-
-#  if defined(CONFIG_SAMA5_EMACB_HPWORK)
-#    define ETHWORK HPWORK
-#  elif defined(CONFIG_SAMA5_EMACB_LPWORK)
-#    define ETHWORK LPWORK
-#  else
-#    error Neither CONFIG_SAMA5_EMACB_HPWORK nor CONFIG_SAMA5_EMACB_LPWORK defined
-#  endif
 #endif
+
+/* The low priority work queue is preferred.  If it is not enabled, LPWORK
+ * will be the same as HPWORK.
+ *
+ * NOTE:  However, the network should NEVER run on the high priority work
+ * queue!  That queue is intended only to service short back end interrupt
+ * processing that never suspends.  Suspending the high priority work queue
+ * may bring the system to its knees!
+ */
+
+#define ETHWORK LPWORK
 
 /* EMAC0 Configuration ******************************************************/
 
@@ -441,10 +440,10 @@ struct sam_emac_s
   /* Debug stuff */
 
 #ifdef CONFIG_SAMA5_EMACB_REGDEBUG
-   bool               wrlast;     /* Last was a write */
-   uintptr_t          addrlast;   /* Last address */
-   uint32_t           vallast;    /* Last value */
-   int                ntimes;     /* Number of times */
+  bool                  wrlast;     /* Last was a write */
+  uintptr_t             addrlast;   /* Last address */
+  uint32_t              vallast;    /* Last value */
+  int                   ntimes;     /* Number of times */
 #endif
 };
 
@@ -499,11 +498,11 @@ static int  sam_ifdown(struct net_driver_s *dev);
 static void sam_txavail_work(FAR void *arg);
 static int  sam_txavail(struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static unsigned int sam_hashindx(const uint8_t *mac);
 static int  sam_addmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  sam_rmmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
 
@@ -1120,7 +1119,7 @@ static int sam_transmit(struct sam_emac_s *priv)
 
       virtaddr = sam_virtramaddr(txdesc->addr);
       memcpy((void *)virtaddr, dev->d_buf, dev->d_len);
-      arch_clean_dcache((uint32_t)virtaddr, (uint32_t)virtaddr + dev->d_len);
+      up_clean_dcache((uint32_t)virtaddr, (uint32_t)virtaddr + dev->d_len);
     }
 
   /* Update TX descriptor status. */
@@ -1134,8 +1133,8 @@ static int sam_transmit(struct sam_emac_s *priv)
   /* Update the descriptor status and flush the updated value to RAM */
 
   txdesc->status = status;
-  arch_clean_dcache((uint32_t)txdesc,
-                    (uint32_t)txdesc + sizeof(struct emac_txdesc_s));
+  up_clean_dcache((uint32_t)txdesc,
+                  (uint32_t)txdesc + sizeof(struct emac_txdesc_s));
 
   /* Increment the head index */
 
@@ -1351,8 +1350,8 @@ static int sam_recvframe(struct sam_emac_s *priv)
 
   /* Invalidate the RX descriptor to force re-fetching from RAM */
 
-  arch_invalidate_dcache((uintptr_t)rxdesc,
-                         (uintptr_t)rxdesc + sizeof(struct emac_rxdesc_s));
+  up_invalidate_dcache((uintptr_t)rxdesc,
+                       (uintptr_t)rxdesc + sizeof(struct emac_rxdesc_s));
   ninfo("rxndx: %d\n", rxndx);
 
   while ((rxdesc->addr & EMACRXD_ADDR_OWNER) != 0)
@@ -1374,9 +1373,9 @@ static int sam_recvframe(struct sam_emac_s *priv)
 
               /* Flush the modified RX descriptor to RAM */
 
-              arch_clean_dcache((uintptr_t)rxdesc,
-                                (uintptr_t)rxdesc +
-                                sizeof(struct emac_rxdesc_s));
+              up_clean_dcache((uintptr_t)rxdesc,
+                              (uintptr_t)rxdesc +
+                              sizeof(struct emac_rxdesc_s));
 
               /* Increment the RX index */
 
@@ -1419,9 +1418,9 @@ static int sam_recvframe(struct sam_emac_s *priv)
 
                   /* Flush the modified RX descriptor to RAM */
 
-                  arch_clean_dcache((uintptr_t)rxdesc,
-                                    (uintptr_t)rxdesc +
-                                    sizeof(struct emac_rxdesc_s));
+                  up_clean_dcache((uintptr_t)rxdesc,
+                                  (uintptr_t)rxdesc +
+                                  sizeof(struct emac_rxdesc_s));
 
                   /* Increment the RX index */
 
@@ -1449,7 +1448,7 @@ static int sam_recvframe(struct sam_emac_s *priv)
           physaddr = (uintptr_t)(rxdesc->addr & EMACRXD_ADDR_MASK);
           src = (const uint8_t *)sam_virtramaddr(physaddr);
 
-          arch_invalidate_dcache((uintptr_t)src, (uintptr_t)src + copylen);
+          up_invalidate_dcache((uintptr_t)src, (uintptr_t)src + copylen);
 
           /* And do the copy */
 
@@ -1479,9 +1478,9 @@ static int sam_recvframe(struct sam_emac_s *priv)
 
                   /* Flush the modified RX descriptor to RAM */
 
-                  arch_clean_dcache((uintptr_t)rxdesc,
-                                    (uintptr_t)rxdesc +
-                                    sizeof(struct emac_rxdesc_s));
+                  up_clean_dcache((uintptr_t)rxdesc,
+                                  (uintptr_t)rxdesc +
+                                  sizeof(struct emac_rxdesc_s));
 
                   /* Increment the RX index */
 
@@ -1519,9 +1518,9 @@ static int sam_recvframe(struct sam_emac_s *priv)
 
           /* Flush the modified RX descriptor to RAM */
 
-          arch_clean_dcache((uintptr_t)rxdesc,
-                            (uintptr_t)rxdesc +
-                            sizeof(struct emac_rxdesc_s));
+          up_clean_dcache((uintptr_t)rxdesc,
+                          (uintptr_t)rxdesc +
+                          sizeof(struct emac_rxdesc_s));
 
           priv->rxndx = rxndx;
         }
@@ -1532,13 +1531,27 @@ static int sam_recvframe(struct sam_emac_s *priv)
 
       /* Invalidate the RX descriptor to force re-fetching from RAM */
 
-      arch_invalidate_dcache((uintptr_t)rxdesc,
-                             (uintptr_t)rxdesc + sizeof(struct emac_rxdesc_s));
+      up_invalidate_dcache((uintptr_t)rxdesc,
+                           (uintptr_t)rxdesc + sizeof(struct emac_rxdesc_s));
     }
 
-  /* No packet was found */
+  /* isframe indicates that we have found a SOF. If we've received a SOF,
+   * but not an EOF in the sequential buffers we own, it must mean that we
+   * have a partial packet. This should only happen if there was a Buffer
+   * Not Available (BNA) error.  When bursts of data come in, quickly
+   * filling the available buffers, before our interrupts can even service
+   * them. Eventually, the ring buffer loops back on itself and the
+   * peripheral sees it cannot write the next fragment of the packet.
+   *
+   * In this case, we keep the rxndx at the start of the last frame, since
+   * the peripheral will finish writing the packet there next.
+   */
 
-  priv->rxndx = rxndx;
+  if (!isframe)
+    {
+      priv->rxndx = rxndx;
+    }
+
   ninfo("rxndx: %d\n", priv->rxndx);
   return -EAGAIN;
 }
@@ -1729,8 +1742,8 @@ static void sam_txdone(struct sam_emac_s *priv)
       /* Yes.. check the next buffer at the tail of the list */
 
       txdesc = &priv->txdesc[priv->txtail];
-      arch_invalidate_dcache((uintptr_t)txdesc,
-                             (uintptr_t)txdesc + sizeof(struct emac_txdesc_s));
+      up_invalidate_dcache((uintptr_t)txdesc,
+                           (uintptr_t)txdesc + sizeof(struct emac_txdesc_s));
 
       /* Is this TX descriptor still in use? */
 
@@ -1762,8 +1775,8 @@ static void sam_txdone(struct sam_emac_s *priv)
               sam_physramaddr((uintptr_t)txdesc) != sam_getreg(priv, SAM_EMAC_TBQB_OFFSET))
             {
               txdesc->status = (uint32_t)EMACTXD_STA_USED;
-              arch_clean_dcache((uintptr_t)txdesc,
-                                (uintptr_t)txdesc + sizeof(struct emac_txdesc_s));
+              up_clean_dcache((uintptr_t)txdesc,
+                              (uintptr_t)txdesc + sizeof(struct emac_txdesc_s));
             }
           else
 #endif
@@ -1780,8 +1793,8 @@ static void sam_txdone(struct sam_emac_s *priv)
       /* Make sure that the USED bit is set */
 
       txdesc->status = (uint32_t)EMACTXD_STA_USED;
-      arch_clean_dcache((uintptr_t)txdesc,
-                        (uintptr_t)txdesc + sizeof(struct emac_txdesc_s));
+      up_clean_dcache((uintptr_t)txdesc,
+                      (uintptr_t)txdesc + sizeof(struct emac_txdesc_s));
 #endif
 
       /* Increment the tail index */
@@ -2427,7 +2440,7 @@ static int sam_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static unsigned int sam_hashindx(const uint8_t *mac)
 {
   unsigned int ndx;
@@ -2525,7 +2538,7 @@ static unsigned int sam_hashindx(const uint8_t *mac)
 
   return ndx & 0x3f;
 }
-#endif /* CONFIG_NET_IGMP || CONFIG_NET_ICMPv6 */
+#endif /* CONFIG_NET_MCASTGROUP || CONFIG_NET_ICMPv6 */
 
 /****************************************************************************
  * Function: sam_addmac
@@ -2545,7 +2558,7 @@ static unsigned int sam_hashindx(const uint8_t *mac)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int sam_addmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   struct sam_emac_s *priv = (struct sam_emac_s *)dev->d_private;
@@ -2617,7 +2630,7 @@ static int sam_addmac(struct net_driver_s *dev, const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int sam_rmmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   struct sam_emac_s *priv = (struct sam_emac_s *)dev->d_private;
@@ -2729,9 +2742,9 @@ static int sam_ioctl(struct net_driver_s *dev, int cmd, unsigned long arg)
 #ifdef CONFIG_ARCH_PHY_INTERRUPT
       case SIOCMIINOTIFY: /* Set up for PHY event notifications */
        {
-          struct mii_iotcl_notify_s *req = (struct mii_iotcl_notify_s *)((uintptr_t)arg);
+          struct mii_ioctl_notify_s *req = (struct mii_ioctl_notify_s *)((uintptr_t)arg);
 
-          ret = phy_notify_subscribe(dev->d_ifname, req->pid, req->signo, req->arg);
+          ret = phy_notify_subscribe(dev->d_ifname, req->pid, &req->event);
           if (ret == OK)
             {
               /* Enable PHY link up/down interrupts */
@@ -3870,9 +3883,9 @@ static void sam_txreset(struct sam_emac_s *priv)
 
   /* Flush the entire TX descriptor table to RAM */
 
-  arch_clean_dcache((uintptr_t)txdesc,
-                    (uintptr_t)txdesc +
-                    priv->attr->ntxbuffers * sizeof(struct emac_txdesc_s));
+  up_clean_dcache((uintptr_t)txdesc,
+                  (uintptr_t)txdesc +
+                  priv->attr->ntxbuffers * sizeof(struct emac_txdesc_s));
 
   /* Set the Transmit Buffer Queue Pointer Register */
 
@@ -3934,9 +3947,9 @@ static void sam_rxreset(struct sam_emac_s *priv)
 
   /* Flush the entire RX descriptor table to RAM */
 
-  arch_clean_dcache((uintptr_t)rxdesc,
-                    (uintptr_t)rxdesc +
-                    priv->attr->nrxbuffers * sizeof(struct emac_rxdesc_s));
+  up_clean_dcache((uintptr_t)rxdesc,
+                  (uintptr_t)rxdesc +
+                  priv->attr->nrxbuffers * sizeof(struct emac_rxdesc_s));
 
   /* Set the Receive Buffer Queue Pointer Register */
 
@@ -4360,7 +4373,7 @@ int sam_emac_initialize(int intf)
   priv->dev.d_ifup    = sam_ifup;       /* I/F up (new IP address) callback */
   priv->dev.d_ifdown  = sam_ifdown;     /* I/F down callback */
   priv->dev.d_txavail = sam_txavail;    /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = sam_addmac;     /* Add multicast MAC address */
   priv->dev.d_rmmac   = sam_rmmac;      /* Remove multicast MAC address */
 #endif

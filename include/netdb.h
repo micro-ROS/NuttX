@@ -169,6 +169,7 @@
 
 #define HOST_NOT_FOUND 1
 #define NO_DATA        2
+#define NO_ADDRESS     NO_DATA
 #define NO_RECOVERY    3
 #define TRY_AGAIN      4
 
@@ -214,7 +215,7 @@ struct servent
   FAR char  *s_name;       /* Official name of the service. */
   FAR char **s_aliases;    /* A pointer to an array of pointers to
                             * alternative service names, terminated by a
-                            * null pointer.  */
+                            * null pointer. */
   int        s_port;       /* The port number at which the service resides,
                             * in network byte order. */
   FAR char  *s_proto;      /* The name of the protocol to use when
@@ -223,15 +224,15 @@ struct servent
 
 struct addrinfo
 {
-  int        ai_flags;     /* Input flags.  */
-  int        ai_family;    /* Address family of socket.  */
-  int        ai_socktype;  /* Socket type.  */
-  int        ai_protocol;  /* Protocol of socket.  */
-  socklen_t  ai_addrlen;   /* Length of socket address.  */
+  int        ai_flags;     /* Input flags. */
+  int        ai_family;    /* Address family of socket. */
+  int        ai_socktype;  /* Socket type. */
+  int        ai_protocol;  /* Protocol of socket. */
+  socklen_t  ai_addrlen;   /* Length of socket address. */
 
-  FAR struct sockaddr *ai_addr;      /* Socket address of socket.  */
-  FAR char            *ai_canonname; /* Canonical name of service location.  */
-  FAR struct addrinfo *ai_next;      /* Pointer to next in list.  */
+  FAR struct sockaddr *ai_addr;      /* Socket address of socket. */
+  FAR char            *ai_canonname; /* Canonical name of service location. */
+  FAR struct addrinfo *ai_next;      /* Pointer to next in list. */
 };
 
 /****************************************************************************

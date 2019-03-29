@@ -76,7 +76,7 @@
  ****************************************************************************/
 
 	.global	__start						/* Making entry point visible to linker */
-	.global	os_start					/* os_start is defined elsewhere */
+	.global	nx_start					/* nx_start is defined elsewhere */
 	.global	up_lowsetup					/* up_lowsetup is defined elsewhere */
 	.global	g_idle_topstack				/* The start of the heap */
 
@@ -109,7 +109,7 @@
 __start:
 	/* Set up the stack */
 
-	mov		$(idle_stack + CONFIG_IDLETHREAD_STACKSIZE), %esp
+	mov		$(_ebss + CONFIG_IDLETHREAD_STACKSIZE), %esp
 
 	/* Multiboot setup */
 
@@ -119,7 +119,7 @@ __start:
 	/* Initialize and start NuttX */
 
 	call	up_lowsetup					/* Low-level, pre-OS initialization */
-	call	os_start					/* Start NuttX */
+	call	nx_start					/* Start NuttX */
 
 	/* NuttX will not return */
 
@@ -128,20 +128,6 @@ hang:
 	hlt									/* Halt machine should NuttX return */
 	jmp	hang
 	.size	__start, . - __start
-
-/****************************************************************************
- * .bss
- ****************************************************************************/
-
-/* The stack for the IDLE task thread is declared in .bss.  NuttX boots and
- * initializes on the IDLE thread, then at the completion of OS startup, this
- * thread becomes the thread that executes when there is nothing else to
- * do in the system (see up_idle()).
- */
-
-	.type	idle_stack, @object
-	.comm   idle_stack, CONFIG_IDLETHREAD_STACKSIZE, 32
-	.size	idle_stack, CONFIG_IDLETHREAD_STACKSIZE
 
 /****************************************************************************
  * .rodata
@@ -156,6 +142,6 @@ hang:
 
 	.type	g_idle_topstack, @object
 g_idle_topstack:
-	.long	_ebss
+	.long	_ebss + CONFIG_IDLETHREAD_STACKSIZE
 	.size	g_idle_topstack, . - g_idle_topstack
 	.end

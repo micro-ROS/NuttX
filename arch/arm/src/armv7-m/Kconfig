@@ -49,7 +49,7 @@ config ARMV7M_LAZYFPU
 
 config ARMV7M_USEBASEPRI
 	bool "Use BASEPRI Register"
-	default n
+	default y if ARCH_HIPRI_INTERRUPT
 	depends on ARCH_CORTEXM3 || ARCH_CORTEXM4 || ARCH_CORTEXM7
 	---help---
 		Use the BASEPRI register to enable and disable interrupts. By
@@ -59,6 +59,13 @@ config ARMV7M_USEBASEPRI
 		hardfaults can confuse some debuggers. With the BASEPRI
 		register, these hardfaults, will be avoided. For more details see
 		http://www.nuttx.org/doku.php?id=wiki:nxinternal:svcall
+
+		WARNING:  If CONFIG_ARCH_HIPRI_INTERRUPT is selected, then you
+		MUST select CONFIG_ARMV7M_USEBASEPRI.  The Kconfig dependencies
+		here will permit to select an invalid configuration because it
+		cannot enforce that requirement.  If you create this invalild
+		configuration, you will encounter some problems that may be
+		very difficult to debug.
 
 config ARMV7M_BASEPRI_WAR
 	bool "Cortex-M7 r0p1 Errata 837070 Workaround"
@@ -82,11 +89,13 @@ config ARMV7M_ICACHE
 	bool "Use I-Cache"
 	default n
 	depends on ARMV7M_HAVE_ICACHE
+	select ARCH_ICACHE
 
 config ARMV7M_DCACHE
 	bool "Use D-Cache"
 	default n
 	depends on ARMV7M_HAVE_DCACHE
+	select ARCH_DCACHE
 
 config ARMV7M_DCACHE_WRITETHROUGH
 	bool "D-Cache Write-Through"
@@ -204,8 +213,8 @@ config ARMV7M_OABI_TOOLCHAIN
 
 config ARMV7M_TARGET2_PREL
 	bool "R_ARM_TARGET2 is PC relative"
-	default n if !UCLIBCXX_EXCEPTION
-	default y if UCLIBCXX_EXCEPTION
+	default n if !CXX_EXCEPTION
+	default y if CXX_EXCEPTION
 	depends on ELF
 	---help---
 		Perform a PC relative relocation for relocation type R_ARM_TARGET2

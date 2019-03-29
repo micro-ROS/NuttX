@@ -46,17 +46,17 @@
 
 /* Then get all of the register definitions */
 
-#include "chip/tiva_memorymap.h"  /* Memory map */
-#include "chip/tiva_syscontrol.h" /* System control module */
-#include "chip/tiva_gpio.h"       /* GPIO modules */
-#include "chip/tiva_uart.h"       /* UART modules */
-#include "chip/tiva_i2c.h"        /* I2C modules */
-#include "chip/tiva_ssi.h"        /* SSI modules */
-#include "chip/tiva_ethernet.h"   /* Ethernet MAC and PHY */
-#include "chip/tiva_flash.h"      /* FLASH */
-#include "chip/tiva_eeprom.h"     /* EEPROM */
-#include "chip/tiva_timer.h"      /* Timer */
-#include "chip/tiva_adc.h"        /* ADC */
+#include "hardware/tiva_memorymap.h"  /* Memory map */
+#include "hardware/tiva_sysctrl.h"    /* System control module */
+#include "hardware/tiva_gpio.h"       /* GPIO modules */
+#include "hardware/tiva_uart.h"       /* UART modules */
+#include "hardware/tiva_i2c.h"        /* I2C modules */
+#include "hardware/tiva_ssi.h"        /* SSI modules */
+#include "hardware/tiva_ethernet.h"   /* Ethernet MAC and PHY */
+#include "hardware/tiva_flash.h"      /* FLASH */
+#include "hardware/tiva_eeprom.h"     /* EEPROM */
+#include "hardware/tiva_timer.h"      /* Timer */
+#include "hardware/tiva_adc.h"        /* ADC */
 
 /************************************************************************************
  * Pre-processor Definitions

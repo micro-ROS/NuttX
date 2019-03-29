@@ -1,7 +1,7 @@
 ############################################################################
 # libs/libc/stdio/Make.defs
 #
-#   Copyright (C) 2011-2014 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2014, 2019 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,25 +34,34 @@
 ############################################################################
 
 # Add the stdio C files to the build
-# This first group of C files do not depend on having file descriptors or
-# C streams.
+# This first group of C files do not depend on having C streams.
 
 CSRCS += lib_fileno.c lib_printf.c lib_sprintf.c lib_asprintf.c
 CSRCS += lib_snprintf.c lib_libsprintf.c lib_vsprintf.c lib_vasprintf.c
-CSRCS += lib_vsnprintf.c lib_libvsprintf.c lib_dprintf.c lib_vdprintf.c
+CSRCS += lib_vsnprintf.c lib_dprintf.c lib_vdprintf.c
 CSRCS += lib_meminstream.c lib_memoutstream.c lib_memsistream.c
 CSRCS += lib_memsostream.c lib_lowoutstream.c
 CSRCS += lib_zeroinstream.c lib_nullinstream.c lib_nulloutstream.c
-CSRCS += lib_sscanf.c lib_libnoflush.c lib_libsnoflush.c
+CSRCS += lib_sscanf.c lib_vsscanf.c lib_libvscanf.c lib_libnoflush.c
+CSRCS += lib_libsnoflush.c
 
-# The remaining sources files depend upon file descriptors
+ifeq ($(CONFIG_LIBC_PRINT_LEGACY),y)
 
-ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
+CSRCS += legacy_libvsprintf.c
+ifeq ($(CONFIG_LIBC_FLOATINGPOINT),y)
+CSRCS += legacy_dtoa.c
+endif
 
-CSRCS += lib_rawinstream.c lib_rawoutstream.c lib_rawsistream.c
-CSRCS += lib_rawsostream.c lib_remove.c
+else
 
-# And these depend upon both file descriptors and C streams
+CSRCS += lib_libvsprintf.c lib_ultoa_invert.c
+ifeq ($(CONFIG_LIBC_FLOATINGPOINT),y)
+CSRCS += lib_dtoa_engine.c lib_dtoa_data.c
+endif
+
+endif
+
+# The remaining sources files depend upon C streams
 
 ifneq ($(CONFIG_NFILE_STREAMS),0)
 
@@ -64,7 +73,9 @@ CSRCS += lib_rdflush.c lib_wrflush.c lib_fputc.c lib_puts.c lib_fputs.c
 CSRCS += lib_ungetc.c lib_vprintf.c lib_fprintf.c lib_vfprintf.c
 CSRCS += lib_stdinstream.c lib_stdoutstream.c lib_stdsistream.c
 CSRCS += lib_stdsostream.c lib_perror.c lib_feof.c lib_ferror.c
-CSRCS += lib_clearerr.c
+CSRCS += lib_rawinstream.c lib_rawoutstream.c lib_rawsistream.c
+CSRCS += lib_rawsostream.c lib_remove.c lib_clearerr.c lib_scanf.c
+CSRCS += lib_fscanf.c lib_vfscanf.c
 
 endif
 
@@ -75,13 +86,8 @@ endif
 ifneq ($(CONFIG_STDIO_DISABLE_BUFFERING),y)
 CSRCS += lib_setbuf.c lib_setvbuf.c
 endif
-endif
 
 # Other support that depends on specific, configured features.
-
-ifeq ($(CONFIG_LIBC_FLOATINGPOINT),y)
-CSRCS += lib_dtoa.c
-endif
 
 # Add the stdio directory to the build
 

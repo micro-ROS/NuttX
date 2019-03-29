@@ -77,7 +77,7 @@
 #define STM32_FLASH_ITCM     0x00200000     /* 0x00200000-0x002fffff: FLASH memory (ITCM) */
 #define STM32_FLASH_AXIM     0x08000000     /* 0x08000000-0x080fffff: FLASH memory (AXIM) */
 #define STM32_FLASH_BASE     STM32_FLASH_AXIM
-#define STM32_OPTIONS_BASE   0x1fff0000     /* 0x1ff00000-0x1fff001f: OTP (AXIM) */
+#define STM32_OPTIONS_BASE   0x1fff0000     /* 0x1ff00000-0x1fff001f: Option bytes (AXIM) */
 
 /* Information Addresses ************************************************************/
 
@@ -85,6 +85,8 @@
 #define STM32_SYSMEM_UID     0x1ff07A10     /* The 96-bit unique device identifier */
 #define STM32_OTP_ICTM       0x00107800     /* 0x00107800-0x00107A0F: OTP (ITCM) */
 #define STM32_OTP_AXIM       0x1ff07800     /* 0x1ff07800-0x1ff07A0F: OTP (AXIM) */
+#define STM32_OPT_BASE       STM32_OTP_AXIM
+#define STM32_OPT_SIZE       1056
 
 /* SRAM Base Addresses **************************************************************/
 
@@ -155,7 +157,7 @@
 #define STM32_SPI5_BASE      0x40015000     /* 0x40015000-0x400153ff: SPI5 */
 #define STM32_SAI1_BASE      0x40015800     /* 0x40015800-0x40015bff: SAI1 */
 #define STM32_SAI2_BASE      0x40015c00     /* 0x40015c00-0x40015fff: SAI2 */
-#define STM32_OTGPHY_BASE    0x40017c00     /* 0x40017C00-0x40017fff: OTG PHY HS */
+#define STM32_USBPHYC_BASE   0x40017c00     /* 0x40017C00-0x40017fff: OTG PHY HS */
 
 /* AHB1 Base Addresses **************************************************************/
 

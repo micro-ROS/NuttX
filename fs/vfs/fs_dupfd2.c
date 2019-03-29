@@ -46,8 +46,6 @@
 
 #include "inode/inode.h"
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -78,7 +76,7 @@
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
+#ifdef CONFIG_NET
 int fs_dupfd2(int fd1, int fd2)
 #else
 int dup2(int fd1, int fd2)
@@ -132,6 +130,3 @@ errout:
   set_errno(-ret);
   return ERROR;
 }
-
-#endif /* CONFIG_NFILE_DESCRIPTORS > 0 */
-

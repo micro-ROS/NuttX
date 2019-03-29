@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/usbdev/composite.c
  *
- *   Copyright (C) 2012, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012, 2016-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -79,7 +79,8 @@ struct composite_alloc_s
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
-/* USB helps ****************************************************************/
+
+/* USB helpers **************************************************************/
 
 static void    composite_ep0incomplete(FAR struct usbdev_ep_s *ep,
                  FAR struct usbdev_req_s *req);
@@ -191,6 +192,105 @@ static int composite_classsetup(FAR struct composite_dev_s *priv,
 
   return ret;
 }
+
+/****************************************************************************
+ * Name: composite_msftdescriptor
+ *
+ * Description:
+ *   Assemble the Microsoft OS descriptor from the COMPATIBLE_ID's given
+ *   in each device's composite_devdesc_s.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_COMPOSITE_MSFT_OS_DESCRIPTORS
+static int composite_msftdescriptor(FAR struct composite_dev_s *priv,
+                                    FAR struct usbdev_s *dev,
+                                    FAR const struct usb_ctrlreq_s *ctrl,
+                                    FAR struct usbdev_req_s *ctrl_rsp,
+                                    FAR bool *dispatched)
+{
+  if (ctrl->index[0] == MSFTOSDESC_INDEX_FUNCTION)
+    {
+      /* Function descriptor is common to whole device */
+
+      FAR struct usb_msft_os_feature_desc_s *response =
+        (FAR struct usb_msft_os_feature_desc_s *)ctrl_rsp->buf;
+      int i;
+
+      memset(response, 0, sizeof(*response));
+
+      for (i = 0; i < priv->ndevices; i++)
+        {
+          if (priv->device[i].compdesc.msft_compatible_id[0] != 0)
+            {
+              FAR struct usb_msft_os_function_desc_s *func =
+                &response->function[response->count];
+
+              memset(func, 0, sizeof(*func));
+              func->firstif = priv->device[i].compdesc.devinfo.ifnobase;
+              func->nifs    = priv->device[i].compdesc.devinfo.ninterfaces;
+              memcpy(func->compatible_id, priv->device[i].compdesc.msft_compatible_id,
+                     sizeof(func->compatible_id));
+              memcpy(func->sub_id, priv->device[i].compdesc.msft_sub_id,
+                     sizeof(func->sub_id));
+
+              response->count++;
+            }
+        }
+
+      if (response->count > 0)
+        {
+          size_t total_len     = sizeof(struct usb_msft_os_feature_desc_s) +
+                                 (response->count - 1) *
+                                 sizeof(struct usb_msft_os_function_desc_s);
+          response->len[0]     = (total_len >> 0) & 0xFF;
+          response->len[1]     = (total_len >> 8) & 0xFF;
+          response->len[2]     = (total_len >> 16) & 0xFF;
+          response->len[3]     = (total_len >> 24) & 0xFF;
+          response->version[1] = 0x01;
+          response->index[0]   = MSFTOSDESC_INDEX_FUNCTION;
+
+          return total_len;
+        }
+      else
+        {
+          return 0;
+        }
+    }
+  else if (ctrl->index[0] == MSFTOSDESC_INDEX_EXTPROP ||
+           ctrl->index[0] == ctrl->value[0])
+    {
+      /* Extended properties are per-interface, pass the request to
+       * subdevice.  NOTE: The documentation in OS_Desc_Ext_Prop.docx seems
+       * a bit incorrect here, the interface is in ctrl->value low byte.
+       * Also WinUSB driver has limitation that index[0] will not be correct if
+       * trying to read descriptors using e.g. libusb xusb.exe.
+        */
+
+      uint8_t interface = ctrl->value[0];
+      int ret = -ENOTSUP;
+      int i;
+
+      for (i = 0; i < priv->ndevices; i++)
+        {
+          if (interface >= priv->device[i].compdesc.devinfo.ifnobase &&
+              interface < (priv->device[i].compdesc.devinfo.ifnobase +
+                           priv->device[i].compdesc.devinfo.ninterfaces))
+            {
+              ret = CLASS_SETUP(priv->device[i].dev, dev, ctrl, NULL, 0);
+              *dispatched = true;
+              break;
+            }
+       }
+
+      return ret;
+    }
+  else
+    {
+      return -ENOTSUP;
+    }
+}
+#endif
 
 /****************************************************************************
  * Name: composite_allocreq
@@ -400,6 +500,7 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
   uint16_t len;
   bool dispatched = false;
   int ret = -EOPNOTSUPP;
+  uint8_t recipient;
 
 #ifdef CONFIG_DEBUG_FEATURES
   if (!driver || !dev || !dev->ep0 || !ctrl)
@@ -434,7 +535,10 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
         ctrl->type, ctrl->req, value, index, len);
   UNUSED(index);
 
-  if ((ctrl->type & USB_REQ_TYPE_MASK) == USB_REQ_TYPE_STANDARD)
+  recipient = ctrl->type & USB_REQ_RECIPIENT_MASK;
+
+  if ((ctrl->type & USB_REQ_TYPE_MASK) == USB_REQ_TYPE_STANDARD &&
+      recipient == USB_REQ_RECIPIENT_DEVICE)
     {
       /**********************************************************************
        * Standard Requests
@@ -486,10 +590,29 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
                   uint8_t strid = ctrl->value[0];
                   FAR struct usb_strdesc_s *buf = (FAR struct usb_strdesc_s *)ctrlreq->buf;
 
-                  if (strid <= COMPOSITE_NSTRIDS)
+                  if (strid < COMPOSITE_NSTRIDS)
                     {
                       ret = composite_mkstrdesc(strid, buf);
                     }
+#ifdef CONFIG_COMPOSITE_MSFT_OS_DESCRIPTORS
+                  else if (strid == USB_REQ_GETMSFTOSDESCRIPTOR)
+                    {
+                      /* Note: Windows has a habit of caching this response,
+                       * so if you want to enable/disable it you'll usually
+                       * need to change the device serial number afterwards.
+                       */
+
+                      static const uint8_t msft_response[16] =
+                      {
+                        'M', 0, 'S', 0, 'F', 0, 'T', 0, '1', 0, '0', 0, '0', 0, 0xEE, 0
+                      };
+
+                      buf->len = 18;
+                      buf->type = USB_DESC_TYPE_STRING;
+                      memcpy(buf->data, msft_response, 16);
+                      ret = buf->len;
+                    }
+#endif
                   else
                     {
                       int i;
@@ -500,7 +623,8 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
                               strid <  priv->device[i].compdesc.devinfo.strbase +
                                        priv->device[i].compdesc.devinfo.nstrings)
                             {
-                              ret = priv->device[i].compdesc.mkstrdesc(strid - priv->device[i].compdesc.devinfo.strbase, buf);
+                              ret = priv->device[i].compdesc.mkstrdesc(strid -
+                                    priv->device[i].compdesc.devinfo.strbase, buf);
                               break;
                             }
                         }
@@ -573,10 +697,17 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
           break;
         }
     }
-  else
+#ifdef CONFIG_COMPOSITE_MSFT_OS_DESCRIPTORS
+  else if (ctrl->req == USB_REQ_GETMSFTOSDESCRIPTOR &&
+           (ctrl->type & USB_REQ_DIR_MASK) == USB_REQ_DIR_IN &&
+           (ctrl->type & USB_REQ_TYPE_MASK) == USB_REQ_TYPE_VENDOR)
     {
-      uint8_t recipient;
-
+      ret = composite_msftdescriptor(priv, dev, ctrl, ctrlreq, &dispatched);
+    }
+#endif
+  else if (recipient == USB_REQ_RECIPIENT_INTERFACE ||
+           recipient == USB_REQ_RECIPIENT_ENDPOINT)
+    {
       /**********************************************************************
        * Non-Standard Class Requests
        **********************************************************************/
@@ -585,12 +716,8 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
         * requests.
         */
 
-       recipient = ctrl->type & USB_REQ_RECIPIENT_MASK;
-       if (recipient == USB_REQ_RECIPIENT_INTERFACE || recipient == USB_REQ_RECIPIENT_ENDPOINT)
-         {
-           ret = composite_classsetup(priv, dev, ctrl, dataout, outlen);
-           dispatched = true;
-         }
+      ret = composite_classsetup(priv, dev, ctrl, dataout, outlen);
+      dispatched = true;
     }
 
   /* Respond to the setup command if (1) data was returned, and (2) the

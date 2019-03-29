@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/nuttx/irq.h
  *
- *   Copyright (C) 2007-2011, 2013, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2011, 2013, 2016-2017 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +46,6 @@
 #ifndef __ASSEMBLY__
 # include <stdint.h>
 # include <assert.h>
-# include <arch/irq.h>
 #endif
 
 /****************************************************************************
@@ -174,7 +174,9 @@ int irqchain_detach(int irq, xcpt_t isr, FAR void *arg);
  * Name: enter_critical_section
  *
  * Description:
- *   If SMP is enabled:
+ *   If thread-specific IRQ counter is enabled (for SMP or other
+ *   instrumentation):
+ *
  *     Take the CPU IRQ lock and disable interrupts on all CPUs.  A thread-
  *     specific counter is increment to indicate that the thread has IRQs
  *     disabled and to support nested calls to enter_critical_section().
@@ -184,7 +186,8 @@ int irqchain_detach(int irq, xcpt_t isr, FAR void *arg);
  *     enter_critical_section() will still manage entrance into the
  *     protected logic using spinlocks.
  *
- *   If SMP is not enabled:
+ *   If thread-specific IRQ counter is not enabled:
+ *
  *     This function is equivalent to up_irq_save().
  *
  * Input Parameters:
@@ -196,22 +199,25 @@ int irqchain_detach(int irq, xcpt_t isr, FAR void *arg);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_SMP) || defined(CONFIG_SCHED_INSTRUMENTATION_CSECTION)
+#ifdef CONFIG_IRQCOUNT
 irqstate_t enter_critical_section(void);
 #else
-#  define enter_critical_section(f) up_irq_save(f)
+#  define enter_critical_section() up_irq_save()
 #endif
 
 /****************************************************************************
  * Name: leave_critical_section
  *
  * Description:
- *   If SMP is enabled:
+ *   If thread-specific IRQ counter is enabled (for SMP or other
+ *   instrumentation):
+ *
  *     Decrement the IRQ lock count and if it decrements to zero then release
  *     the spinlock and restore the interrupt state as it was prior to the
  *     previous call to enter_critical_section().
  *
- *   If SMP is not enabled:
+ *   If thread-specific IRQ counter is not enabled:
+ *
  *     This function is equivalent to up_irq_restore().
  *
  * Input Parameters:
@@ -223,7 +229,7 @@ irqstate_t enter_critical_section(void);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_SMP) || defined(CONFIG_SCHED_INSTRUMENTATION_CSECTION)
+#ifdef CONFIG_IRQCOUNT
 void leave_critical_section(irqstate_t flags);
 #else
 #  define leave_critical_section(f) up_irq_restore(f)
@@ -258,7 +264,7 @@ void leave_critical_section(irqstate_t flags);
     defined(CONFIG_ARCH_GLOBAL_IRQDISABLE)
 irqstate_t spin_lock_irqsave(void);
 #else
-#  define spin_lock_irqsave(f) enter_critical_section(f)
+#  define spin_lock_irqsave() enter_critical_section()
 #endif
 
 /****************************************************************************

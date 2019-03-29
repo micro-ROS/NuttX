@@ -209,12 +209,6 @@
  *   BOARD_DFLL48M_QUICKLOCK           - Boolean (defined / not defined)
  *   BOARD_DFLL48M_RUNINSTDBY          - Boolean (defined / not defined)
  *   BOARD_DFLL48M_ONDEMAND            - Boolean (defined / not defined)
- *   BOARD_DFLL48M_COARSEVALUE         - Value
- *   BOARD_DFLL48M_FINEVALUE           - Value
- *
- * Open Loop mode only:
- *   BOARD_DFLL48M_COARSEVALUE         - Value
- *   BOARD_DFLL48M_FINEVALUE           - Value
  *
  * Closed loop mode only:
  *   BOARD_DFLL48M_REFCLK_CLKGEN       - GCLK index in the range {0..8}
@@ -259,11 +253,6 @@
 
 #  undef  BOARD_DFLL48M_RUNINSTDBY
 #  undef  BOARD_DFLL48M_ONDEMAND
-
-/* DFLL open loop mode configuration */
-
-#  define BOARD_DFLL48M_COARSEVALUE        (0x1f / 4)
-#  define BOARD_DFLL48M_FINEVALUE          (0xff / 4)
 
 /* DFLL closed loop mode configuration */
 

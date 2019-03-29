@@ -1,7 +1,7 @@
 /****************************************************************************
  * mm/iob/iob_free.c
  *
- *   Copyright (C) 2014, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014, 2016-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <stdbool.h>
 #include <semaphore.h>
 #include <assert.h>
 #include <debug.h>
@@ -48,6 +49,28 @@
 #include <nuttx/mm/iob.h>
 
 #include "iob.h"
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#if !defined(CONFIG_IOB_NOTIFIER_DIV) || CONFIG_IOB_NOTIFIER_DIV < 2
+#  define IOB_DIVIDER 1
+#elif CONFIG_IOB_NOTIFIER_DIV < 4
+#  define IOB_DIVIDER 2
+#elif CONFIG_IOB_NOTIFIER_DIV < 8
+#  define IOB_DIVIDER 4
+#elif CONFIG_IOB_NOTIFIER_DIV < 16
+#  define IOB_DIVIDER 8
+#elif CONFIG_IOB_NOTIFIER_DIV < 32
+#  define IOB_DIVIDER 16
+#elif CONFIG_IOB_NOTIFIER_DIV < 64
+#  define IOB_DIVIDER 32
+#else
+#  define IOB_DIVIDER 64
+#endif
+
+#define IOB_MASK      (IOB_DIVIDER - 1)
 
 /****************************************************************************
  * Public Functions
@@ -66,6 +89,9 @@ FAR struct iob_s *iob_free(FAR struct iob_s *iob)
 {
   FAR struct iob_s *next = iob->io_flink;
   irqstate_t flags;
+#ifdef CONFIG_IOB_NOTIFIER
+  int16_t navail;
+#endif
 
   iobinfo("iob=%p io_pktlen=%u io_len=%u next=%p\n",
           iob, iob->io_pktlen, iob->io_len, next);
@@ -89,12 +115,11 @@ FAR struct iob_s *iob_free(FAR struct iob_s *iob)
         }
       else
         {
-          /* This can only happen if the next entry is last entry in the
-           * chain... and if it is empty
+          /* This can only happen if the free entry isn't first entry in the
+           * chain...
            */
 
           next->io_pktlen = 0;
-          DEBUGASSERT(next->io_len == 0 && next->io_flink == NULL);
         }
 
       iobinfo("next=%p io_pktlen=%u io_len=%u\n",
@@ -126,16 +151,36 @@ FAR struct iob_s *iob_free(FAR struct iob_s *iob)
       g_iob_freelist  = iob;
     }
 
-  /* Signal that an IOB is available.  If there is a thread waiting
-   * for an IOB, this will wake up exactly one thread.  The semaphore
-   * count will correctly indicated that the awakened task owns an
-   * IOB and should find it in the committed list.
+  /* Signal that an IOB is available.  If there is a thread blocked,
+   * waiting for an IOB, this will wake up exactly one thread.  The
+   * semaphore count will correctly indicated that the awakened task
+   * owns an IOB and should find it in the committed list.
    */
 
   nxsem_post(&g_iob_sem);
+  DEBUGASSERT(g_iob_sem.semcount <= CONFIG_IOB_NBUFFERS);
+
 #if CONFIG_IOB_THROTTLE > 0
   nxsem_post(&g_throttle_sem);
+  DEBUGASSERT(g_throttle_sem.semcount <= (CONFIG_IOB_NBUFFERS - CONFIG_IOB_THROTTLE));
 #endif
+
+#ifdef CONFIG_IOB_NOTIFIER
+  /* Check if the IOB was claimed by a thread that is blocked waiting
+   * for an IOB.
+   */
+
+  navail = iob_navail(false);
+  if (navail > 0 && (navail & IOB_MASK) == 0)
+    {
+      /* Signal any threads that have requested a signal notification
+       * when an IOB becomes available.
+       */
+
+      iob_notifier_signal();
+    }
+#endif
+
   leave_critical_section(flags);
 
   /* And return the I/O buffer after the one that was freed */

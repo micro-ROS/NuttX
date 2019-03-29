@@ -45,34 +45,19 @@
 
 #include "chip.h"
 
-/* Include the correct DMA register definitions for this STM32 family */
-
-#if defined(CONFIG_STM32_STM32L15XX) || defined(CONFIG_STM32_STM32F10XX) || \
-    defined(CONFIG_STM32_STM32F30XX) || defined(CONFIG_STM32_STM32F37XX)
-#  include "chip/stm32f10xxx_dma.h"
-#elif defined(CONFIG_STM32_STM32F33XX)
-#  include "chip/stm32f33xxx_dma.h"
-#elif defined(CONFIG_STM32_STM32F20XX)
-#  include "chip/stm32f20xxx_dma.h"
-#elif defined(CONFIG_STM32_STM32F4XXX)
-#  include "chip/stm32f40xxx_dma.h"
-#else
-#  error "Unknown STM32 DMA"
-#endif
+#include "chip/stm32_dma.h"
 
 /* These definitions provide the bit encoding of the 'status' parameter passed to the
  * DMA callback function (see dma_callback_t).
  */
 
-#if defined(CONFIG_STM32_STM32L15XX) || defined(CONFIG_STM32_STM32F10XX) || \
-    defined(CONFIG_STM32_STM32F30XX) || defined(CONFIG_STM32_STM32F33XX) || \
-    defined(CONFIG_STM32_STM32F37XX)
+#if defined(HAVE_IP_DMA_V1)
 #  define DMA_STATUS_FEIF         0                     /* (Not available in F1) */
 #  define DMA_STATUS_DMEIF        0                     /* (Not available in F1) */
 #  define DMA_STATUS_TEIF         DMA_CHAN_TEIF_BIT     /* Channel Transfer Error */
 #  define DMA_STATUS_HTIF         DMA_CHAN_HTIF_BIT     /* Channel Half Transfer */
 #  define DMA_STATUS_TCIF         DMA_CHAN_TCIF_BIT     /* Channel Transfer Complete */
-#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F4XXX)
+#elif defined(HAVE_IP_DMA_V2)
 #  define DMA_STATUS_FEIF         0                    /* Stream FIFO error (ignored) */
 #  define DMA_STATUS_DMEIF        DMA_STREAM_DMEIF_BIT /* Stream direct mode error */
 #  define DMA_STATUS_TEIF         DMA_STREAM_TEIF_BIT  /* Stream Transfer Error */
@@ -108,9 +93,8 @@ typedef FAR void *DMA_HANDLE;
 typedef void (*dma_callback_t)(DMA_HANDLE handle, uint8_t status, void *arg);
 
 #ifdef CONFIG_DEBUG_DMA_INFO
-#if defined(CONFIG_STM32_STM32L15XX) || defined(CONFIG_STM32_STM32F10XX) || \
-    defined(CONFIG_STM32_STM32F30XX) || defined(CONFIG_STM32_STM32F33XX) || \
-    defined(CONFIG_STM32_STM32F37XX)
+
+#if defined(HAVE_IP_DMA_V1)
 struct stm32_dmaregs_s
 {
   uint32_t isr;
@@ -119,7 +103,7 @@ struct stm32_dmaregs_s
   uint32_t cpar;
   uint32_t cmar;
 };
-#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F4XXX)
+#elif defined(HAVE_IP_DMA_V2)
 struct stm32_dmaregs_s
 {
   uint32_t lisr;
@@ -327,12 +311,11 @@ void stm32_dmadump(DMA_HANDLE handle, const struct stm32_dmaregs_s *regs,
 #  define stm32_dmadump(handle,regs,msg)
 #endif
 
-#ifdef CONFIG_STM32_STM32F33XX
-
-/* At this moment only for STM32F33XX family */
-
 /* High performance, zero latency DMA interrupts need some additional
  * interfaces.
+ *
+ * TODO: For now the interface is different for STM32 DMAv1 and STM32 DMAv2.
+ *       It should be unified somehow.
  */
 
 #ifdef CONFIG_ARCH_HIPRI_INTERRUPT
@@ -345,7 +328,11 @@ void stm32_dmadump(DMA_HANDLE handle, const struct stm32_dmaregs_s *regs,
  *
  ****************************************************************************/
 
+#if defined(HAVE_IP_DMA_V1)
 void stm32_dma_intack(unsigned int chndx, uint32_t isr);
+#elif defined(HAVE_IP_DMA_V2)
+void stm32_dma_intack(unsigned int controller, uint8_t stream, uint32_t isr);
+#endif
 
 /****************************************************************************
  * Name: stm32_dma_intget
@@ -355,9 +342,13 @@ void stm32_dma_intack(unsigned int chndx, uint32_t isr);
  *
  ****************************************************************************/
 
+#if defined(HAVE_IP_DMA_V1)
 uint32_t stm32_dma_intget(unsigned int chndx);
+#elif defined(HAVE_IP_DMA_V2)
+uint8_t  stm32_dma_intget(unsigned int controller, uint8_t stream);
+#endif
+
 #endif  /* CONFIG_ARCH_HIPRI_INTERRUPT */
-#endif  /* CONFIG_STM32_STM32F33XX */
 
 #undef EXTERN
 #if defined(__cplusplus)

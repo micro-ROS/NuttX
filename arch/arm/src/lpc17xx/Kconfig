@@ -201,12 +201,13 @@ config LPC17_UART4
 
 config LPC17_CAN1
 	bool "CAN1"
-	select UART4_SERIALDRIVER
 	default n
+	select CAN
 
 config LPC17_CAN2
 	bool "CAN2"
 	default n
+	select CAN
 
 config LPC17_SPI
 	bool "SPI"
@@ -450,6 +451,18 @@ config LPC17_EXTDRAMHEAP
 	---help---
 		Add the external SDRAM into the heap.
 
+config LPC17_EXTDRAMHEAP_OFFSET
+	int "DRAM heap offset"
+	default 0
+	depends on LPC17_EXTDRAMHEAP
+	---help---
+		Memory may be reserved at the beginning of DRAM for other purposes
+		(for example for video framebuffers).  Memory can similar be
+		reserved at the end of DRAM using LPC17_EXTDRAMSIZE.  The amount to
+		be added to the heap will be from DRAM_BASE + LPC17_EXTDRAMHEAP_OFFSET
+		through DRAM_BASE + LPC17_EXTDRAMSIZE where (DRAM_BASE is the base
+		address of CS0).
+
 endif
 
 config LPC17_EXTSRAM0
@@ -690,13 +703,6 @@ config LPC17_ETH_NRXDESC
 	---help---
 		Configured number of Rx descriptors. Default: 13
 
-config LPC17_ETH_PRIORITY
-	int "Ethernet interrupt priority"
-	default 128
-	depends on ARCH_IRQPRIO && EXPERIMENTAL
-	---help---
-		Ethernet interrupt priority.  The default is the default priority (128).
-
 config LPC17_NET_WOL
 	bool "Wake-up on LAN"
 	default n
@@ -718,31 +724,12 @@ config LPC17_ETH_HASH
 
 config LPC17_MULTICAST
 	bool "Multicast"
-	default y if NET_IGMP
-	default n if !NET_IGMP
+	default y if NET_MCASTGROUP
+	default n if !NET_MCASTGROUP
 	---help---
 		Enable receipt of multicast (and unicast) frames. Automatically set
-		if NET_IGMP is selected.
+		if NET_MCASTGROUP is selected.
 
-choice
-	prompt "Work queue"
-	default LPC17_ETHERNET_LPWORK if SCHED_LPWORK
-	default LPC17_ETHERNET_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
-	depends on SCHED_WORKQUEUE
-	---help---
-		Work queue support is required to use the Ethernet driver.  If the
-		low priority work queue is available, then it should be used by the
-		driver.
-
-config LPC17_ETHERNET_HPWORK
-	bool "High priority"
-	depends on SCHED_HPWORK
-
-config LPC17_ETHERNET_LPWORK
-	bool "Low priority"
-	depends on SCHED_LPWORK
-
-endchoice # Work queue
 endmenu
 
 menu "LCD device driver options"

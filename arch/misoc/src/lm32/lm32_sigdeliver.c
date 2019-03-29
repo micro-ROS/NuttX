@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/misoc/src/lm32/lm32_sigdeliver.c
  *
- *   Copyright (C) 2016, 2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016, 2018-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,6 @@ void lm32_sigdeliver(void)
 {
   struct tcb_s *rtcb = this_task();
   uint32_t regs[XCPTCONTEXT_REGS];
-  sig_deliver_t sigdeliver;
 
   /* Save the errno.  This must be preserved throughout the signal handling
    * so that the user code final gets the correct errno value (probably
@@ -87,19 +86,9 @@ void lm32_sigdeliver(void)
         rtcb, rtcb->xcp.sigdeliver, rtcb->sigpendactionq.head);
   DEBUGASSERT(rtcb->xcp.sigdeliver != NULL);
 
-  /* Save the real return state on the stack. */
+  /* Save the return state on the stack. */
 
   up_copystate(regs, rtcb->xcp.regs);
-  regs[REG_EPC]        = rtcb->xcp.saved_epc;
-  regs[REG_INT_CTX]    = rtcb->xcp.saved_int_ctx;
-
-  /* Get a local copy of the sigdeliver function pointer. We do this so that
-   * we can nullify the sigdeliver function pointer in the TCB and accept
-   * more signal deliveries while processing the current pending signals.
-   */
-
-  sigdeliver           = rtcb->xcp.sigdeliver;
-  rtcb->xcp.sigdeliver = NULL;
 
 #ifndef CONFIG_SUPPRESS_INTERRUPTS
   /* Then make sure that interrupts are enabled.  Signal handlers must always
@@ -109,9 +98,9 @@ void lm32_sigdeliver(void)
   up_irq_enable();
 #endif
 
-  /* Deliver the signals */
+  /* Deliver the signal */
 
-  sigdeliver(rtcb);
+  ((sig_deliver_t)rtcb->xcp.sigdeliver)(rtcb);
 
   /* Output any debug messages BEFORE restoring errno (because they may
    * alter errno), then disable interrupts again and restore the original
@@ -121,7 +110,21 @@ void lm32_sigdeliver(void)
   sinfo("Resuming EPC: %08x INT_CTX: %08x\n", regs[REG_EPC], regs[REG_INT_CTX]);
 
   (void)up_irq_save();
-  rtcb->pterrno = saved_errno;
+  rtcb->pterrno        = saved_errno;
+
+  /* Modify the saved return state with the actual saved values in the
+   * TCB.  This depends on the fact that nested signal handling is
+   * not supported.  Therefore, these values will persist throughout the
+   * signal handling action.
+   *
+   * Keeping this data in the TCB resolves a security problem in protected
+   * and kernel mode:  The regs[] array is visible on the user stack and
+   * could be modified by a hostile program.
+   */
+
+  regs[REG_EPC]        = rtcb->xcp.saved_epc;
+  regs[REG_INT_CTX]    = rtcb->xcp.saved_int_ctx;
+  rtcb->xcp.sigdeliver = NULL;  /* Allows next handler to be scheduled */
 
   /* Then restore the correct state for this thread of
    * execution.

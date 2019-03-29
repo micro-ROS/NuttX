@@ -169,7 +169,7 @@ static int local_sockif_alloc(FAR struct socket *psock)
  *   protocol (see sys/socket.h)
  *
  * Returned Value:
- *   Zero (OK) is returned on success.  Otherwise, a negater errno value is
+ *   Zero (OK) is returned on success.  Otherwise, a negated errno value is
  *   returned.
  *
  ****************************************************************************/
@@ -558,6 +558,7 @@ static int local_connect(FAR struct socket *psock,
         {
           /* Perform the datagram connection logic */
 #warning Missing logic
+
           return -ENOSYS;
         }
         break;
@@ -703,6 +704,7 @@ static ssize_t local_send(FAR struct socket *psock, FAR const void *buf,
         {
           /* Local UDP packet send */
 #warning Missing logic
+
           ret = -ENOSYS;
         }
         break;

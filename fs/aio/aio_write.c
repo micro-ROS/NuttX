@@ -57,23 +57,6 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: file_fcntl
- ****************************************************************************/
-
-#ifdef AIO_HAVE_FILEP
-static inline int file_fcntl(FAR struct file *filep, int cmd, ...)
-{
-  va_list ap;
-  int ret;
-
-  va_start(ap, cmd);
-  ret = file_vfcntl(filep, cmd, ap);
-  va_end(ap);
-  return ret;
-}
-#endif
-
-/****************************************************************************
  * Name: aio_write_worker
  *
  * Description:
@@ -98,9 +81,7 @@ static void aio_write_worker(FAR void *arg)
   uint8_t prio;
 #endif
   ssize_t nwritten = 0;
-#ifdef AIO_HAVE_FILEP
   int oflags;
-#endif
 
   /* Get the information from the container, decant the AIO control block,
    * and free the container before starting any I/O.  That will minimize
@@ -114,10 +95,9 @@ static void aio_write_worker(FAR void *arg)
 #endif
   aiocbp = aioc_decant(aioc);
 
-#if defined(AIO_HAVE_FILEP) && defined(AIO_HAVE_PSOCK)
+#ifdef AIO_HAVE_PSOCK
   if (aiocbp->aio_fildes < CONFIG_NFILE_DESCRIPTORS)
 #endif
-#ifdef AIO_HAVE_FILEP
     {
       /* Call fcntl(F_GETFL) to get the file open mode. */
 
@@ -155,11 +135,8 @@ static void aio_write_worker(FAR void *arg)
                                  aiocbp->aio_offset);
         }
     }
-#endif
-#if defined(AIO_HAVE_FILEP) && defined(AIO_HAVE_PSOCK)
-  else
-#endif
 #ifdef AIO_HAVE_PSOCK
+  else
     {
       /* Perform the send using:
        *
@@ -183,9 +160,7 @@ static void aio_write_worker(FAR void *arg)
 
   aiocbp->aio_result = nwritten;
 
-#ifdef AIO_HAVE_FILEP
 errout:
-#endif
 
   /* Signal the client */
 
@@ -309,6 +284,7 @@ int aio_write(FAR struct aiocb *aiocbp)
 
   /* The result -EINPROGRESS means that the transfer has not yet completed */
 
+  sigwork_init(&aiocbp->aio_sigwork);
   aiocbp->aio_result = -EINPROGRESS;
   aiocbp->aio_priv   = NULL;
 
@@ -332,6 +308,7 @@ int aio_write(FAR struct aiocb *aiocbp)
     {
       /* The result and the errno have already been set */
 
+      aioc_decant(aioc);
       return ERROR;
     }
 

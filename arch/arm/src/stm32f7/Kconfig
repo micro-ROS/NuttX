@@ -655,6 +655,7 @@ config STM32F7_STM32F722XX
 	default n
 	select STM32F7_STM32F72XX
 	select ARCH_HAVE_FPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -671,6 +672,7 @@ config STM32F7_STM32F723XX
 	default n
 	select STM32F7_STM32F72XX
 	select ARCH_HAVE_FPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -687,6 +689,7 @@ config STM32F7_STM32F745XX
 	default n
 	select STM32F7_STM32F74XX
 	select ARCH_HAVE_FPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -706,6 +709,7 @@ config STM32F7_STM32F746XX
 	default n
 	select STM32F7_STM32F74XX
 	select ARCH_HAVE_FPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -748,6 +752,7 @@ config STM32F7_STM32F765XX
 	select STM32F7_STM32F76XX
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_DPFPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -797,6 +802,7 @@ config STM32F7_STM32F768XX # Revisit Wehn parts released
 	select STM32F7_STM32F76XX
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_DPFPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -823,6 +829,7 @@ config STM32F7_STM32F768AX # Revisit When parts released
 	select STM32F7_STM32F76XX
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_DPFPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -848,6 +855,7 @@ config STM32F7_STM32F769XX
 	select STM32F7_STM32F76XX
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_DPFPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -874,6 +882,7 @@ config STM32F7_STM32F769AX # Revisit When parts released
 	select STM32F7_STM32F76XX
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_DPFPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -899,6 +908,7 @@ config STM32F7_STM32F777XX
 	select STM32F7_STM32F77XX
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_DPFPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -927,6 +937,7 @@ config STM32F7_STM32F778XX # Revisit when parts released
 	select STM32F7_STM32F77XX
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_DPFPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -955,6 +966,7 @@ config STM32F7_STM32F778AX
 	select STM32F7_STM32F77XX
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_DPFPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -982,6 +994,7 @@ config STM32F7_STM32F779XX
 	select STM32F7_STM32F77XX
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_DPFPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -1010,6 +1023,7 @@ config STM32F7_STM32F779AX
 	select STM32F7_STM32F77XX
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_DPFPU
+	select ARCH_HAVE_SDIO_DELAYED_INVLDT
 	select ARMV7M_HAVE_ICACHE
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
@@ -1939,6 +1953,140 @@ endif
 
 endmenu # U[S]ART Configuration
 
+menu "QuadSPI Configuration"
+	depends on STM32F7_QUADSPI
+
+config STM32F7_QSPI_FLASH_SIZE
+	int "Size of attached serial flash, bytes"
+	default 16777216
+	range 1 2147483648
+	---help---
+		The STM32F7 QSPI peripheral requires the size of the Flash be specified
+
+config STM32F7_QSPI_FIFO_THESHOLD
+	int "Number of bytes before asserting FIFO threshold flag"
+	default 4
+	range 1 16
+	---help---
+		The STM32F7 QSPI peripheral requires that the FIFO threshold be specified
+		I would leave it at the default value of 4 unless you know what you are doing.
+
+config STM32F7_QSPI_CSHT
+	int "Number of cycles Chip Select must be inactive between transactions"
+	default 1
+	range 1 8
+	---help---
+		The STM32F7 QSPI peripheral requires that it be specified the minimum number
+		of AHB cycles that Chip Select be held inactive between transactions.
+
+choice
+	prompt "Transfer technique"
+	default STM32F7_QSPI_DMA
+	---help---
+		You can choose between using polling, interrupts, or DMA to transfer data
+		over the QSPI interface.
+
+config STM32F7_QSPI_POLLING
+	bool "Polling"
+	---help---
+		Use conventional register I/O with status polling to transfer data.
+
+config STM32F7_QSPI_INTERRUPTS
+	bool "Interrupts"
+	---help---
+		User interrupt driven I/O transfers.
+
+config STM32F7_QSPI_DMA
+	bool "DMA"
+	depends on STM32F7_DMA
+	---help---
+		Use DMA to improve QSPI transfer performance.
+
+endchoice
+
+choice
+	prompt "Bank selection"
+	default STM32F7_QSPI_MODE_BANK1
+	---help---
+		You can choose between using polling, interrupts, or DMA to transfer data
+		over the QSPI interface.
+
+config STM32F7_QSPI_MODE_BANK1
+	bool "Bank 1"
+
+config STM32F7_QSPI_MODE_BANK2
+	bool "Bank 2"
+
+config STM32F7_QSPI_MODE_DUAL
+	bool "Dual Bank"
+
+endchoice
+
+choice
+	prompt "DMA Priority"
+	default STM32F7_QSPI_DMAPRIORITY_MEDIUM
+	depends on STM32F7_DMA
+	---help---
+		The DMA controller supports priority levels.  You are probably fine
+		with the default of 'medium' except for special cases.  In the event
+		of contention between to channels at the same priority, the lower
+		numbered channel has hardware priority over the higher numbered one.
+
+config STM32F7_QSPI_DMAPRIORITY_VERYHIGH
+	bool "Very High priority"
+	depends on STM32F7_DMA
+	---help---
+		'Highest' priority.
+
+config STM32F7_QSPI_DMAPRIORITY_HIGH
+	bool "High priority"
+	depends on STM32F7_DMA
+	---help---
+		'High' priority.
+
+config STM32F7_QSPI_DMAPRIORITY_MEDIUM
+	bool "Medium priority"
+	depends on STM32F7_DMA
+	---help---
+		'Medium' priority.
+
+config STM32F7_QSPI_DMAPRIORITY_LOW
+	bool "Low priority"
+	depends on STM32F7_DMA
+	---help---
+		'Low' priority.
+
+endchoice
+
+config STM32F7_QSPI_DMATHRESHOLD
+	int "QSPI DMA threshold"
+	default 4
+	depends on STM32F7_QSPI_DMA
+	---help---
+		When QSPI DMA is enabled, small DMA transfers will still be performed
+		by polling logic.  This value is the threshold below which transfers
+		will still be performed by conventional register status polling.
+
+config STM32F7_QSPI_DMADEBUG
+	bool "QSPI DMA transfer debug"
+	depends on STM32F7_QSPI_DMA && DEBUG_SPI && DEBUG_DMA
+	default n
+	---help---
+		Enable special debug instrumentation to analyze QSPI DMA data transfers.
+		This logic is as non-invasive as possible:  It samples DMA
+		registers at key points in the data transfer and then dumps all of
+		the registers at the end of the transfer.
+
+config STM32F7_QSPI_REGDEBUG
+	bool "QSPI Register level debug"
+	depends on DEBUG_SPI_INFO
+	default n
+	---help---
+		Output detailed register-level QSPI device debug information.
+		Requires also CONFIG_DEBUG_SPI_INFO.
+
+endmenu
+
 menu "SPI Configuration"
 	depends on STM32F7_SPI
 
@@ -1955,6 +2103,48 @@ config STM32F7_SPI_DMA
 	default n
 	---help---
 		Use DMA to improve SPI transfer performance.  Cannot be used with STM32F7_SPI_INTERRUPT.
+		
+config STM32F7_SPI1_DMA
+	bool "SPI1 DMA"
+	default n
+	depends on STM32F7_SPI1 && STM32F7_SPI_DMA
+	---help---
+		Use DMA to improve SPI1 transfer performance.
+
+config STM32F7_SPI2_DMA
+	bool "SPI2 DMA"
+	default n
+	depends on STM32F7_SPI2 && STM32F7_SPI_DMA
+	---help---
+		Use DMA to improve SPI2 transfer performance.
+
+config STM32F7_SPI3_DMA
+	bool "SPI3 DMA"
+	default n
+	depends on STM32F7_SPI3 && STM32F7_SPI_DMA
+	---help---
+		Use DMA to improve SPI3 transfer performance.
+
+config STM32F7_SPI4_DMA
+	bool "SPI4 DMA"
+	default n
+	depends on STM32F7_SPI4 && STM32F7_SPI_DMA
+	---help---
+		Use DMA to improve SPI4 transfer performance.
+
+config STM32F7_SPI5_DMA
+	bool "SPI5 DMA"
+	default n
+	depends on STM32F7_SPI5 && STM32F7_SPI_DMA
+	---help---
+		Use DMA to improve SPI5 transfer performance.
+
+config STM32F7_SPI6_DMA
+	bool "SPI6 DMA"
+	default n
+	depends on STM32F7_SPI6 && STM32F7_SPI_DMA
+	---help---
+		Use DMA to improve SPI6 transfer performance.
 
 endmenu # "SPI Configuration"
 
@@ -2019,13 +2209,6 @@ config STM32F7_SDMMC_DMA
 menu "SDMMC1 Configuration"
 	depends on STM32F7_SDMMC1
 
-config STM32F7_SDMMC1_PRI
-	hex "SDMMC1 interrupt priority"
-	default 128
-	depends on ARCH_IRQPRIO && EXPERIMENTAL
-	---help---
-		Select SDMMC1 interrupt priority.  Default: 128.
-
 config STM32F7_SDMMC1_DMAPRIO
 	hex "SDMMC1 DMA priority"
 	default 0x00010000
@@ -2061,13 +2244,6 @@ endmenu # "SDMMC1 Configuration"
 
 menu "SDMMC2 Configuration"
 	depends on STM32F7_SDMMC2
-
-config STM32F7_SDMMC2_PRI
-	hex "SDMMC2 interrupt priority"
-	default 128
-	depends on ARCH_IRQPRIO && EXPERIMENTAL
-	---help---
-		Select SDMMC2 interrupt priority.  Default: 128.
 
 config STM32F7_SDMMC2_DMAPRIO
 	hex "SDMMC2 DMA priority"
@@ -2168,6 +2344,31 @@ config STM32F7_RTC_LSICLOCK
 		Drive the RTC with the LSI clock
 
 endchoice #"RTC clock source"
+
+if STM32F7_RTC_LSECLOCK
+
+config STM32F7_RTC_LSECLOCK_START_DRV_CAPABILITY
+	int "LSE oscillator drive capability level at LSE start-up"
+	default 0
+	range 0 3
+	---help---
+		0 = Low drive capability (default)
+		1 = Medium high drive capability
+		2 = Medium low drive capability
+		3 = High drive capability
+
+config STM32F7_RTC_LSECLOCK_RUN_DRV_CAPABILITY
+	int "LSE oscillator drive capability level after LSE start-up"
+	default 0
+	range 0 3
+	---help---
+		0 = Low drive capability (default)
+		1 = Medium high drive capability
+		2 = Medium low drive capability
+		3 = High drive capability
+
+endif # STM32F7_RTC_LSECLOCK
+
 endmenu # RTC Configuration
 
 config STM32F7_CUSTOM_CLOCKCONFIG
@@ -4702,6 +4903,52 @@ config STM32F7_TIM14_CAP
 
 endmenu # Timer Configuration
 
+menu "CAN driver configuration"
+	depends on STM32F7_CAN
+
+config STM32F7_CAN1_BAUD
+	int "CAN1 BAUD"
+	default 250000
+	depends on STM32F7_CAN1
+	---help---
+		CAN1 BAUD rate.  Required if CONFIG_STM32F7_CAN1 is defined.
+
+config STM32F7_CAN2_BAUD
+	int "CAN2 BAUD"
+	default 250000
+	depends on STM32F7_CAN2
+	---help---
+		CAN2 BAUD rate.  Required if CONFIG_STM32F7_CAN2 is defined.
+
+config STM32F7_CAN3_BAUD
+	int "CAN3 BAUD"
+	default 250000
+	depends on STM32F7_CAN3
+	---help---
+		CAN2 BAUD rate.  Required if CONFIG_STM32F7_CAN2 is defined.
+
+config STM32F7_CAN_TSEG1
+	int "TSEG1 quanta"
+	default 6
+	---help---
+		The number of CAN time quanta in segment 1. Default: 6
+
+config STM32F7_CAN_TSEG2
+	int "TSEG2 quanta"
+	default 7
+	---help---
+		The number of CAN time quanta in segment 2. Default: 7
+
+config STM32F7_CAN_REGDEBUG
+	bool "CAN Register level debug"
+	depends on DEBUG_CAN_INFO
+	default n
+	---help---
+		Output detailed register-level CAN device debug information.
+		Requires also CONFIG_DEBUG_CAN_INFO.
+
+endmenu
+
 menu "ADC Configuration"
 	depends on STM32F7_ADC
 
@@ -4924,26 +5171,6 @@ config STM32F7_RMII_EXTCLK
 		Clocking is provided by external logic.
 
 endchoice # RMII clock configuration
-
-choice
-	prompt "Work queue"
-	default STM32F7_ETHMAC_LPWORK if SCHED_LPWORK
-	default STM32F7_ETHMAC_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
-	depends on SCHED_WORKQUEUE
-	---help---
-		Work queue support is required to use the Ethernet driver.  If the
-		low priority work queue is available, then it should be used by the
-		driver.
-
-config STM32F7_ETHMAC_HPWORK
-	bool "High priority"
-	depends on SCHED_HPWORK
-
-config STM32F7_ETHMAC_LPWORK
-	bool "Low priority"
-	depends on SCHED_LPWORK
-
-endchoice # Work queue
 
 config STM32F7_ETHMAC_REGDEBUG
 	bool "Register-Level Debug"
@@ -5255,5 +5482,182 @@ config STM32F7_DMA2D_REGDEBUG
 
 endmenu
 endif # STM32F7_DMA2D
+
+menu "QEncoder Driver"
+	depends on SENSORS_QENCODER
+	depends on STM32F7_TIM1 || STM32F7_TIM2 || STM32F7_TIM3 || STM32F7_TIM4 || STM32F7_TIM5 || STM32F7_TIM8
+
+config STM32F7_TIM1_QE
+	bool "TIM1"
+	default n
+	depends on STM32F7_TIM1
+	---help---
+		Reserve TIM1 for use by QEncoder.
+
+if STM32F7_TIM1_QE
+
+config STM32F7_TIM1_QEPSC
+	int "TIM1 pulse prescaler"
+	default 1
+	---help---
+		This prescaler divides the number of recorded encoder pulses,
+		limiting the count rate at the expense of resolution.
+
+endif
+
+config STM32F7_TIM2_QE
+	bool "TIM2"
+	default n
+	depends on STM32F7_TIM2
+	---help---
+		Reserve TIM2 for use by QEncoder.
+
+if STM32F7_TIM2_QE
+
+config STM32F7_TIM2_QEPSC
+	int "TIM2 pulse prescaler"
+	default 1
+	---help---
+		This prescaler divides the number of recorded encoder pulses,
+		limiting the count rate at the expense of resolution.
+
+endif
+
+config STM32F7_TIM3_QE
+	bool "TIM3"
+	default n
+	depends on STM32F7_TIM3
+	---help---
+		Reserve TIM3 for use by QEncoder.
+
+if STM32F7_TIM3_QE
+
+config STM32F7_TIM3_QEPSC
+	int "TIM3 pulse prescaler"
+	default 1
+	---help---
+		This prescaler divides the number of recorded encoder pulses,
+		limiting the count rate at the expense of resolution.
+
+endif
+
+config STM32F7_TIM4_QE
+	bool "TIM4"
+	default n
+	depends on STM32F7_TIM4
+	---help---
+		Reserve TIM4 for use by QEncoder.
+
+if STM32F7_TIM4_QE
+
+config STM32F7_TIM4_QEPSC
+	int "TIM4 pulse prescaler"
+	default 1
+	---help---
+		This prescaler divides the number of recorded encoder pulses,
+		limiting the count rate at the expense of resolution.
+
+endif
+
+config STM32F7_TIM5_QE
+	bool "TIM5"
+	default n
+	depends on STM32F7_TIM5
+	---help---
+		Reserve TIM5 for use by QEncoder.
+
+if STM32F7_TIM5_QE
+
+config STM32F7_TIM5_QEPSC
+	int "TIM5 pulse prescaler"
+	default 1
+	---help---
+		This prescaler divides the number of recorded encoder pulses,
+		limiting the count rate at the expense of resolution.
+
+endif
+
+config STM32F7_TIM8_QE
+	bool "TIM8"
+	default n
+	depends on STM32F7_TIM8
+	---help---
+		Reserve TIM8 for use by QEncoder.
+
+if STM32F7_TIM8_QE
+
+config STM32F7_TIM8_QEPSC
+	int "TIM8 pulse prescaler"
+	default 1
+	---help---
+		This prescaler divides the number of recorded encoder pulses,
+		limiting the count rate at the expense of resolution.
+
+endif
+
+config STM32F7_QENCODER_FILTER
+	bool "Enable filtering on STM32 QEncoder input"
+	default y
+
+choice
+	depends on STM32F7_QENCODER_FILTER
+	prompt "Input channel sampling frequency"
+	default STM32F7_QENCODER_SAMPLE_FDTS_4
+
+config STM32F7_QENCODER_SAMPLE_FDTS
+	bool "fDTS"
+
+config STM32F7_QENCODER_SAMPLE_CKINT
+	bool "fCK_INT"
+
+config STM32F7_QENCODER_SAMPLE_FDTS_2
+	bool "fDTS/2"
+
+config STM32F7_QENCODER_SAMPLE_FDTS_4
+	bool "fDTS/4"
+
+config STM32F7_QENCODER_SAMPLE_FDTS_8
+	bool "fDTS/8"
+
+config STM32F7_QENCODER_SAMPLE_FDTS_16
+	bool "fDTS/16"
+
+config STM32F7_QENCODER_SAMPLE_FDTS_32
+	bool "fDTS/32"
+
+endchoice
+
+choice
+	depends on STM32F7_QENCODER_FILTER
+	prompt "Input channel event count"
+	default STM32F7_QENCODER_SAMPLE_EVENT_6
+
+config STM32F7_QENCODER_SAMPLE_EVENT_1
+	depends on STM32F7_QENCODER_SAMPLE_FDTS
+	bool "1"
+
+config STM32F7_QENCODER_SAMPLE_EVENT_2
+	depends on STM32F7_QENCODER_SAMPLE_CKINT
+	bool "2"
+
+config STM32F7_QENCODER_SAMPLE_EVENT_4
+	depends on STM32F7_QENCODER_SAMPLE_CKINT
+	bool "4"
+
+config STM32F7_QENCODER_SAMPLE_EVENT_5
+	depends on STM32F7_QENCODER_SAMPLE_FDTS_16 || STM32F7_QENCODER_SAMPLE_FDTS_32
+	bool "5"
+
+config STM32F7_QENCODER_SAMPLE_EVENT_6
+	depends on !STM32F7_QENCODER_SAMPLE_FDTS && !STM32F7_QENCODER_SAMPLE_CKINT
+	bool "6"
+
+config STM32F7_QENCODER_SAMPLE_EVENT_8
+	depends on !STM32F7_QENCODER_SAMPLE_FDTS
+	bool "8"
+
+endchoice
+
+endmenu
 
 endif # ARCH_CHIP_STM32F7

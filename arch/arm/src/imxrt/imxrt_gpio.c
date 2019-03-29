@@ -50,6 +50,7 @@
 #include "up_arch.h"
 #include "imxrt_iomuxc.h"
 #include "imxrt_gpio.h"
+#include "chip/imxrt_daisy.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -263,6 +264,12 @@ static FAR const uint8_t *g_gpio_padmux[IMXRT_GPIO_NPORTS + 1] =
   g_gpio3_padmux,                             /* GPIO3 */
   g_gpio4_padmux,                             /* GPIO4 */
   g_gpio5_padmux,                             /* GPIO5 */
+#if IMXRT_GPIO_NPORTS > 5
+  g_gpio1_padmux,                             /* GPIO6 */
+  g_gpio2_padmux,                             /* GPIO7 */
+  g_gpio3_padmux,                             /* GPIO8 */
+  g_gpio4_padmux,                             /* GPIO9 */
+#endif
   NULL                                        /* End of list */
 };
 
@@ -270,7 +277,7 @@ static FAR const uint8_t *g_gpio_padmux[IMXRT_GPIO_NPORTS + 1] =
  * Public Data
  ************************************************************************************/
 
-/* Look-up table that maps GPIO1..GPIO5 indexes into GPIO register base addresses */
+/* Look-up table that maps GPIO1..GPIOn indexes into GPIO register base addresses */
 
 uintptr_t g_gpio_base[IMXRT_GPIO_NPORTS] =
 {
@@ -287,6 +294,18 @@ uintptr_t g_gpio_base[IMXRT_GPIO_NPORTS] =
 #if IMXRT_GPIO_NPORTS > 4
   , IMXRT_GPIO5_BASE
 #endif
+#if IMXRT_GPIO_NPORTS > 5
+  , IMXRT_GPIO6_BASE
+#endif
+#if IMXRT_GPIO_NPORTS > 6
+  , IMXRT_GPIO7_BASE
+#endif
+#if IMXRT_GPIO_NPORTS > 7
+  , IMXRT_GPIO8_BASE
+#endif
+#if IMXRT_GPIO_NPORTS > 8
+  , IMXRT_GPIO9_BASE
+#endif
 };
 
 /****************************************************************************
@@ -299,6 +318,12 @@ uintptr_t g_gpio_base[IMXRT_GPIO_NPORTS] =
 
 static uintptr_t imxrt_padmux_address(unsigned int index)
 {
+#if defined(IMXRT_PAD1MUX_OFFSET)
+  if (index >= IMXRT_PADMUX_GPIO_SPI_B0_00_INDEX)
+    {
+      return (IMXRT_PAD1MUX_OFFSET(index - IMXRT_PADMUX_GPIO_SPI_B0_00_INDEX));
+    }
+#endif
   if (index >= IMXRT_PADMUX_WAKEUP_INDEX)
     {
       return (IMXRT_PADMUX_ADDRESS_SNVS(index - IMXRT_PADMUX_WAKEUP_INDEX));
@@ -313,6 +338,12 @@ static uintptr_t imxrt_padmux_address(unsigned int index)
 
 static uintptr_t imxrt_padctl_address(unsigned int index)
 {
+#if defined(IMXRT_PAD1CTL_OFFSET)
+  if (index >= IMXRT_PADCTL_GPIO_SPI_B0_00_INDEX)
+    {
+      return (IMXRT_PAD1CTL_OFFSET(index - IMXRT_PADCTL_GPIO_SPI_B0_00_INDEX));
+    }
+#endif
   if (index >= IMXRT_PADCTL_WAKEUP_INDEX)
     {
       return (IMXRT_PADCTL_ADDRESS_SNVS(index - IMXRT_PADCTL_WAKEUP_INDEX));
@@ -379,6 +410,51 @@ static inline bool imxrt_gpio_getinput(int port, int pin)
 }
 
 /****************************************************************************
+ * Name: imxrt_gpio_select
+ * GPIO{1234}(l) and GPIO{6789}(h) share same IO MUX function, GPIO_MUXn
+ * selects one GPIO function.
+ * 0: GPIOl[n] is selected
+ * 1: GPIOh[n] is selected
+ ****************************************************************************/
+
+static inline int imxrt_gpio_select(int port, int pin)
+{
+#if IMXRT_GPIO_NPORTS > 5
+  uint32_t gpr = port;
+  uint32_t setbits = 1 << pin;
+  uint32_t clearbits = 1 << pin;
+  uintptr_t regaddr = (uintptr_t) IMXRT_IOMUXC_GPR_GPR26;
+
+  if (port != GPIO5)
+    {
+      /* Uses GPR26 as the base */
+
+      if (port >= GPIO6)
+        {
+          /* Map port to correct gpr index and set the GPIO_MUX3_GPIO[b]_SEL
+           * bit
+           */
+
+          gpr = port - GPIO6;
+          clearbits = 0;
+        }
+      else
+        {
+          /* The port is correct gpr index, so just clear the
+           * GPIO_MUX3_GPIO[b]_SEL bit.
+           */
+
+          setbits = 0;
+        }
+
+      regaddr |= gpr * sizeof(uint32_t);
+      modifyreg32(regaddr, clearbits, setbits);
+    }
+#endif
+  return OK;
+}
+
+/****************************************************************************
  * Name: imxrt_gpio_configinput
  ****************************************************************************/
 
@@ -410,9 +486,10 @@ static int imxrt_gpio_configinput(gpio_pinset_t pinset)
     {
       return -EINVAL;
     }
-
   regaddr = imxrt_padmux_address(index);
   putreg32(PADMUX_MUXMODE_ALT5, regaddr);
+
+  imxrt_gpio_select(port, pin);
 
   /* Configure pin pad settings */
 
@@ -458,25 +535,25 @@ static inline int imxrt_gpio_configperiph(gpio_pinset_t pinset)
   iomux_pinset_t ioset;
   uintptr_t regaddr;
   uint32_t regval;
-  uint32_t value;
+  uint32_t alt;
   unsigned int index;
 
-  /* Configure pin as a peripheral */
+  /* Configure pin as a peripheral via SW MUX Control Register */
 
   index   = ((pinset & GPIO_PADMUX_MASK) >> GPIO_PADMUX_SHIFT);
   regaddr = imxrt_padmux_address(index);
 
-  value   = ((pinset & GPIO_ALT_MASK) >> GPIO_ALT_SHIFT);
-#if GPIO_SION_SHIFT >= PADMUX_SION_SHIFT
-  value  |= ((pinset & GPIO_SION_MASK) >> (GPIO_SION_SHIFT - PADMUX_SION_SHIFT));
-#else
-  value  |= ((pinset & GPIO_SION_MASK) << (PADMUX_SION_SHIFT - GPIO_SION_SHIFT));
-#endif
-  regval  = (value << PADMUX_MUXMODE_SHIFT);
+  alt     = (pinset & GPIO_ALT_MASK) >> GPIO_ALT_SHIFT;
+  regval  = alt << PADMUX_MUXMODE_SHIFT;
+  regval |= (pinset & GPIO_SION_MASK) ? PADMUX_SION : 0;
 
   putreg32(regval, regaddr);
 
-  /* Configure pin pad settings */
+  /* Configure pin Daisy Select Input Daisy Register */
+
+  imxrt_daisy_select(index, alt);
+
+  /* Configure pin pad settings SW PAD Control Register*/
 
   index = imxrt_padmux_map(index);
   if (index >= IMXRT_PADCTL_NREGISTERS)

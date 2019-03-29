@@ -124,7 +124,6 @@ int daemon(int nochdir, int noclose)
     }
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
   if (noclose == 0)
     {
       int fd = open("/dev/null", O_RDWR);
@@ -133,12 +132,13 @@ int daemon(int nochdir, int noclose)
           return -1;
         }
 
+#if CONFIG_NFILE_STREAMS > 0
       /* Make sure the stdin, stdout, and stderr are closed */
 
       (void)fclose(stdin);
       (void)fclose(stdout);
       (void)fclose(stderr);
-
+#endif
       /* Dup the fd to create standard fd 0-2 */
 
       (void)dup2(fd, 0);
@@ -168,7 +168,6 @@ int daemon(int nochdir, int noclose)
          (void)close(fd);
        }
     }
-#endif
 
   return OK;
 }

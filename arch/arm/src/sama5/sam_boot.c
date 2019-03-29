@@ -43,6 +43,7 @@
 #include <assert.h>
 #include <debug.h>
 
+#include <nuttx/cache.h>
 #ifdef CONFIG_PAGING
 #  include <nuttx/page.h>
 #endif
@@ -52,7 +53,6 @@
 #include "chip.h"
 #include "arm.h"
 #include "mmu.h"
-#include "cache.h"
 #include "fpu.h"
 #include "up_internal.h"
 #include "up_arch.h"
@@ -92,14 +92,7 @@ extern uint32_t _vector_end;   /* End+1 of vector block */
 #ifndef CONFIG_ARCH_ROMPGTABLE
 static inline void sam_setupmappings(void)
 {
-  int i;
-
-  /* Set up each group of section mappings */
-
-  for (i = 0; i < g_num_mappings; i++)
-    {
-      mmu_l1_map_region(&g_section_mapping[i]);
-    }
+  mmu_l1_map_regions(g_section_mapping, g_num_mappings);
 }
 #endif
 
@@ -114,14 +107,7 @@ static inline void sam_setupmappings(void)
 #ifdef NEED_SDRAM_REMAPPING
 static inline void sam_remap(void)
 {
-  int i;
-
-  /* Re-map each group of section */
-
-  for (i = 0; i < g_num_opmappings; i++)
-    {
-      mmu_l1_map_region(&g_operational_mapping[i]);
-    }
+  mmu_l1_map_regions(g_operational_mapping, g_num_opmappings);
 }
 #endif
 
@@ -283,8 +269,8 @@ static void sam_copyvectorblock(void)
 #else
   /* Flush the DCache to assure that the vector data is in physical in ISRAM */
 
-  arch_clean_dcache((uintptr_t)SAM_VECTOR_VSRAM,
-                    (uintptr_t)SAM_VECTOR_VSRAM + sam_vectorsize());
+  up_clean_dcache((uintptr_t)SAM_VECTOR_VSRAM,
+                  (uintptr_t)SAM_VECTOR_VSRAM + sam_vectorsize());
 #endif
 }
 
@@ -457,7 +443,7 @@ void arm_boot(void)
    * be available when fetched into the I-Cache.
    */
 
-  arch_clean_dcache((uintptr_t)&_sramfuncs, (uintptr_t)&_eramfuncs)
+  up_clean_dcache((uintptr_t)&_sramfuncs, (uintptr_t)&_eramfuncs)
 #endif
 
   /* Setup up vector block.  _vector_start and _vector_end are exported from

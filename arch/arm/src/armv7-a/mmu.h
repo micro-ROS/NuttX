@@ -2,7 +2,7 @@
  * arch/arm/src/armv7-a/mmu.h
  * CP15 MMU register definitions
  *
- *   Copyright (C) 2013-2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013-2014, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
@@ -596,6 +596,9 @@
 #define MMU_L2_UALLOCFLAGS    (PTE_TYPE_SMALL | PTE_WRITE_BACK | PTE_AP_RW01)
 #define MMU_L2_KALLOCFLAGS    (PTE_TYPE_SMALL | PTE_WRITE_BACK | PTE_AP_RW1)
 
+#define MMU_L2_IOFLAGS        (PTE_TYPE_SMALL | PTE_DEVICE | PTE_AP_RW1)
+#define MMU_L2_STRONGLY_ORDER (PTE_TYPE_SMALL | PTE_STRONGLY_ORDER | PTE_AP_RW1)
+
 #define MMU_L1_PGTABFLAGS     (PMD_TYPE_PTE | PMD_PTE_PXN | PTE_WRITE_THROUGH | \
                                PMD_PTE_DOM(0))
 #define MMU_L2_PGTABFLAGS     (PTE_TYPE_SMALL | PTE_WRITE_THROUGH | PTE_AP_RW1)
@@ -941,7 +944,11 @@ struct section_mapping_s
 
 	.macro	cp15_invalidate_tlb_bymva, vaddr
 	dsb
+#if defined(CONFIG_ARCH_CORTEXA8)
+	mcr		p15, 0, \vaddr, c8, c7, 1	/* TLBIMVA */
+#else
 	mcr		p15, 0, \vaddr, c8, c3, 3	/* TLBIMVAAIS */
+#endif
 	dsb
 	isb
 	.endm
@@ -970,7 +977,7 @@ struct section_mapping_s
 	.endm
 
 /************************************************************************************
- * Name: cp14_wrttb
+ * Name: cp15_wrttb
  *
  * Description:
  *   The ARMv7-aA architecture supports two translation tables.  This
@@ -984,7 +991,7 @@ struct section_mapping_s
  *
  ************************************************************************************/
 
-	.macro	cp14_wrttb, ttb, scratch
+	.macro	cp15_wrttb, ttb, scratch
 	mcr		p15, 0, \ttb, c2, c0, 0
 	nop
 	nop
@@ -1220,7 +1227,11 @@ static inline void cp15_invalidate_tlb_bymva(uint32_t vaddr)
   __asm__ __volatile__
     (
       "\tdsb\n"
+#if defined(CONFIG_ARCH_CORTEXA8)
+      "\tmcr p15, 0, %0, c8, c7, 1\n" /* TLBIMVA */
+#else
       "\tmcr p15, 0, %0, c8, c3, 3\n" /* TLBIMVAAIS */
+#endif
       "\tdsb\n"
       "\tisb\n"
       :
@@ -1244,7 +1255,7 @@ static inline void cp15_wrdacr(unsigned int dacr)
 {
   __asm__ __volatile__
     (
-      "\tmcr p15, 0,0, c3, c0, 0\n"
+      "\tmcr p15, 0, %0, c3, c0, 0\n"
       "\tnop\n"
       "\tnop\n"
       "\tnop\n"
@@ -1260,7 +1271,7 @@ static inline void cp15_wrdacr(unsigned int dacr)
 }
 
 /************************************************************************************
- * Name: cp14_wrttb
+ * Name: cp15_wrttb
  *
  * Description:
  *   The ARMv7-aA architecture supports two translation tables.  This
@@ -1274,11 +1285,11 @@ static inline void cp15_wrdacr(unsigned int dacr)
  *
  ************************************************************************************/
 
-static inline void cp14_wrttb(unsigned int ttb)
+static inline void cp15_wrttb(unsigned int ttb)
 {
   __asm__ __volatile__
     (
-      "\tmcr p15, 0,0, c2, c0, 0\n"
+      "\tmcr p15, 0, %0, c2, c0, 0\n"
       "\tnop\n"
       "\tnop\n"
       "\tnop\n"
@@ -1444,20 +1455,37 @@ void mmu_l2_setentry(uint32_t l2vaddr, uint32_t paddr, uint32_t vaddr,
                      uint32_t mmuflags);
 #endif
 
-/************************************************************************************
+/****************************************************************************
  * Name: mmu_l1_map_region
  *
  * Description:
- *   Set multiple level 1 translation table entries in order to map a region of
- *   memory.
+ *   Set multiple level 1 translation table entries in order to map a region
+ *   of memory.
  *
  * Input Parameters:
  *   mapping - Describes the mapping to be performed.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 #ifndef CONFIG_ARCH_ROMPGTABLE
 void mmu_l1_map_region(const struct section_mapping_s *mapping);
+#endif
+
+/****************************************************************************
+ * Name: mmu_l1_map_regions
+ *
+ * Description:
+ *   Set multiple level 1 translation table entries in order to map a region
+ *   array of memory.
+ *
+ * Input Parameters:
+ *   mappings - Describes the array of mappings to be performed.
+ *   count    - The number of mappings to be performed.
+ *
+ ****************************************************************************/
+#ifndef CONFIG_ARCH_ROMPGTABLE
+void mmu_l1_map_regions(const struct section_mapping_s *mappings,
+                        size_t count);
 #endif
 
 /****************************************************************************

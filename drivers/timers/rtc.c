@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+#include <semaphore.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -58,15 +59,16 @@
 struct rtc_alarminfo_s
 {
   bool active;            /* True: alarm is active */
-  uint8_t signo;          /* Signal number for alarm notification */
   pid_t pid;              /* Identifies task to be notified */
-  union sigval sigvalue;  /* Data passed with notification */
+  struct sigevent event;  /* Describe the way a task is to be notified */
+  struct sigwork_s work;  /* Signal work */
 };
 #endif
 
 struct rtc_upperhalf_s
 {
   FAR struct rtc_lowerhalf_s *lower;  /* Contained lower half driver */
+  sem_t exclsem;                      /* Supports mutual exclusion */
 
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   uint8_t crefs;                      /* Number of open references */
@@ -160,8 +162,7 @@ static const struct file_operations rtc_fops =
 static void rtc_destroy(FAR struct rtc_upperhalf_s *upper)
 {
   /* If the lower half driver provided a destroy method, then call that
-   * method now in order order to clean up resources used by the lower-half
-   * driver.
+   * method now in order to clean up resources used by the lower-half driver.
    */
 
   DEBUGASSERT(upper->lower && upper->lower->ops);
@@ -172,6 +173,7 @@ static void rtc_destroy(FAR struct rtc_upperhalf_s *upper)
 
   /* And free our container */
 
+  nxsem_destroy(&upper->exclsem);
   kmm_free(upper);
 }
 #endif
@@ -198,13 +200,8 @@ static void rtc_alarm_callback(FAR void *priv, int alarmid)
     {
       /* Yes.. signal the alarm expiration */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-      (void)nxsig_queue(alarminfo->pid, alarminfo->signo,
-                        alarminfo->sigvalue);
-#else
-      (void)nxsig_queue(alarminfo->pid, alarminfo->signo,
-                        alarminfo->sigvalue->sival_ptr);
-#endif
+      nxsig_notification(alarminfo->pid, &alarminfo->event,
+                         SI_QUEUE, &alarminfo->work);
     }
 
   /* The alarm is no longer active */
@@ -235,13 +232,8 @@ static void rtc_periodic_callback(FAR void *priv, int alarmid)
     {
       /* Yes.. signal the alarm expiration */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-      (void)nxsig_queue(alarminfo->pid, alarminfo->signo,
-                        alarminfo->sigvalue);
-#else
-      (void)nxsig_queue(alarminfo->pid, alarminfo->signo,
-                        alarminfo->sigvalue->sival_ptr);
-#endif
+      nxsig_notification(alarminfo->pid, &alarminfo->event,
+                         SI_QUEUE, &alarminfo->work);
     }
 
   /* The alarm is no longer active */
@@ -259,6 +251,7 @@ static int rtc_open(FAR struct file *filep)
 {
   FAR struct inode *inode;
   FAR struct rtc_upperhalf_s *upper;
+  int ret;
 
   /* Get the reference to our internal state structure from the inode
    * structure.
@@ -269,10 +262,19 @@ static int rtc_open(FAR struct file *filep)
   DEBUGASSERT(inode && inode->i_private);
   upper = inode->i_private;
 
+  /* Get exclusive access to the device structures */
+
+  ret = nxsem_wait(&upper->exclsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   /* Increment the count of open references on the RTC driver */
 
   upper->crefs++;
   DEBUGASSERT(upper->crefs > 0);
+  nxsem_post(&upper->exclsem);
   return OK;
 }
 #endif
@@ -286,6 +288,7 @@ static int rtc_close(FAR struct file *filep)
 {
   FAR struct inode *inode;
   FAR struct rtc_upperhalf_s *upper;
+  int ret;
 
   /* Get the reference to our internal state structure from the inode
    * structure.
@@ -296,10 +299,19 @@ static int rtc_close(FAR struct file *filep)
   DEBUGASSERT(inode && inode->i_private);
   upper = inode->i_private;
 
+  /* Get exclusive access to the device structures */
+
+  ret = nxsem_wait(&upper->exclsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   /* Decrement the count of open references on the RTC driver */
 
   DEBUGASSERT(upper->crefs > 0);
   upper->crefs--;
+  nxsem_post(&upper->exclsem);
 
   /* If the count has decremented to zero and the driver has been unlinked,
    * then commit Hara-Kiri now.
@@ -327,7 +339,8 @@ static ssize_t rtc_read(FAR struct file *filep, FAR char *buffer, size_t len)
  * Name: rtc_write
  ****************************************************************************/
 
-static ssize_t rtc_write(FAR struct file *filep, FAR const char *buffer, size_t len)
+static ssize_t rtc_write(FAR struct file *filep, FAR const char *buffer,
+                         size_t len)
 {
   return len; /* Say that everything was written */
 }
@@ -353,6 +366,14 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   upper = inode->i_private;
   DEBUGASSERT(upper->lower && upper->lower->ops);
 
+  /* Get exclusive access to the device structures */
+
+  ret = nxsem_wait(&upper->exclsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   /* We simply forward all ioctl() commands to the lower half.  The upper
    * half is nothing more than a thin driver shell over the lower level
    * RTC implementation.
@@ -369,7 +390,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
     case RTC_RD_TIME:
       {
-        FAR struct rtc_time *rtctime = (FAR struct rtc_time *)((uintptr_t)arg);
+        FAR struct rtc_time *rtctime =
+          (FAR struct rtc_time *)((uintptr_t)arg);
 
         if (ops->rdtime)
           {
@@ -465,9 +487,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
              */
 
             upperinfo->active   = true;
-            upperinfo->signo    = alarminfo->signo;
             upperinfo->pid      = pid;
-            upperinfo->sigvalue = alarminfo->sigvalue;
+            upperinfo->event    = alarminfo->event;
 
             /* Format the alarm info needed by the lower half driver */
 
@@ -489,8 +510,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
     /* RTC_SET_RELATIVE sets the alarm time relative to the current time.
      *
-     * Argument: A read-only reference to a struct rtc_setrelative_s containing the
-     *           new relative alarm time to be set.
+     * Argument: A read-only reference to a struct rtc_setrelative_s
+     *           containing the new relative alarm time to be set.
      */
 
     case RTC_SET_RELATIVE:
@@ -537,9 +558,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
              */
 
             upperinfo->active   = true;
-            upperinfo->signo    = alarminfo->signo;
             upperinfo->pid      = pid;
-            upperinfo->sigvalue = alarminfo->sigvalue;
+            upperinfo->event    = alarminfo->event;
 
             /* Format the alarm info needed by the lower half driver */
 
@@ -580,6 +600,7 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             if (ret == OK)
               {
                 upperinfo->active = false;
+                nxsig_cancel_notification(&upperinfo->work);
               }
           }
       }
@@ -623,8 +644,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 #ifdef CONFIG_RTC_PERIODIC
     /* RTC_SET_PERIODIC set a periodic wakeup.
      *
-     * Argument: A read-only reference to a struct rtc_setperiodic_s containing the
-     *           new wakeup period to be set.
+     * Argument: A read-only reference to a struct rtc_setperiodic_s
+     *           containing the new wakeup period to be set.
      */
 
     case RTC_SET_PERIODIC:
@@ -671,9 +692,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
              */
 
             upperinfo->active   = true;
-            upperinfo->signo    = alarminfo->signo;
             upperinfo->pid      = pid;
-            upperinfo->sigvalue = alarminfo->sigvalue;
+            upperinfo->event    = alarminfo->event;
 
             /* Format the alarm info needed by the lower half driver. */
 
@@ -713,6 +733,7 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             if (ret == OK)
               {
                 upperinfo->active = false;
+                nxsig_cancel_notification(&upperinfo->work);
               }
           }
       }
@@ -736,6 +757,7 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       break;
     }
 
+  nxsem_post(&upper->exclsem);
   return ret;
 }
 
@@ -747,6 +769,7 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 static int rtc_unlink(FAR struct inode *inode)
 {
   FAR struct rtc_upperhalf_s *upper;
+  int ret;
 
   /* Get the reference to our internal state structure from the inode
    * structure.
@@ -755,9 +778,18 @@ static int rtc_unlink(FAR struct inode *inode)
   DEBUGASSERT(inode && inode->i_private);
   upper = inode->i_private;
 
+  /* Get exclusive access to the device structures */
+
+  ret = nxsem_wait(&upper->exclsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   /* Indicate that the driver has been unlinked */
 
   upper->unlinked = true;
+  nxsem_post(&upper->exclsem);
 
   /* If there are no further open references to the driver, then commit
    * Hara-Kiri now.
@@ -803,7 +835,9 @@ int rtc_initialize(int minor, FAR struct rtc_lowerhalf_s *lower)
 
   /* Allocate an upper half container structure */
 
-  upper = (FAR struct rtc_upperhalf_s *)kmm_zalloc(sizeof(struct rtc_upperhalf_s));
+  upper = (FAR struct rtc_upperhalf_s *)
+    kmm_zalloc(sizeof(struct rtc_upperhalf_s));
+
   if (!upper)
     {
       return -ENOMEM;
@@ -812,6 +846,7 @@ int rtc_initialize(int minor, FAR struct rtc_lowerhalf_s *lower)
   /* Initialize the upper half container */
 
   upper->lower = lower;     /* Contain lower half driver */
+  nxsem_init(&upper->exclsem, 0, 1);
 
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   upper->crefs = 0;         /* No open references */
@@ -829,6 +864,7 @@ int rtc_initialize(int minor, FAR struct rtc_lowerhalf_s *lower)
   ret = register_driver(devpath, &rtc_fops, 0666, upper);
   if (ret < 0)
     {
+      nxsem_destroy(&upper->exclsem);
       kmm_free(upper);
       return ret;
     }

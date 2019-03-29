@@ -53,13 +53,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <signal.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/semaphore.h>
-#include <nuttx/signal.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/clock.h>
 #include <nuttx/wqueue.h>
@@ -109,7 +107,7 @@ static int  ft80x_fade(FAR struct ft80x_dev_s *priv,
               FAR const struct ft80x_fade_s *fade);
 
 static void ft80x_notify(FAR struct ft80x_dev_s *priv,
-              enum ft80x_notify_e event, int value);
+              enum ft80x_notify_e id, int value);
 static void ft80x_interrupt_work(FAR void *arg);
 static int  ft80x_interrupt(int irq, FAR void *context, FAR void *arg);
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
@@ -264,27 +262,20 @@ static int ft80x_fade(FAR struct ft80x_dev_s *priv,
  ****************************************************************************/
 
 static void ft80x_notify(FAR struct ft80x_dev_s *priv,
-                         enum ft80x_notify_e event, int arg)
+                         enum ft80x_notify_e id, int value)
 {
-  FAR struct ft80x_eventinfo_s *info = &priv->notify[event];
-#ifdef CONFIG_CAN_PASS_STRUCTS
-  union sigval value;
-#endif
+  FAR struct ft80x_eventinfo_s *info = &priv->notify[id];
 
   /* Are notifications enabled for this event? */
 
   if (info->enable)
     {
-      DEBUGASSERT(info->signo > 0 && GOOD_SIGNO(info->signo) && info->pid > 0);
+      DEBUGASSERT(info->pid > 0);
 
       /* Yes.. Signal the client */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-      value.sival_int = arg;
-      (void)nxsig_queue(info->pid, info->signo, value);
-#else
-      (void)nxsig_queue(info->pid, info->signo, (FAR void *)arg);
-#endif
+      info->event.sigev_value.sival_int = value;
+      nxsig_notification(info->pid, &info->event, SI_QUEUE, &info->work);
     }
 }
 
@@ -1015,14 +1006,14 @@ static int ft80x_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           FAR struct ft80x_notify_s *notify =
             (FAR struct ft80x_notify_s *)((uintptr_t)arg);
 
-          if (notify == NULL || !GOOD_SIGNO(notify->signo) || notify->pid < 0 ||
-              (unsigned int)notify->event >= FT80X_INT_NEVENTS)
+          if (notify == NULL || notify->pid < 0 ||
+              (unsigned int)notify->id >= FT80X_INT_NEVENTS)
             {
               ret = -EINVAL;
             }
           else
             {
-              FAR struct ft80x_eventinfo_s *info = &priv->notify[notify->event];
+              FAR struct ft80x_eventinfo_s *info = &priv->notify[notify->id];
               uint32_t regval;
 
               /* Are we enabling or disabling */
@@ -1031,7 +1022,7 @@ static int ft80x_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                 {
                   /* Make sure that arguments are valid for the enable */
 
-                  if (notify->signo == 0 || notify->pid == 0)
+                  if (notify->pid == 0)
                     {
                       ret = -EINVAL;
                     }
@@ -1039,14 +1030,14 @@ static int ft80x_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                     {
                       /* Setup the new notification information */
 
-                      info->signo  = notify->signo;
+                      info->event  = notify->event;
                       info->pid    = notify->pid;
                       info->enable = true;
 
                       /* Enable interrupts associated with the event */
 
                       regval  = ft80x_read_word(priv, FT80X_REG_INT_MASK);
-                      regval |= (1 << notify->event);
+                      regval |= (1 << notify->id);
                       ft80x_write_word(priv, FT80X_REG_INT_MASK, regval);
                       ret = OK;
                     }
@@ -1055,15 +1046,18 @@ static int ft80x_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                 {
                   /* Disable the notification */
 
-                  info->signo  = 0;
                   info->pid    = 0;
                   info->enable = false;
 
                   /* Disable interrupts associated with the event */
 
                   regval  = ft80x_read_word(priv, FT80X_REG_INT_MASK);
-                  regval &= ~(1 << notify->event);
+                  regval &= ~(1 << notify->id);
                   ft80x_write_word(priv, FT80X_REG_INT_MASK, regval);
+
+                  /* Cancel any pending notification */
+
+                  nxsig_cancel_notification(&info->work);
                   ret = OK;
                 }
             }

@@ -40,7 +40,11 @@ include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 ifeq ($(CONFIG_LC823450_IPL2),y)
   LDSCRIPT = ld-ipl2.script
 else
+ifeq ($(CONFIG_LC823450_SPIFI_BOOT),y)
+  LDSCRIPT = ld-spif-boot.script
+else
   LDSCRIPT = ld.script
+endif
 endif
 
 ifeq ($(WINTOOL),y)
@@ -80,7 +84,7 @@ ifneq ($(CONFIG_DEBUG_NOOPT),y)
   ARCHOPTIMIZATION += $(MAXOPTIMIZATION) -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer
 endif
 
-ARCHCFLAGS = -fno-builtin -ffunction-sections -fdata-sections -nostdinc
+ARCHCFLAGS = -fno-builtin -ffunction-sections -fdata-sections
 ARCHCXXFLAGS = -fno-builtin -fno-exceptions -fcheck-new -fno-rtti -nostdinc++
 ARCHWARNINGS = -Wall -Wstrict-prototypes -Wshadow -Wundef
 ARCHWARNINGSXX = -Wall -Wshadow -Wundef

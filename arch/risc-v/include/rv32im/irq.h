@@ -52,6 +52,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
 
 /* If this is a kernel build, how many nested system calls should we support? */
@@ -61,6 +62,7 @@
 #endif
 
 /* Processor PC */
+
 #define REG_EPC_NDX         0
 
 /* General pupose registers */
@@ -127,7 +129,14 @@
 
 #define REG_INT_CTX_NDX     32
 
-#define XCPTCONTEXT_REGS    33
+#ifdef CONFIG_ARCH_CHIP_GAP8
+/* 31 registers, ePC, plus 6 loop registers */
+
+#  define XCPTCONTEXT_REGS  (32 + 6)
+#else
+#  define XCPTCONTEXT_REGS  33
+#endif
+
 #define XCPTCONTEXT_SIZE    (4 * XCPTCONTEXT_REGS)
 
 /* In assembly language, values have to be referenced as byte address
@@ -303,6 +312,11 @@ struct xcptcontext
 
   /* These additional register save locations are used to implement the
    * signal delivery trampoline.
+   *
+   * REVISIT:  Because there is only one copy of these save areas,
+   * only a single signal handler can be active.  This precludes
+   * queuing of signal actions.  As a result, signals received while
+   * another signal handler is executing will be ignored!
    */
 
   uint32_t saved_epc;     /* Trampoline PC */
@@ -333,7 +347,7 @@ struct xcptcontext
   uint32_t regs[XCPTCONTEXT_REGS];
 };
 
-#endif   /* __ASSEMBLY__ */
+#endif  /* __ASSEMBLY__ */
 
 /****************************************************************************
  * Public Variables

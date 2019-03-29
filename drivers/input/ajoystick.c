@@ -105,6 +105,7 @@ struct ajoy_open_s
 
   pid_t ao_pid;
   struct ajoy_notify_s ao_notify;
+  struct sigwork_s ao_work;
 #endif
 
 #ifndef CONFIG_DISABLE_POLL
@@ -374,16 +375,9 @@ static void ajoy_sample(FAR struct ajoy_upperhalf_s *priv)
         {
           /* Yes.. Signal the waiter */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-          union sigval value;
-          value.sival_int = (int)sample;
-
-          (void)nxsig_queue(opriv->ao_pid, opriv->ao_notify.an_signo,
-                            value);
-#else
-          (void)nxsig_queue(opriv->ao_pid, opriv->ao_notify.dn.signo,
-                            (FAR void *)sample);
-#endif
+          opriv->ao_notify.an_event.sigev_value.sival_int = sample;
+          nxsig_notification(opriv->ao_pid, &opriv->ao_notify.an_event,
+                             SI_QUEUE, &opriv->ao_work);
         }
 #endif
     }
@@ -539,6 +533,10 @@ static int ajoy_close(FAR struct file *filep)
       priv->au_open = opriv->ao_flink;
     }
 
+  /* Cancel any pending notification */
+
+  nxsig_cancel_notification(&opriv->ao_work);
+
   /* And free the open structure */
 
   kmm_free(opriv);
@@ -639,10 +637,10 @@ static int ajoy_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     {
     /* Command:     AJOYIOC_SUPPORTED
      * Description: Report the set of button events supported by the hardware;
-     * Argument:    A pointer to writeable integer value in which to return the
-     *              set of supported buttons.
-     * Return:      Zero (OK) on success.  Minus one will be returned on failure
-     *              with the errno value set appropriately.
+     * Argument:    A pointer to writeable integer value in which to return
+     *              the set of supported buttons.
+     * Return:      Zero (OK) on success.  Minus one will be returned on
+     *              failure with the errno value set appropriately.
      */
 
     case AJOYIOC_SUPPORTED:
@@ -715,7 +713,7 @@ static int ajoy_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
             opriv->ao_notify.an_press   = notify->an_press;
             opriv->ao_notify.an_release = notify->an_release;
-            opriv->ao_notify.an_signo   = notify->an_signo;
+            opriv->ao_notify.an_event   = notify->an_event;
             opriv->ao_pid               = getpid();
 
             /* Enable/disable interrupt handling */

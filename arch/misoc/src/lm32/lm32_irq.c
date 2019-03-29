@@ -123,7 +123,7 @@ void up_irq_restore(irqstate_t flags)
  *
  ****************************************************************************/
 
-irqstate_t up_irq_restore(irqstate_t flags)
+irqstate_t up_irq_enable(void)
 {
   irqstate_t flags;
 

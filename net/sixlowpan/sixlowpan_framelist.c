@@ -665,8 +665,10 @@ int sixlowpan_queue_frames(FAR struct radio_driver_s *radio,
 
           fragn_hdrlen += SIXLOWPAN_FRAGN_HDR_LEN;
 
-          /* Copy payload and enqueue */
-          /* Check for the last fragment */
+          /* Copy payload and enqueue.
+           *
+           * Check for the last fragment.
+           */
 
           paysize = (framelen - fragn_hdrlen) & SIXLOWPAN_DISPATCH_FRAG_MASK;
           if (paysize > buflen - outlen + protosize)
@@ -685,6 +687,7 @@ int sixlowpan_queue_frames(FAR struct radio_driver_s *radio,
 
           ninfo("Fragment offset=%d, paysize=%d, rb_dgramtag=%d\n",
                 outlen >> 3, paysize, reass->rb_dgramtag);
+
           sixlowpan_dumpbuffer("Outgoing frame",
                                (FAR const uint8_t *)iob->io_data,
                                iob->io_len);

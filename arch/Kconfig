@@ -66,6 +66,7 @@ config ARCH_SIM
 	select ARCH_HAVE_TLS
 	select ARCH_HAVE_TICKLESS
 	select ARCH_HAVE_POWEROFF
+	select ARCH_HAVE_TESTSET
 	select SERIAL_CONSOLE
 	---help---
 		Linux/Cywgin user-mode simulation.
@@ -79,6 +80,7 @@ config ARCH_XTENSA
 	bool "Xtensa"
 	select ARCH_HAVE_STACKCHECK
 	select ARCH_HAVE_CUSTOMOPT
+	select ARCH_HAVE_TESTSET
 	---help---
 		Cadence® Tensilica® Xtensa® actictures.
 
@@ -169,11 +171,15 @@ config ARCH_HAVE_IRQPRIO
 	bool
 	default n
 
-config ARCH_L2CACHE
+config ARCH_ICACHE
 	bool
 	default n
 
-config ARCH_HAVE_COHERENT_DCACHE
+config ARCH_DCACHE
+	bool
+	default n
+
+config ARCH_L2CACHE
 	bool
 	default n
 
@@ -192,6 +198,17 @@ config ARCH_HAVE_MULTICPU
 config ARCH_HAVE_VFORK
 	bool
 	default n
+
+config ARCH_HAVE_FPU
+	bool
+	default n
+
+config ARCH_HAVE_DPFPU
+	bool
+	default n
+
+config ARCH_HAVE_LAZYFPU
+	bool
 
 config ARCH_HAVE_MMU
 	bool
@@ -221,6 +238,10 @@ config ARCH_HAVE_RESET
 	bool
 	default n
 
+config ARCH_HAVE_TESTSET
+	bool
+	default n
+
 config ARCH_HAVE_FETCHADD
 	bool
 	default n
@@ -241,6 +262,22 @@ config ARCH_GLOBAL_IRQDISABLE
 		all interrupts globally on all CPUs, or (2) will disable interprocessor
 		interrupts as well so that no context switches can occur on the CPU
 		that disabled "local" interrupts.
+
+config ARCH_FPU
+	bool "FPU support"
+	default y
+	depends on ARCH_HAVE_FPU
+	---help---
+		Build in support for the Floating Point Unit (FPU).
+		Check your chip specifications first; not all chips support the FPU.
+
+config ARCH_DPFPU
+	bool "Double precision FPU support"
+	default y
+	depends on ARCH_FPU && ARCH_HAVE_DPFPU
+	---help---
+		Enable toolchain support for double precision (64-bit) floating
+		point if both the toolchain and the hardware support it.
 
 config ARCH_USE_MMU
 	bool "Enable MMU"
@@ -796,7 +833,6 @@ config ARCH_HIPRI_INTERRUPT
 	bool "High priority interrupts"
 	default n
 	depends on ARCH_HAVE_HIPRI_INTERRUPT && ARCH_HAVE_IRQPRIO
-	select ARMV7M_USEBASEPRI
 	select ARCH_IRQPRIO
 	---help---
 		NOTE: This description is currently unique to the Cortex-M family

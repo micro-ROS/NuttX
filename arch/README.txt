@@ -43,10 +43,10 @@ arch/<arch-name>/arch.h as described below).
 Directory Structure
 ^^^^^^^^^^^^^^^^^^^
 
-The arch directory contains architecture specific logic.  The complete
-board port in is defined by the architecture-specific code in this
-directory (plus the board-specific configurations in the config/
-subdirectory).  Each architecture must provide a subdirectory <arch-name>
+The arch/ directory contains architecture-specific logic.  The complete
+board port is defined by the architecture-specific code in this
+directory plus the board-specific configurations in the config/
+subdirectory.  Each architecture must provide a subdirectory <arch-name>
 under arch/ with the following characteristics:
 
 
@@ -81,16 +81,16 @@ include/types.h
 
     _int8_t, _uint8_t, _int16_t, _uint16_t, _int32_t, _uint32_t
 
-  and if the architecture supports 64-bit integers.
+  and if the architecture supports 64-bit integers:
 
-    _int24_t, _uint24_t, int64_t, uint64_t
+    _int24_t, _uint24_t, _int64_t, _uint64_t
 
   NOTE that these type names have a leading underscore character.  This
   file will be included(indirectly) by include/stdint.h and typedef'ed to
   the final name without the underscore character.  This roundabout way of
   doings things allows the stdint.h to be removed from the include/
   directory in the event that the user prefers to use the definitions
-  provided by their toolchain header files
+  provided by their toolchain header files.
 
     irqstate_t
 
@@ -101,10 +101,10 @@ include/types.h
   available to all files.
 
 include/irq.h
-  This file needs to define some architecture specific functions (usually
-  inline if the compiler supports inlining) and structure.  These include:
+  This file needs to define some architecture-specific functions (usually
+  inline if the compiler supports inlining) and structures.  These include:
 
-  - struct xcptcontext.  This structures represents the saved context
+  - struct xcptcontext.  This structure represents the saved context
     of a thread.
 
   - irqstate_t up_irq_save(void) -- Used to disable all interrupts.
@@ -113,7 +113,7 @@ include/irq.h
     enables to the same state as before up_irq_save was called.
 
   NOTE: These interfaces are not available to application code but can
-  only be used withint the operating system code.  And, in general,
+  only be used within the operating system code.  And, in general,
   these functions should *never* be called directly, not unless you
   know absolutely well what you are doing.  Rather you shoudl typically
   use the wrapper functions enter_critical_section() and leave_critical_section()
@@ -157,31 +157,41 @@ arch/arm - ARM-based micro-controllers
 
     MCU support
       arch/arm/include/a1x and arch/arm/src/a1x
+      arch/arm/include/am335x and arch/arm/src/am335x
       arch/arm/include/c5471 and arch/arm/src/c5471
       arch/arm/include/dm320 and arch/arm/src/dm320
       arch/arm/include/efm32 and arch/arm/src/efm32
       arch/arm/include/imx1 and arch/arm/src/imx1
       arch/arm/include/imx6 and arch/arm/src/imx6
+      arch/arm/include/imx6 and arch/arm/src/imrt
       arch/arm/include/kinetis and arch/arm/src/kinetis
       arch/arm/include/kl and arch/arm/src/kl
+      arch/arm/include/lpc11xx and arch/arm/src/lc823450
       arch/arm/include/lpc11xx and arch/arm/src/lpc11xx
       arch/arm/include/lpc17xx and arch/arm/src/lpc17xx
       arch/arm/include/lpc214x and arch/arm/src/lpc214x
       arch/arm/include/lpc2378 and arch/arm/src/lpc2378.
       arch/arm/include/lpc31xx and arch/arm/src/lpc31xx
       arch/arm/include/lpc43xx and arch/arm/src/lpc43xx
+      arch/arm/include/lpc43xx and arch/arm/src/lpc54xx
+      arch/arm/include/lpc43xx and arch/arm/src/max236xx
       arch/arm/include/moxart and arch/arm/src/moxart
+      arch/arm/include/nuc1xx and arch/arm/src/nrf52
       arch/arm/include/nuc1xx and arch/arm/src/nuc1xx
       arch/arm/include/sam34 and arch/arm/src/sam34
       arch/arm/include/sama45 and arch/arm/src/sama5
       arch/arm/include/samd2l2 and arch/arm/src/samd2l2
+      arch/arm/include/samd2l2 and arch/arm/src/samd5e5
       arch/arm/include/samv7 and arch/arm/src/samv7
       arch/arm/include/stm32 and arch/arm/src/stm32
+      arch/arm/include/stm32f7 and arch/arm/src/stm32f0
       arch/arm/include/stm32f7 and arch/arm/src/stm32f7
+      arch/arm/include/stm32l4 and arch/arm/src/stm32h7
       arch/arm/include/stm32l4 and arch/arm/src/stm32l4
       arch/arm/include/str71x and arch/arm/src/str71x
       arch/arm/include/tiva and arch/arm/src/tiva
       arch/arm/include/tms570 and arch/arm/src/tms570
+      arch/arm/include/tms570 and arch/arm/src/xmc4
 
 arch/avr
     This directory is dedicated to ports to the Atmel AVR (8-bit) and AVR32 (32-bit)
@@ -233,6 +243,7 @@ arch/risc-v
       arch/risc-v/include/rv32im
 
     MCU support
+      arch/risc-v/include/gap8
       arch/risc-v/include/nr5m100
 
 arch/x86 - Intel x86 architectures
@@ -279,6 +290,7 @@ arch/z80 - ZiLOG 8-bit microcontrollers
       arch/z80/include and arch/z80/src/common
 
     MCU support
-      arch/z80/include/z80 and arch/z80/src/z80
-      arch/z80/include/z8 and arch/z80/src/z8
       arch/z80/include/ez80 and arch/z80/src/ez80
+      arch/z80/include/z80 and arch/z80/src/z180
+      arch/z80/include/z8 and arch/z80/src/z8
+      arch/z80/include/z80 and arch/z80/src/z80

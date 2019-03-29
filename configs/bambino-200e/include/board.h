@@ -233,7 +233,7 @@
 #define BOARD_SDMMC_MAXFREQ      50000000
 #define BOARD_SDMMC_CEIL(a,b)    (((a) + (b) - 1) / (b))
 
-#define BOARD_SDMMC_CLKDIV       BOARD_SDMMC_CEIL(BOARD_MAIN_CLK, BOARD_SDMMC_MAXFREQ)
+#define BOARD_SDMMC_CLKDIV       (1)            /* No source clock divider */
 #define BOARD_SDMMC_FREQUENCY    (BOARD_MAIN_CLK / BOARD_SDMMC_CLKDIV)
 
 /* Mode-dependent function clock division
@@ -387,6 +387,7 @@
 #define PINCONF_ENET_RESET  PINCONF_GPIO0p4
 #define GPIO_ENET_RESET     (GPIO_MODE_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT0 | GPIO_PIN4)
 #define PINCONF_ENET_MDC    PINCONF_ENET_MDC_3
+#define PINCONF_ENET_TX_EN  PINCONF_ENET_TX_EN_1
 
 /* SD/MMC pinout */
 

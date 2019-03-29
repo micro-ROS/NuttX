@@ -286,8 +286,10 @@ static inline void send_ipselect(FAR struct net_driver_s *dev,
 #ifdef CONFIG_NET_ETHERNET
 static inline bool psock_send_addrchck(FAR struct tcp_conn_s *conn)
 {
-  /* Only Ethernet drivers are supported by this function */
-  /* REVISIT: Could the MAC address not also be in a routing table? */
+  /* Only Ethernet drivers are supported by this function.
+   *
+   * REVISIT: Could the MAC address not also be in a routing table?
+   */
 
   if (conn->dev->d_lltype != NET_LL_ETHERNET)
     {
@@ -352,9 +354,9 @@ static inline bool psock_send_addrchck(FAR struct tcp_conn_s *conn)
 #endif
 
 #if !defined(CONFIG_NET_ICMPv6_NEIGHBOR)
-      if (neighbor_findentry(conn->u.ipv6.raddr) != NULL)
+      if (neighbor_lookup(conn->u.ipv6.raddr, NULL) >= 0)
         {
-          /* Return true if the address was found in the ARP table */
+          /* Return true if the address was found in the neighbor table */
 
           return true;
         }
@@ -759,13 +761,14 @@ static uint16_t psock_send_eventhandler(FAR struct net_driver_s *dev,
    * asked to retransmit data, (3) the connection is still healthy, and (4)
    * the outgoing packet is available for our use.  In this case, we are
    * now free to send more data to receiver -- UNLESS the buffer contains
-   * unprocessed incoming data.  In that event, we will have to wait for the
-   * next polling cycle.
+   * unprocessed incoming data or window size is zero.  In that event, we
+   * will have to wait for the next polling cycle.
    */
 
   if ((conn->tcpstateflags & TCP_ESTABLISHED) &&
       (flags & (TCP_POLL | TCP_REXMIT)) &&
-      !(sq_empty(&conn->write_q)))
+      !(sq_empty(&conn->write_q)) &&
+      conn->winsize > 0)
     {
       /* Check if the destination IP address is in the ARP  or Neighbor
        * table.  If not, then the send won't actually make it out... it
@@ -803,8 +806,10 @@ static uint16_t psock_send_eventhandler(FAR struct net_driver_s *dev,
               sndlen = conn->winsize;
             }
 
-          ninfo("SEND: wrb=%p pktlen=%u sent=%u sndlen=%u\n",
-                wrb, TCP_WBPKTLEN(wrb), TCP_WBSENT(wrb), sndlen);
+          ninfo("SEND: wrb=%p pktlen=%u sent=%u sndlen=%u mss=%u "
+                "winsize=%u\n",
+                wrb, TCP_WBPKTLEN(wrb), TCP_WBSENT(wrb), sndlen, conn->mss,
+                conn->winsize);
 
           /* Set the sequence number for this segment.  If we are
            * retransmitting, then the sequence number will already
@@ -1239,7 +1244,7 @@ errout:
  *
  * Returned Value:
  *   OK
- *     At least one byte of data could be succesfully written.
+ *     At least one byte of data could be successfully written.
  *   -EWOULDBLOCK
  *     There is no room in the output buffer.
  *   -EBADF
@@ -1251,11 +1256,15 @@ errout:
 
 int psock_tcp_cansend(FAR struct socket *psock)
 {
+  /* Verify that we received a valid socket */
+
   if (!psock || psock->s_crefs <= 0)
     {
       nerr("ERROR: Invalid socket\n");
       return -EBADF;
     }
+
+  /* Verify that this is connected TCP socket */
 
   if (psock->s_type != SOCK_STREAM || !_SS_ISCONNECTED(psock->s_flags))
     {
@@ -1263,7 +1272,16 @@ int psock_tcp_cansend(FAR struct socket *psock)
       return -ENOTCONN;
     }
 
-  if (tcp_wrbuffer_test() < 0)
+  /* In order to setup the send, we need to have at least one free write
+   * buffer head and at least one free IOB to initialize the write buffer
+   * head.
+   *
+   * REVISIT:  The send will still block if we are unable to buffer the entire
+   * user-provided buffer which may be quite large.  We will almost certainly
+   * need to have more than one free IOB, but we don't know how many more.
+   */
+
+  if (tcp_wrbuffer_test() < 0 || iob_navail(false) <= 0)
     {
       return -EWOULDBLOCK;
     }

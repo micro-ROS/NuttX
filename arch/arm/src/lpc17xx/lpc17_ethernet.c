@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/lpc17xx/lpc17_ethernet.c
  *
- *   Copyright (C) 2010-2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010-2015, 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,18 +86,18 @@
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error Work queue support is required
-#else
-
-  /* Select work queue */
-
-#  if defined(CONFIG_LPC17_ETHERNET_HPWORK)
-#    define ETHWORK HPWORK
-#  elif defined(CONFIG_LPC17_ETHERNET_LPWORK)
-#    define ETHWORK LPWORK
-#  else
-#    error Neither CONFIG_LPC17_ETHERNET_HPWORK nor CONFIG_LPC17_ETHERNET_LPWORK defined
-#  endif
 #endif
+
+/* The low priority work queue is preferred.  If it is not enabled, LPWORK
+ * will be the same as HPWORK.
+ *
+ * NOTE:  However, the network should NEVER run on the high priority work
+ * queue!  That queue is intended only to service short back end interrupt
+ * processing that never suspends.  Suspending the high priority work queue
+ * may bring the system to its knees!
+ */
+
+#define ETHWORK LPWORK
 
 /* CONFIG_LPC17_NINTERFACES determines the number of physical interfaces
  * that will be supported -- unless it is more than actually supported by the
@@ -122,16 +122,8 @@
 
 /* If IGMP is enabled, then accept multi-cast frames. */
 
-#if defined(CONFIG_NET_IGMP) && !defined(CONFIG_LPC17_MULTICAST)
+#if defined(CONFIG_NET_MCASTGROUP) && !defined(CONFIG_LPC17_MULTICAST)
 #  define CONFIG_LPC17_MULTICAST 1
-#endif
-
-/* If the user did not specify a priority for Ethernet interrupts, set the
- * interrupt priority to the default.
- */
-
-#ifndef CONFIG_LPC17_ETH_PRIORITY
-#  define CONFIG_LPC17_ETH_PRIORITY NVIC_SYSH_PRIORITY_DEFAULT
 #endif
 
 #define PKTBUF_SIZE (MAX_NETDEV_PKTSIZE + CONFIG_NET_GUARDSIZE)
@@ -356,11 +348,11 @@ static int lpc17_ifdown(struct net_driver_s *dev);
 static void lpc17_txavail_work(FAR void *arg);
 static int lpc17_txavail(struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static uint32_t lpc17_calcethcrc(const uint8_t *data, size_t length);
 static int lpc17_addmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lpc17_rmmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
 
@@ -1648,21 +1640,6 @@ static int lpc17_ifup(struct net_driver_s *dev)
 
   lpc17_putreg(0xffffffff, LPC17_ETH_INTCLR);
 
-  /* Configure interrupts.  The Ethernet interrupt was attached during one-time
-   * initialization, so we only need to set the interrupt priority, configure
-   * interrupts, and enable them.
-   */
-
-  /* Set the interrupt to the highest priority */
-
-#ifdef CONFIG_ARCH_IRQPRIO
-#if CONFIG_LPC17_NINTERFACES > 1
-  (void)up_prioritize_irq(priv->irq, CONFIG_LPC17_ETH_PRIORITY);
-#else
-  (void)up_prioritize_irq(LPC17_IRQ_ETH, CONFIG_LPC17_ETH_PRIORITY);
-#endif
-#endif
-
   /* Enable Ethernet interrupts.  The way we do this depends on whether or
    * not Wakeup on Lan (WoL) has been configured.
    */
@@ -1875,7 +1852,7 @@ static int lpc17_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static uint32_t lpc17_calcethcrc(const uint8_t *data, size_t length)
 {
   char byte;
@@ -1936,7 +1913,7 @@ static uint32_t lpc17_calcethcrc(const uint8_t *data, size_t length)
 
   return crc;
 }
-#endif /* CONFIG_NET_IGMP || CONFIG_NET_ICMPv6 */
+#endif /* CONFIG_NET_MCASTGROUP || CONFIG_NET_ICMPv6 */
 
 /****************************************************************************
  * Function: lpc17_addmac
@@ -1956,7 +1933,7 @@ static uint32_t lpc17_calcethcrc(const uint8_t *data, size_t length)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int lpc17_addmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   uintptr_t regaddr;
@@ -2011,7 +1988,7 @@ static int lpc17_addmac(struct net_driver_s *dev, const uint8_t *mac)
 
   return OK;
 }
-#endif /* CONFIG_NET_IGMP || CONFIG_NET_ICMPv6 */
+#endif /* CONFIG_NET_MCASTGROUP || CONFIG_NET_ICMPv6 */
 
 /****************************************************************************
  * Function: lpc17_rmmac
@@ -2031,7 +2008,7 @@ static int lpc17_addmac(struct net_driver_s *dev, const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lpc17_rmmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   uintptr_t regaddr1;
@@ -3006,7 +2983,7 @@ static void lpc17_ethreset(struct lpc17_driver_s *priv)
  *
  ****************************************************************************/
 
-#if CONFIG_LPC17_NINTERFACES > 1
+#if CONFIG_LPC17_NINTERFACES > 1 || defined(CONFIG_NETDEV_LATEINIT)
 int lpc17_ethinitialize(int intf)
 #else
 static inline int lpc17_ethinitialize(int intf)
@@ -3047,7 +3024,7 @@ static inline int lpc17_ethinitialize(int intf)
   priv->lp_dev.d_ifup    = lpc17_ifup;    /* I/F down callback */
   priv->lp_dev.d_ifdown  = lpc17_ifdown;  /* I/F up (new IP address) callback */
   priv->lp_dev.d_txavail = lpc17_txavail; /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->lp_dev.d_addmac  = lpc17_addmac;  /* Add multicast MAC address */
   priv->lp_dev.d_rmmac   = lpc17_rmmac;   /* Remove multicast MAC address */
 #endif
@@ -3102,7 +3079,7 @@ static inline int lpc17_ethinitialize(int intf)
  *
  ****************************************************************************/
 
-#if CONFIG_LPC17_NINTERFACES == 1
+#if CONFIG_LPC17_NINTERFACES == 1 && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void)
 {
   (void)lpc17_ethinitialize(0);

@@ -97,7 +97,7 @@ static inline void _local_semtake(sem_t *sem)
     {
       /* Take the semaphore (perhaps waiting) */
 
-      ret = nxsem_wait(sem);
+      ret = net_lockedwait(sem);
 
       /* The only case that an error should occur here is if the wait was
        * awakened by a signal.
@@ -184,6 +184,10 @@ static int inline local_stream_connect(FAR struct local_conn_s *client,
 
   DEBUGASSERT(client->lc_outfile.f_inode != NULL);
 
+  /* Set the busy "result" before giving the semaphore. */
+
+  client->u.client.lc_result = -EBUSY;
+
   /* Add ourself to the list of waiting connections and notify the server. */
 
   dq_addlast(&client->lc_node, &server->u.server.lc_waiters);
@@ -199,7 +203,6 @@ static int inline local_stream_connect(FAR struct local_conn_s *client,
 
   /* Wait for the server to accept the connections */
 
-  client->u.client.lc_result = -EBUSY;
   do
     {
       _local_semtake(&client->lc_waitsem);
@@ -230,7 +233,7 @@ static int inline local_stream_connect(FAR struct local_conn_s *client,
   return OK;
 
 errout_with_outfd:
-  (void)file_close_detached(&client->lc_outfile);
+  (void)file_close(&client->lc_outfile);
   client->lc_outfile.f_inode = NULL;
 
 errout_with_fifos:
@@ -309,15 +312,16 @@ int psock_local_connect(FAR struct socket *psock,
 
         case LOCAL_TYPE_PATHNAME:  /* lc_path holds a null terminated string */
           {
-            if (strncmp(conn->lc_path, unaddr->sun_path, UNIX_PATH_MAX-1) == 0)
+            if (strncmp(conn->lc_path, unaddr->sun_path, UNIX_PATH_MAX - 1)
+                == 0)
               {
                 int ret = OK;
 
                 /* Bind the address and protocol */
 
                 client->lc_proto = conn->lc_proto;
-                strncpy(client->lc_path, unaddr->sun_path, UNIX_PATH_MAX-1);
-                client->lc_path[UNIX_PATH_MAX-1] = '\0';
+                strncpy(client->lc_path, unaddr->sun_path, UNIX_PATH_MAX - 1);
+                client->lc_path[UNIX_PATH_MAX - 1] = '\0';
                 client->lc_instance_id = local_generate_instance_id();
 
                 /* The client is now bound to an address */

@@ -64,18 +64,18 @@
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error Work queue support is required in this configuration (CONFIG_SCHED_WORKQUEUE)
-#else
-
-/* Use the selected work queue */
-
-#  if defined(CONFIG_LAN91C111_HPWORK)
-#    define LAN91C111_WORK      HPWORK
-#  elif defined(CONFIG_LAN91C111_LPWORK)
-#    define LAN91C111_WORK      LPWORK
-#  else
-#    error Neither CONFIG_LAN91C111_HPWORK nor CONFIG_LAN91C111_LPWORK defined
-#  endif
 #endif
+
+/* The low priority work queue is preferred.  If it is not enabled, LPWORK
+ * will be the same as HPWORK.
+ *
+ * NOTE:  However, the network should NEVER run on the high priority work
+ * queue!  That queue is intended only to service short back end interrupt
+ * processing that never suspends.  Suspending the high priority work queue
+ * may bring the system to its knees!
+ */
+
+#define LAN91C111_WORK LPWORK
 
 #ifdef CONFIG_NET_DUMPPACKET
 #  define lan91c111_dumppacket  lib_dumpbuffer
@@ -145,10 +145,10 @@ static int  lan91c111_ifdown(FAR struct net_driver_s *dev);
 static void lan91c111_txavail_work(FAR void *arg);
 static int  lan91c111_txavail(FAR struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int  lan91c111_addmac(FAR struct net_driver_s *dev,
               FAR const uint8_t *mac);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  lan91c111_rmmac(FAR struct net_driver_s *dev,
               FAR const uint8_t *mac);
 #endif
@@ -486,7 +486,8 @@ static int lan91c111_transmit(FAR struct net_driver_s *dev)
   lan91c111_command_mmu(priv, MC_ENQUEUE);
 
   /* Assume the transmission no error, otherwise
-   * revert the increment in lan91c111_txdone */
+   * revert the increment in lan91c111_txdone.
+   */
 
   NETDEV_TXDONE(dev);
   return OK;
@@ -530,18 +531,13 @@ static int lan91c111_txpoll(FAR struct net_driver_s *dev)
        */
 
 #ifdef CONFIG_NET_IPv4
-#ifdef CONFIG_NET_IPv6
       if (IFF_IS_IPv4(dev->d_flags))
-#endif
         {
           arp_out(dev);
         }
 #endif /* CONFIG_NET_IPv4 */
-
 #ifdef CONFIG_NET_IPv6
-#ifdef CONFIG_NET_IPv4
-      else
-#endif
+      if (IFF_IS_IPv6(dev->d_flags))
         {
           neighbor_out(dev);
         }
@@ -553,8 +549,8 @@ static int lan91c111_txpoll(FAR struct net_driver_s *dev)
 
           lan91c111_transmit(dev);
 
-          /* Check if there is room in the device to hold another packet. If not,
-           * return a non-zero value to terminate the poll.
+          /* Check if there is room in the device to hold another packet.  If
+           * not, return a non-zero value to terminate the poll.
            */
 
           return !(getreg16(priv, MIR_REG) & MIR_FREE_MASK);
@@ -598,22 +594,13 @@ static void lan91c111_reply(FAR struct net_driver_s *dev)
       /* Update the Ethernet header with the correct MAC address */
 
 #ifdef CONFIG_NET_IPv4
-#ifdef CONFIG_NET_IPv6
-      /* Check for an outgoing IPv4 packet */
-
       if (IFF_IS_IPv4(dev->d_flags))
-#endif
         {
           arp_out(dev);
         }
 #endif
-
 #ifdef CONFIG_NET_IPv6
-#ifdef CONFIG_NET_IPv4
-      /* Otherwise, it must be an outgoing IPv6 packet */
-
-      else
-#endif
+      if (IFF_IS_IPv6(dev->d_flags))
         {
           neighbor_out(dev);
         }
@@ -646,7 +633,8 @@ static void lan91c111_receive(FAR struct net_driver_s *dev)
 {
   FAR struct lan91c111_driver_s *priv = dev->d_private;
   FAR struct eth_hdr_s *eth = (FAR struct eth_hdr_s *)dev->d_buf;
-  uint16_t status, length;
+  uint16_t status;
+  uint16_t length;
 
   /* If the RX FIFO is empty then nothing to do */
 
@@ -752,14 +740,9 @@ static void lan91c111_receive(FAR struct net_driver_s *dev)
 
       arp_arpin(dev);
 
-      /* If the above function invocation resulted in data that should be
-       * sent out on the network, the field d_len will set to a value > 0.
-       */
+      /* Check for a reply to the ARP packet */
 
-      if (dev->d_len > 0)
-        {
-          lan91c111_transmit(dev);
-        }
+      lan91c111_reply(dev);
     }
   else
 #endif
@@ -993,7 +976,8 @@ static int lan91c111_interrupt(int irq, FAR void *context, FAR void *arg)
 
   /* Schedule to perform the interrupt processing on the worker thread. */
 
-  work_queue(LAN91C111_WORK, &priv->irqwork, lan91c111_interrupt_work, dev, 0);
+  work_queue(LAN91C111_WORK, &priv->irqwork, lan91c111_interrupt_work,
+             dev, 0);
   return OK;
 }
 
@@ -1035,9 +1019,9 @@ static void lan91c111_poll_work(FAR void *arg)
 
   if (getreg16(priv, MIR_REG) & MIR_FREE_MASK)
     {
-      /* If so, update TCP timing states and poll the network for new XMIT data.
-       * Hmmm.. might be bug here.  Does this mean if there is a transmit in
-       * progress, we will missing TCP time state updates?
+      /* If so, update TCP timing states and poll the network for new XMIT
+       * data.  Hmmm.. might be bug here.  Does this mean if there is a
+       * transmit in progress, we will missing TCP time state updates?
        */
 
       devif_timer(dev, lan91c111_txpoll);
@@ -1312,12 +1296,14 @@ static int lan91c111_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static uint32_t lan91c111_crc32(FAR const uint8_t *src, size_t len)
 {
   uint32_t crc = 0xffffffff;
-  uint8_t carry, temp;
-  size_t i, j;
+  uint8_t carry;
+  uint8_t temp;
+  size_t i;
+  size_t j;
 
   for (i = 0; i < len; i++)
     {
@@ -1342,7 +1328,8 @@ static int lan91c111_addmac(FAR struct net_driver_s *dev,
                             FAR const uint8_t *mac)
 {
   FAR struct lan91c111_driver_s *priv = dev->d_private;
-  uint16_t off, bit;
+  uint16_t off;
+  uint16_t bit;
   uint32_t hash;
 
   /* Calculate Ethernet CRC32 for MAC */
@@ -1386,12 +1373,13 @@ static int lan91c111_addmac(FAR struct net_driver_s *dev,
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lan91c111_rmmac(FAR struct net_driver_s *dev,
                            FAR const uint8_t *mac)
 {
   FAR struct lan91c111_driver_s *priv = dev->d_private;
-  uint16_t off, bit;
+  uint16_t off;
+  uint16_t bit;
   uint32_t hash;
 
   /* Calculate Ethernet CRC32 for MAC */
@@ -1614,7 +1602,7 @@ int lan91c111_initialize(uintptr_t base, int irq)
   dev->d_ifup    = lan91c111_ifup;    /* I/F up (new IP address) callback */
   dev->d_ifdown  = lan91c111_ifdown;  /* I/F down callback */
   dev->d_txavail = lan91c111_txavail; /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   dev->d_addmac  = lan91c111_addmac;  /* Add multicast MAC address */
   dev->d_rmmac   = lan91c111_rmmac;   /* Remove multicast MAC address */
 #endif

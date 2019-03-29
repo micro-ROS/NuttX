@@ -229,7 +229,7 @@ static inline int at45db_rdid(FAR struct at45db_dev_s *priv);
 static inline uint8_t at45db_rdsr(FAR struct at45db_dev_s *priv);
 static uint8_t at45db_waitbusy(FAR struct at45db_dev_s *priv);
 static inline void at45db_pgerase(FAR struct at45db_dev_s *priv, off_t offset);
-static inline int  at32db_chiperase(FAR struct at45db_dev_s *priv);
+static inline int  at45db_chiperase(FAR struct at45db_dev_s *priv);
 static inline void at45db_pgwrite(FAR struct at45db_dev_s *priv,
                                   FAR const uint8_t *buffer, off_t offset);
 
@@ -518,10 +518,10 @@ static inline void at45db_pgerase(FAR struct at45db_dev_s *priv, off_t sector)
 }
 
 /************************************************************************************
- * Name:  at32db_chiperase
+ * Name:  at45db_chiperase
  ************************************************************************************/
 
-static inline int at32db_chiperase(FAR struct at45db_dev_s *priv)
+static inline int at45db_chiperase(FAR struct at45db_dev_s *priv)
 {
   finfo("priv: %p\n", priv);
 
@@ -785,18 +785,18 @@ static int at45db_ioctl(FAR struct mtd_dev_s *mtd, int cmd, unsigned long arg)
 
       case MTDIOC_BULKERASE:
         {
-             /* Take the lock so that we have exclusive access to the bus, then
-              * power up the FLASH device.
-              */
+          /* Take the lock so that we have exclusive access to the bus, then
+           * power up the FLASH device.
+           */
 
-             at45db_lock(priv);
-             at45db_resume(priv);
+          at45db_lock(priv);
+          at45db_resume(priv);
 
-            /* Erase the entire device */
+          /* Erase the entire device */
 
-            ret = at32db_chiperase(priv);
-            at45db_pwrdown(priv);
-            at45db_unlock(priv);
+          ret = at45db_chiperase(priv);
+          at45db_pwrdown(priv);
+          at45db_unlock(priv);
         }
         break;
 
@@ -851,6 +851,7 @@ FAR struct mtd_dev_s *at45db_initialize(FAR struct spi_dev_s *spi)
       priv->mtd.bwrite = at45db_bwrite;
       priv->mtd.read   = at45db_read;
       priv->mtd.ioctl  = at45db_ioctl;
+      priv->mtd.name   = "at45db";
       priv->spi        = spi;
 
       /* Deselect the FLASH */
@@ -900,12 +901,6 @@ FAR struct mtd_dev_s *at45db_initialize(FAR struct spi_dev_s *spi)
       at45db_pwrdown(priv);
       at45db_unlock(priv);
     }
-
-  /* Register the MTD with the procfs system if enabled */
-
-#ifdef CONFIG_MTD_REGISTRATION
-  mtd_register(&priv->mtd, "at45db");
-#endif
 
   finfo("Return %p\n", priv);
   return (FAR struct mtd_dev_s *)priv;

@@ -60,7 +60,6 @@
 #include <nuttx/irq.h>
 #include <arch/board/board.h>
 
-#include "cache.h"
 #include "chip.h"
 #include "up_arch.h"
 
@@ -94,8 +93,6 @@
  *   CONFIG_SDMMC1/2_WIDTH_D1_ONLY - This may be selected to force the driver
  *     operate with only a single data line (the default is to use all
  *     4 SD data lines).
- *   CONFIG_SDMMC_PRI - SDMMC interrupt priority.  This setting is not very
- *     important since interrupt nesting is not currently supported.
  *   CONFIG_SDMMMC_DMAPRIO - SDMMC DMA priority.  This can be selecte if
  *     CONFIG_STM32L4_SDMMC_DMA is enabled.
  *   CONFIG_CONFIG_STM32L4_SDMMC_XFRDEBUG - Enables some very low-level debug output
@@ -118,10 +115,6 @@
 #endif
 
 #ifdef CONFIG_STM32L4_SDMMC1
-#  if defined(CONFIG_ARCH_IRQPRIO) && !defined(CONFIG_SDMMC1_PRI)
-#    define CONFIG_SDMMC1_PRI        NVIC_SYSH_PRIORITY_DEFAULT
-#  endif
-
 #  ifdef CONFIG_STM32L4_SDMMC_DMA
 #    ifndef CONFIG_STM32L4_SDMMC1_DMAPRIO
 #        define CONFIG_STM32L4_SDMMC1_DMAPRIO DMA_SCR_PRIVERYHI
@@ -135,10 +128,6 @@
 #endif
 
 #ifdef CONFIG_STM32L4_SDMMC2
-#  if defined(CONFIG_ARCH_IRQPRIO) && !defined(CONFIG_SDMMC2_PRI)
-#    define CONFIG_SDMMC2_PRI        NVIC_SYSH_PRIORITY_DEFAULT
-#  endif
-
 #  ifdef CONFIG_STM32L4_SDMMC_DMA
 #    ifndef CONFIG_STM32L4_SDMMC2_DMAPRIO
 #        define CONFIG_STM32L4_SDMMC2_DMAPRIO DMA_SCR_PRIVERYHI
@@ -342,9 +331,6 @@ struct stm32_dev_s
   /* STM32-specific extensions */
   uint32_t          base;
   int               nirq;
-#ifdef CONFIG_ARCH_IRQPRIO
-  int               irqprio;
-#endif
 #ifdef CONFIG_MMCSD_SDIOWAIT_WRCOMPLETE
   uint32_t          d0_gpio;
 #endif
@@ -594,9 +580,6 @@ struct stm32_dev_s g_sdmmcdev1 =
   },
   .base              = STM32L4_SDMMC1_BASE,
   .nirq              = STM32L4_IRQ_SDMMC1,
-#ifdef CONFIG_SDMMC1_PRI
-  .irqprio           = CONFIG_SDMMC1_PRI,
-#endif
 #ifdef CONFIG_MMCSD_SDIOWAIT_WRCOMPLETE
   .d0_gpio           = GPIO_SDMMC1_D0,
 #endif
@@ -650,9 +633,6 @@ struct stm32_dev_s g_sdmmcdev2 =
   },
   .base              = STM32_SDMMC2_BASE,
   .nirq              = STM32_IRQ_SDMMC2,
-#ifdef CONFIG_SDMMC2_PRI
-  .irqprio           = CONFIG_SDMMC2_PRI,
-#endif
 #ifdef CONFIG_MMCSD_SDIOWAIT_WRCOMPLETE
   .d0_gpio           = GPIO_SDMMC2_D0,
 #endif
@@ -1959,13 +1939,6 @@ static int stm32_attach(FAR struct sdio_dev_s *dev)
        */
 
       up_enable_irq(priv->nirq);
-
-#if defined(CONFIG_ARCH_IRQPRIO) && (defined(CONFIG_STM32L4_SDMMC1_DMAPRIO) || \
-                                     defined(CONFIG_STM32L4_SDMMC2_DMAPRIO))
-      /* Set the interrupt priority */
-
-      up_prioritize_irq(priv->nirq, priv->irqprio);
-#endif
     }
 
   return ret;
@@ -2811,10 +2784,7 @@ static int stm32_dmapreflight(FAR struct sdio_dev_s *dev,
  * Name: stm32_dmarecvsetup
  *
  * Description:
- *   Setup to perform a read DMA.  If the processor supports a data cache,
- *   then this method will also make sure that the contents of the DMA memory
- *   and the data cache are coherent.  For read transfers this may mean
- *   invalidating the data cache.
+ *   Setup to perform a read DMA.
  *
  * Input Parameters:
  *   dev    - An instance of the SDIO device interface
@@ -2836,21 +2806,6 @@ static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
   DEBUGASSERT(priv != NULL && buffer != NULL && buflen > 0);
 #ifdef CONFIG_ARCH_HAVE_SDIO_PREFLIGHT
   DEBUGASSERT(stm32_dmapreflight(dev, buffer, buflen) == 0);
-#else
-#  if defined(CONFIG_ARMV7M_DCACHE) && !defined(CONFIG_ARMV7M_DCACHE_WRITETHROUGH)
-  /* buffer alignment is required for DMA transfers with dcache in buffered
-   * mode (not write-through) because the arch_invalidate_dcache could lose
-   * buffered buffered writes if the buffer alignment and sizes are not on
-   * ARMV7M_DCACHE_LINESIZE boundaries.
-   */
-
-  if (((uintptr_t)buffer & (ARMV7M_DCACHE_LINESIZE-1)) != 0 ||
-      (buflen & (ARMV7M_DCACHE_LINESIZE-1)) != 0)
-    {
-      return -EFAULT;
-    }
-#  endif
-
 #endif
 
   /* Reset the DPSM configuration */
@@ -2883,10 +2838,6 @@ static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
                  (uint32_t)buffer, (buflen + 3) >> 2,
                  SDMMC_RXDMA32_CONFIG | priv->dmapri);
 
-  /* Force RAM reread */
-
-  arch_invalidate_dcache((uintptr_t)buffer,(uintptr_t)buffer + buflen);
-
   /* Start the DMA */
 
   stm32_sample(priv, SAMPLENDX_BEFORE_ENABLE);
@@ -2901,10 +2852,7 @@ static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
  * Name: stm32_dmasendsetup
  *
  * Description:
- *   Setup to perform a write DMA.  If the processor supports a data cache,
- *   then this method will also make sure that the contents of the DMA memory
- *   and the data cache are coherent.  For write transfers, this may mean
- *   flushing the data cache.
+ *   Setup to perform a write DMA.
  *
  * Input Parameters:
  *   dev    - An instance of the SDIO device interface
@@ -2927,19 +2875,6 @@ static int stm32_dmasendsetup(FAR struct sdio_dev_s *dev,
 #ifdef CONFIG_ARCH_HAVE_SDIO_PREFLIGHT
   DEBUGASSERT(stm32_dmapreflight(dev, buffer, buflen) == 0);
 #else
-#  if defined(CONFIG_ARMV7M_DCACHE) && !defined(CONFIG_ARMV7M_DCACHE_WRITETHROUGH)
-  /* buffer alignment is required for DMA transfers with dcache in buffered
-   * mode (not write-through) because the arch_flush_dcache would corrupt adjacent
-   * memory if the buffer alignment and sizes are not on ARMV7M_DCACHE_LINESIZE
-   * boundaries.
-   */
-
-  if (((uintptr_t)buffer & (ARMV7M_DCACHE_LINESIZE-1)) != 0 ||
-      (buflen & (ARMV7M_DCACHE_LINESIZE-1)) != 0)
-    {
-      return -EFAULT;
-    }
-#  endif
 #endif
 
   /* Reset the DPSM configuration */
@@ -2950,10 +2885,6 @@ static int stm32_dmasendsetup(FAR struct sdio_dev_s *dev,
 
   stm32_sampleinit();
   stm32_sample(priv, SAMPLENDX_BEFORE_SETUP);
-
-  /* Flush cache to physical memory */
-
-  arch_flush_dcache((uintptr_t)buffer, (uintptr_t)buffer + buflen);
 
   /* Save the source buffer information for use by the interrupt handler */
 

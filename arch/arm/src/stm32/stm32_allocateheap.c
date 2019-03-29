@@ -53,10 +53,12 @@
 #include <arch/board/board.h>
 
 #include "chip.h"
-#include "mpu.h"
+#ifdef CONFIG_ARM_MPU
+#  include "mpu.h"
+#  include "stm32_mpuinit.h"
+#endif
 #include "up_arch.h"
 #include "up_internal.h"
-#include "stm32_mpuinit.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -188,7 +190,7 @@
        /* Only one memory region.  Force Configuration 1 */
 
 #      ifndef CONFIG_STM32_CCMEXCLUDE
-#        if CONFIG_STM32_HAVE_CCM
+#        ifdef CONFIG_STM32_HAVE_CCM
 #          warning "CCM SRAM excluded from the heap"
 #        endif
 #        define CONFIG_STM32_CCMEXCLUDE 1
@@ -258,7 +260,7 @@
        /* Only one memory region.  Force Configuration 1 */
 
 #      ifndef CONFIG_STM32_CCMEXCLUDE
-#        if CONFIG_STM32_HAVE_CCM
+#        ifdef CONFIG_STM32_HAVE_CCM
 #          warning "CCM SRAM excluded from the heap"
 #        endif
 #        define CONFIG_STM32_CCMEXCLUDE 1
@@ -474,7 +476,7 @@
 #    endif
 
 #    if CONFIG_MM_REGIONS < 2
-#      if CONFIG_STM32_HAVE_CCM
+#      ifdef CONFIG_STM32_HAVE_CCM
 #        error "CCM SRAM excluded from the heap because CONFIG_MM_REGIONS < 2"
 #      endif
 #      undef CONFIG_STM32_CCMEXCLUDE
@@ -579,7 +581,7 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
    * is aligned to the MPU requirement.
    */
 
-  log2  = (int)mpu_log2regionfloor(ubase, usize);
+  log2  = (int)mpu_log2regionfloor(usize);
   DEBUGASSERT((SRAM1_END & ((1 << log2) - 1)) == 0);
 
   usize = (1 << log2);
@@ -597,7 +599,7 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 
   /* Allow user-mode access to the user heap memory */
 
-   stm32_mpu_uheap(ubase, usize);
+   stm32_mpu_uheap((uintptr_t)ubase, usize);
 #else
 
   /* Return the heap settings */
@@ -641,7 +643,7 @@ void up_allocate_kheap(FAR void **heap_start, size_t *heap_size)
    * is aligned to the MPU requirement.
    */
 
-  log2  = (int)mpu_log2regionfloor(ubase, usize);
+  log2  = (int)mpu_log2regionfloor(usize);
   DEBUGASSERT((SRAM1_END & ((1 << log2) - 1)) == 0);
 
   usize = (1 << log2);

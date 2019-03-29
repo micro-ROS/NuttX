@@ -1868,7 +1868,7 @@ static void khci_eptransfer(struct khci_usbdev_s *priv, uint8_t epno,
  * Name: khci_ep0nextsetup
  *
  * Description:
- *   This function is called (1) after sucessful completion of an EP0 Setup
+ *   This function is called (1) after successful completion of an EP0 Setup
  *   command, or (2) after receipt of the OUT complete event (for simple
  *   transfers).  It simply sets up the single BDT to accept the next
  *   SETUP commend.
@@ -4403,12 +4403,6 @@ void up_usbinitialize(void)
       up_usbuninitialize();
       return;
     }
-
-#ifdef CONFIG_ARCH_IRQPRIO
-  /* Set the interrupt priority */
-
-  up_prioritize_irq(KINETIS_IRQ_USBOTG, 112);
-#endif
 
   khci_hwinitalize(priv);
 }

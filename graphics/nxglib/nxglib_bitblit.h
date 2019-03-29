@@ -1,7 +1,7 @@
 /****************************************************************************
  * graphics/nxglib/nxglib_bitblit.h
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2011, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -226,17 +226,14 @@
 #define NXGL_FUNCNAME(a,b)  _NXGL_FUNCNAME(a,b)
 
 /****************************************************************************
- * Public Types
- ****************************************************************************/
-
-/****************************************************************************
  * Public Data
  ****************************************************************************/
 
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
-extern "C" {
+extern "C"
+{
 #else
 #define EXTERN extern
 #endif

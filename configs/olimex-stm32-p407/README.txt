@@ -228,8 +228,8 @@ OTGFS Host
   flaky.  Sometimes the LEDs become very bright (indicating that it is being
   swamped with interrupts).  Data input is not clean with apps/examples/hidkbd:
   There are missing characters and sometimes duplicated characters.  This implies
-  some logic issues, probably in drivers/usbhost/usbhost_hidkbd, with polling and
-  data filtering.
+  some logic issues, probably in drivers/usbhost/usbhost_hidkbd.c, with polling
+  and data filtering.
 
 Protected Mode Build
 ====================
@@ -384,6 +384,19 @@ must be is one of the following.
 
     The STM32 free-running timer is also required.
 
+  hidkbd
+  
+     This is another NSH configuration that supports a USB HID Keyboard
+     device and the HID keyboard example at apps/examples/hidkbd.
+
+    STATUS:
+      2018-10-07:  Not all keyboards will connect successfully. I have not
+        looked into the details but it may be that those keyboards are not
+        compatible with the driver (which only accepts "boot" keyboards).
+        Also, when typing input into the HID keyboard, characters are often
+        missing and sometimes duplicated.  This is like some issue with the
+        read logic of drivers/usbhost_hidkbc.c.
+
   kelf:
 
     This is a protected mode version of the apps/examples/elf test of
@@ -469,7 +482,7 @@ must be is one of the following.
      FLAT build using apps/examples/sotest (assuming that you also have SD
      card support enabled and that the SD card is mount at /mnt/sdcard):
 
-      CONFIG_LIBC_DLLFCN=y
+      CONFIG_LIBC_DLFCN=y
       CONFIG_EXAMPLES_SOTEST=y
       CONFIG_EXAMPLES_SOTEST_BINDIR="/mnt/sdcard"
 
@@ -525,7 +538,7 @@ must be is one of the following.
        Add the following for testing shared libraries in the FLAT
        build:
 
-         CONFIG_LIBC_DLLFCN=y
+         CONFIG_LIBC_DLFCN=y
          CONFIG_EXAMPLES_SOTEST=y
          CONFIG_EXAMPLES_SOTEST_BUILTINFS=y
          CONFIG_EXAMPLES_SOTEST_DEVMINOR=1

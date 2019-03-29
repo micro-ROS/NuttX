@@ -80,8 +80,10 @@
   memcpy(dest, src, len)
 
 #ifdef CONFIG_WIRELESS_IEEE802154
-/* IEEE 802.15.4  address macros */
-/* Copy a an IEEE 802.15.4 address */
+/* IEEE 802.15.4  address macros
+ *
+ * Copy a an IEEE 802.15.4 address.
+ */
 
 #define sixlowpan_saddrcopy(dest,src) \
   sixlowpan_anyaddrcopy(dest,src,NET_6LOWPAN_SADDRSIZE)
@@ -101,7 +103,7 @@
 #define GETUINT16(ptr,index) \
   ((((uint16_t)((ptr)[index])) << 8) | ((uint16_t)(((ptr)[(index) + 1]))))
 
-/* PUT 16-bit data:  source in host order, result in newtwork order */
+/* PUT 16-bit data:  source in host order, result in network order */
 
 #define PUTHOST16(ptr,index,value) \
   do \
@@ -109,11 +111,11 @@
       (ptr)[index]     = ((uint16_t)(value) >> 8) & 0xff; \
       (ptr)[index + 1] = (uint16_t)(value) & 0xff; \
     } \
-  while(0)
+  while (0)
 
 /* Return values ************************************************************/
 
-/* Sucessful return values from header compression logic */
+/* Successful return values from header compression logic */
 
 #define COMPRESS_HDR_INLINE     0 /* L2 header not compressed */
 #define COMPRESS_HDR_ELIDED     1 /* L2 header compressed */
@@ -552,7 +554,7 @@ int sixlowpan_compresshdr_hc1(FAR struct radio_driver_s *radio,
  *              FRAGN frames.
  *
  * Returned Value:
- *   Zero (OK) is returned on success, on failure a negater errno value is
+ *   Zero (OK) is returned on success, on failure a negated errno value is
  *   returned.
  *
  ****************************************************************************/

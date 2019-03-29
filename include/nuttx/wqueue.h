@@ -245,7 +245,7 @@
 /* Kernel mode */
 
 #  define HPWORK   0          /* High priority, kernel-mode work queue */
-#  ifdef CONFIG_SCHED_LPWORK
+#  if defined(CONFIG_SCHED_LPWORK) && defined(CONFIG_SCHED_HPWORK)
 #    define LPWORK (HPWORK+1) /* Low priority, kernel-mode work queue */
 #  else
 #    define LPWORK HPWORK     /* Redirect low-priority references */
@@ -276,6 +276,64 @@ struct work_s
   FAR void *arg;         /* Callback argument */
   clock_t qtime;         /* Time work queued */
   clock_t delay;         /* Delay until work performed */
+};
+
+/* This is an enumeration of the various events that may be
+ * notified via work_notifier_signal().
+ */
+
+enum work_evtype_e
+{
+  WORK_IOB_AVAIL  = 1, /* Notify availability of an IOB */
+  WORK_NET_DOWN,       /* Notify that the network is down */
+  WORK_TCP_READAHEAD,  /* Notify that TCP read-ahead data is available */
+  WORK_TCP_DISCONNECT, /* Notify loss of TCP connection */
+  WORK_UDP_READAHEAD   /* Notify that TCP read-ahead data is available */
+};
+
+/* This structure describes one notification and is provided as input to
+ * to work_notifier_setup().  This input is copied by work_notifier_setup()
+ * into an allocated instance of struct work_notifier_entry_s and need not
+ * persist on the caller's side.
+ */
+
+struct work_notifier_s
+{
+  uint8_t evtype;      /* See enum work_evtype_e */
+  uint8_t qid;         /* The work queue to use: HPWORK or LPWORK */
+  FAR void *qualifier; /* Event qualifier value */
+  FAR void *arg;       /* User-defined worker function argument */
+  worker_t worker;     /* The worker function to schedule */
+};
+
+/* This structure describes one notification list entry.  It is cast-
+ * compatible with struct work_notifier_s.  This structure is an allocated
+ * container for the user notification data.   It is allocated because it
+ * must persist until the work is executed and must be freed using
+ * kmm_free() by the work.
+ *
+ * With the work notification is scheduled, the work function will receive
+ * the allocated instance of struct work_notifier_entry_s as its input
+ * argument.  When it completes the notification operation, the work function
+ * is responsible for freeing that instance.
+ */
+
+struct work_notifier_entry_s
+{
+  /* This must appear at the beginning of the structure.  A reference to
+   * the struct work_notifier_entry_s instance must be cast-compatible with
+   * struct dq_entry_s.
+   */
+
+  struct work_s work;           /* Used for scheduling the work */
+
+  /* User notification information */
+
+  struct work_notifier_s info;  /* The notification info */
+
+  /* Additional payload needed to manage the notification */
+
+  int16_t key;                  /* Unique ID for the notification */
 };
 
 /****************************************************************************
@@ -442,6 +500,78 @@ void lpwork_boostpriority(uint8_t reqprio);
 
 #if defined(CONFIG_SCHED_LPWORK) && defined(CONFIG_PRIORITY_INHERITANCE)
 void lpwork_restorepriority(uint8_t reqprio);
+#endif
+
+/****************************************************************************
+ * Name: work_notifier_setup
+ *
+ * Description:
+ *   Set up to provide a notification when event occurs.
+ *
+ * Input Parameters:
+ *   info - Describes the work notification.
+ *
+ * Returned Value:
+ *   > 0   - The key which may be used later in a call to
+ *           work_notifier_teardown().
+ *   == 0  - Not used (reserved for wrapper functions).
+ *   < 0   - An unexpected error occurred and no notification will be sent.
+ *           The returned value is a negated errno value that indicates the
+ *           nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_WQUEUE_NOTIFIER
+int work_notifier_setup(FAR struct work_notifier_s *info);
+#endif
+
+/****************************************************************************
+ * Name: work_notifier_teardown
+ *
+ * Description:
+ *   Eliminate a notification previously setup by work_notifier_setup().
+ *   This function should only be called if the notification should be
+ *   aborted prior to the notification.  The notification will automatically
+ *   be torn down after the notification is executed.
+ *
+ * Input Parameters:
+ *   key - The key value returned from a previous call to
+ *         work_notifier_setup().
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_WQUEUE_NOTIFIER
+int work_notifier_teardown(int key);
+#endif
+
+/****************************************************************************
+ * Name: work_notifier_signal
+ *
+ * Description:
+ *   An event has just occurred.  Notify all threads waiting for that event.
+ *
+ *   When an event of interest occurs, *all* of the workers waiting for this
+ *   event will be executed.  If there are multiple workers for a resource
+ *   then only the first to execute will get the resource.  Others will
+ *   need to call work_notifier_setup() once again.
+ *
+ * Input Parameters:
+ *   evtype   - The type of the event that just occurred.
+ *   qualifier - Event qualifier to distinguish different cases of the
+ *               generic event type.
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_WQUEUE_NOTIFIER
+void work_notifier_signal(enum work_evtype_e evtype,
+                           FAR void *qualifier);
 #endif
 
 #undef EXTERN

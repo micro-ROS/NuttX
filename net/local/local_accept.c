@@ -70,7 +70,7 @@ static int local_waitlisten(FAR struct local_conn_s *server)
     {
       /* No.. wait for a connection or a signal */
 
-      ret = nxsem_wait(&server->lc_waitsem);
+      ret = net_lockedwait(&server->lc_waitsem);
       if (ret < 0)
         {
           DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
@@ -180,8 +180,8 @@ int local_accept(FAR struct socket *psock, FAR struct sockaddr *addr,
               conn->lc_type   = LOCAL_TYPE_PATHNAME;
               conn->lc_state  = LOCAL_STATE_CONNECTED;
 
-              strncpy(conn->lc_path, client->lc_path, UNIX_PATH_MAX-1);
-              conn->lc_path[UNIX_PATH_MAX-1] = '\0';
+              strncpy(conn->lc_path, client->lc_path, UNIX_PATH_MAX - 1);
+              conn->lc_path[UNIX_PATH_MAX - 1] = '\0';
               conn->lc_instance_id = client->lc_instance_id;
 
               /* Open the server-side write-only FIFO.  This should not

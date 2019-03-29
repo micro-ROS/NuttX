@@ -134,7 +134,7 @@ int lm32_swint(int irq, FAR void *context, FAR void *arg)
 {
   uint32_t *regs = (uint32_t *)context;
 
-  DEBUGASSERT(g_current_regs == NULL);
+  DEBUGASSERT(regs != NULL && regs == g_current_regs);
   g_current_regs = regs;
 
   /* Software interrupt 0 is invoked with REG_A0 (REG_X10) = system call

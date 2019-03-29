@@ -100,10 +100,6 @@
 #  define CONFIG_MTD_SUBSECTOR_ERASE 1
 #endif
 
-#if defined(CONFIG_FS_PROCFS) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MTD)
-#  define CONFIG_MTD_REGISTRATION   1
-#endif
-
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -192,19 +188,9 @@ struct mtd_dev_s
 
   int (*ioctl)(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
 
-#ifdef CONFIG_MTD_REGISTRATION
-  /* An assigned MTD number for procfs reporting */
-
-  uint8_t mtdno;
-
-  /* Pointer to the next registered MTD device */
-
-  FAR struct mtd_dev_s  *pnext;
-
   /* Name of this MTD device */
 
   FAR const char *name;
-#endif
 };
 
 /****************************************************************************
@@ -294,13 +280,12 @@ FAR struct mtd_dev_s *mtd_rwb_initialize(FAR struct mtd_dev_s *mtd);
  *   Initialize to provide a block driver wrapper around an MTD interface
  *
  * Input Parameters:
- *   name - The device name.  The MTD block device will be
- *          registered as as /dev/mtdNAME where NAME is the device name.
+ *   path - The block device path.
  *   mtd  - The MTD device that supports the FLASH interface.
  *
  ****************************************************************************/
 
-int ftl_initialize_by_name(FAR const char *name, FAR struct mtd_dev_s *mtd);
+int ftl_initialize_by_path(FAR const char *path, FAR struct mtd_dev_s *mtd);
 
 /****************************************************************************
  * Name: ftl_initialize
@@ -663,38 +648,6 @@ void filemtd_teardown(FAR struct mtd_dev_s* dev);
  ****************************************************************************/
 
 bool filemtd_isfilemtd(FAR struct mtd_dev_s* mtd);
-
-/****************************************************************************
- * Name: mtd_register
- *
- * Description:
- *   Registers MTD device with the procfs file system.  This assigns a unique
- *   MTD number and associates the given device name, then adds it to
- *   the list of registered devices.
- *
- * In an embedded system, this all is really unnecessary, but is provided
- * in the procfs system simply for information purposes (if desired).
- *
- ****************************************************************************/
-
-#ifdef CONFIG_MTD_REGISTRATION
-int mtd_register(FAR struct mtd_dev_s *mtd, FAR const char *name);
-#endif
-
-/****************************************************************************
- * Name: mtd_unregister
- *
- * Description:
- *   Un-registers an MTD device with the procfs file system.
- *
- * In an embedded system, this all is really unnecessary, but is provided
- * in the procfs system simply for information purposes (if desired).
- *
- ****************************************************************************/
-
-#ifdef CONFIG_MTD_REGISTRATION
-int mtd_unregister(FAR struct mtd_dev_s *mtd);
-#endif
 
 #undef EXTERN
 #ifdef __cplusplus

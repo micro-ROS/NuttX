@@ -62,7 +62,7 @@
  * a serial console is assumed.
  */
 
-#if !defined(CONFIG_DEV_CONSOLE) || CONFIG_NFILE_DESCRIPTORS <= 0
+#ifndef CONFIG_DEV_CONSOLE
 #  undef  USE_SERIALDRIVER
 #  undef  USE_EARLYSERIALINIT
 #  undef  CONFIG_DEV_LOWCONSOLE
@@ -165,13 +165,8 @@ void up_vectorfiq(void);
 
 /* Defined in xyz_serial.c */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
 void up_earlyconsoleinit(void);
 void up_consoleinit(void);
-#else
-# define up_earlyconsoleinit()
-# define up_consoleinit()
-#endif
 
 /* Defined in drivers/lowconsole.c */
 
@@ -191,7 +186,7 @@ void renesas_timer_initialize(void);
 
 /* Defined in board/xyz_lcd.c */
 
-#ifdef CONFIG_LCD_CONSOLE
+#ifdef CONFIG_SLCD_CONSOLE
 void up_lcdinit(void);
 void up_lcdputc(char ch);
 #else

@@ -547,7 +547,7 @@ static uint32_t stm32_getreg32(FAR struct stm32_lowerhalf_s *priv, int offset)
 }
 
 /************************************************************************************
- * Name: stm32_putreg16
+ * Name: stm32_putreg32
  *
  * Description:
  *   Write a value to a 32-bit timer register.  This applies only for the STM32 F4

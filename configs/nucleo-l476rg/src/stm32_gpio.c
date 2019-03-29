@@ -162,7 +162,7 @@ static int stm32gpio_interrupt(int irq, void *context, void *arg)
   DEBUGASSERT(stm32gpint != NULL && stm32gpint->callback != NULL);
   gpioinfo("Interrupt! callback=%p\n", stm32gpint->callback);
 
-  stm32gpint->callback(&stm32gpint->stm32gpio.gpio);
+  stm32gpint->callback(&stm32gpint->stm32gpio.gpio, tm32gpint->stm32gpio.id);
   return OK;
 }
 
@@ -207,7 +207,7 @@ static int gpint_read(FAR struct gpio_dev_s *dev, FAR bool *value)
   FAR struct stm32gpint_dev_s *stm32gpint = (FAR struct stm32gpint_dev_s *)dev;
 
   DEBUGASSERT(stm32gpint != NULL && value != NULL);
-  DEBUGASSERT(stm32gpint->stm32gpio && stm32gpint->stm32gpio.id < BOARD_NGPIOINT);
+  DEBUGASSERT(stm32gpint->stm32gpio.id < BOARD_NGPIOINT);
   gpioinfo("Reading int pin...\n");
 
   *value = stm32l4_gpioread(g_gpiointinputs[stm32gpint->stm32gpio.id]);

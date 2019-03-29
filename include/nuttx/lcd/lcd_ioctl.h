@@ -1,8 +1,8 @@
-/************************************************************************************
- * include/nuttx/input/slcd_ioctl.h
+/****************************************************************************
+ * include/nuttx/lcd/lcd_ioctl.h
  * IOCTL commands for segment LCDs
  *
- *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_INPUT_LCD_IOCTL_H
-#define __INCLUDE_NUTTX_INPUT_LCD_IOCTL_H
+#ifndef __INCLUDE_NUTTX_LCD_LCD_IOCTL_H
+#define __INCLUDE_NUTTX_LCD_LCD_IOCTL_H
 
 /****************************************************************************
  * Included Files
@@ -50,7 +50,12 @@
 
 /* IOCTL commands set aside for FT80x character driver */
 
-#define FT80X_NIOCTL_CMDS  16
-#define FT80X_NIOCTL_BASE  0x0001
+#define FT80X_NIOCTL_CMDS     16
+#define FT80X_NIOCTL_BASE     0x0001
 
-#endif /* __INCLUDE_NUTTX_INPUT_LCD_IOCTL_H */
+/* IOCTL commands set aside for TDA19988 HDMI encoder */
+
+#define TDA19988_NIOCTL_CMDS  1
+#define TDA19988_NIOCTL_BASE  (FT80X_NIOCTL_BASE + FT80X_NIOCTL_CMDS)
+
+#endif /* __INCLUDE_NUTTX_LCD_LCD_IOCTL_H */

@@ -85,7 +85,9 @@ void up_initialize(void)
   iob_initialize();
 #endif
 
+#if 0 /* REVISIT */
   /* Initialize the network cores */
 
   misoc_net_initialize(0);
+#endif
 }

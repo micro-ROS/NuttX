@@ -144,7 +144,7 @@ fi
 
 echo "EXTERN(arm_boot)" >>ld-locked.inc
 
-# All of the initialization functions that are called by os_start up to
+# All of the initialization functions that are called by nx_start up to
 # the point where the page fill worker thread is started must also be
 # included in the locked text section (at least for now)
 
@@ -183,10 +183,7 @@ if [ "$answer" = n ]; then
 	echo "EXTERN(pthread_initialize)" >>ld-locked.inc
 fi
 
-answer=$(checkzero CONFIG_NFILE_DESCRIPTORS)
-if [ "$answer" = n ]; then
-	echo "EXTERN(fs_initialize)" >>ld-locked.inc
-fi
+echo "EXTERN(fs_initialize)" >>ld-locked.inc
 
 answer=$(checkconfig CONFIG_NET)
 if [ "$answer" = y ]; then
@@ -203,7 +200,7 @@ echo "EXTERN(task_create)" >>ld-locked.inc
 #
 # The IDLE loop must be forced to lie in the locked .text region.
 
-echo "EXTERN(os_start)" >>ld-locked.inc
+echo "EXTERN(nx_start)" >>ld-locked.inc
 echo "EXTERN(up_idle)" >>ld-locked.inc
 
 ############################################################################

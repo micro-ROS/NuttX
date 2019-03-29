@@ -1,7 +1,7 @@
 /****************************************************************************
- * graphics/nxbe/nxbe_fill.c
+ * graphics/nxbe/nxbe_getrectangle.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <assert.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -55,6 +56,87 @@ struct nxbe_fill_s
   struct nxbe_clipops_s cops;
   nxgl_mxpixel_t color;
 };
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nxbe_getrectangle_dev
+ *
+ * Description:
+ *  Get the raw contents of graphic memory within a rectangular region. NOTE:
+ *  Since raw graphic memory is returned, the returned memory content may be
+ *  the memory of windows above this one and may not necessarily belong to
+ *  this window unless you assure that this is the top window.
+ *
+ * Input Parameters:
+ *   wnd  - The window structure reference
+ *   rect - The location to be copied
+ *   plane - Specifies the color plane to get from.
+ *   dest - The location to copy the memory region
+ *   deststride - The width, in bytes, of the dest memory
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static inline void nxbe_getrectangle_dev(FAR struct nxbe_window_s *wnd,
+                                         FAR const struct nxgl_rect_s *rect,
+                                         unsigned int plane,
+                                         FAR uint8_t *dest,
+                                         unsigned int deststride)
+{
+  FAR struct nxbe_plane_s *pplane = &wnd->be->plane[plane];
+
+  DEBUGASSERT(pplane != NULL && pplane->dev.getrectangle != NULL);
+
+  pplane->dev.getrectangle(&pplane->pinfo, rect, dest, deststride);
+}
+
+/****************************************************************************
+ * Name: nxbe_getrectangle_pwfb
+ *
+ * Description:
+ *  Get the contents of pre-window framebuffer graphic memory within a
+ *  rectangular region.
+ *
+ * Input Parameters:
+ *   wnd  - The window structure reference
+ *   rect - The location to be copied
+ *   plane - Specifies the color plane to get from.
+ *   dest - The location to copy the memory region
+ *   deststride - The width, in bytes, of the dest memory
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NX_RAMBACKED
+static inline void nxbe_getrectangle_pwfb(FAR struct nxbe_window_s *wnd,
+                                          FAR const struct nxgl_rect_s *rect,
+                                          unsigned int plane,
+                                          FAR uint8_t *dest,
+                                          unsigned int deststride)
+{
+  FAR struct nxbe_plane_s *pplane = &wnd->be->plane[plane];
+  struct nxgl_rect_s relrect;
+
+  DEBUGASSERT(pplane != NULL && pplane->pwfb.getrectangle != NULL);
+
+  /* The rectangle that we receive here is in abolute device coordinates.  We
+   * need to restore this to windows relative coordinates.
+   */
+
+  nxgl_rectoffset(&relrect, rect, -wnd->bounds.pt1.x, -wnd->bounds.pt1.y);
+
+  /* Then get the rectangle from the framebuffer */
+
+  pplane->pwfb.getrectangle(wnd, &relrect, dest, deststride);
+}
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -87,13 +169,9 @@ void nxbe_getrectangle(FAR struct nxbe_window_s *wnd,
 {
   struct nxgl_rect_s remaining;
 
-#ifdef CONFIG_DEBUG_FEATURES
-  if (!wnd || !rect || !dest || plane >= wnd->be->vinfo.nplanes)
-    {
-      ginfo("Invalid parameters\n");
-      return;
-    }
-#endif
+  DEBUGASSERT(wnd != NULL && rect != NULL && dest != NULL);
+  DEBUGASSERT(wnd->be != NULL && wnd->be->plane != NULL);
+  DEBUGASSERT(plane < wnd->be->vinfo.nplanes);
 
   /* Offset the rectangle by the window origin to convert it into a
    * bounding box
@@ -108,15 +186,29 @@ void nxbe_getrectangle(FAR struct nxbe_window_s *wnd,
   nxgl_rectintersect(&remaining, &remaining, &wnd->bounds);
   nxgl_rectintersect(&remaining, &remaining, &wnd->be->bkgd.bounds);
 
-  /* The return the graphics memory at this location.  NOTE: Since raw
-   * graphic memory is returned, the returned memory content may be
-   * the memory of windows above this one and may not necessarily belong
-   * to this window.
-   */
+  /* The return the graphics memory at this location. */
 
   if (!nxgl_nullrect(&remaining))
     {
-      FAR struct nxbe_plane_s *pplane = &wnd->be->plane[plane];
-      pplane->getrectangle(&pplane->pinfo, &remaining, dest, deststride);
+#ifdef CONFIG_NX_RAMBACKED
+      /* If this window supports a pre-window frame buffer then get the
+       * rectangle from pre-window framebuffer.
+       */
+
+      if (NXBE_ISRAMBACKED(wnd))
+        {
+          nxbe_getrectangle_pwfb(wnd, rect, plane, dest, deststride);
+        }
+      else
+#endif
+        {
+          /* Get the rectangle from the graphics device memory.
+           * NOTE: Since raw graphic memory is returned, the returned memory
+           * content may be the memory of windows above this one and may
+           * not necessarily belong to this window.
+           */
+
+           nxbe_getrectangle_dev(wnd, rect, plane, dest, deststride);
+        }
     }
 }

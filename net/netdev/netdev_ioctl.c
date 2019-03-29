@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/netdev/netdev_ioctl.c
  *
- *   Copyright (C) 2007-2012, 2015-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2012, 2015-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -90,11 +90,10 @@
 #include "icmpv6/icmpv6.h"
 #include "route/route.h"
 
-#if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration */
 
 #undef HAVE_WRITABLE_IPv4ROUTE
@@ -695,7 +694,6 @@ static int netdev_ifr_ioctl(FAR struct socket *psock, int cmd,
         break;
 #endif
 
-
 #ifdef CONFIG_NET_IPv4
       case SIOCSIFADDR:  /* Set IP address */
         {
@@ -899,7 +897,7 @@ static int netdev_ifr_ioctl(FAR struct socket *psock, int cmd,
           dev = netdev_ifr_dev(req);
           if (dev)
             {
-              ret = icmpv6_autoconfig(dev);
+              ret = icmpv6_autoconfig(dev, psock);
             }
         }
         break;
@@ -1077,7 +1075,7 @@ static int netdev_ifr_ioctl(FAR struct socket *psock, int cmd,
           dev = netdev_ifr_dev(req);
           if (dev && dev->d_ioctl)
             {
-              struct mii_iotcl_notify_s *notify = &req->ifr_ifru.ifru_mii_notify;
+              struct mii_ioctl_notify_s *notify = &req->ifr_ifru.ifru_mii_notify;
               ret = dev->d_ioctl(dev, cmd, ((unsigned long)(uintptr_t)notify));
             }
         }
@@ -1125,16 +1123,16 @@ static int netdev_ifr_ioctl(FAR struct socket *psock, int cmd,
 #ifdef CONFIG_NET_IGMP
 static FAR struct net_driver_s *netdev_imsfdev(FAR struct ip_msfilter *imsf)
 {
-  if (!imsf)
+  if (imsf == NULL)
     {
       return NULL;
     }
 
-  /* Find the network device associated with the device name
-   * in the request data.
+  /* Find the network device associated with the address of the IP address
+   * of the local device.
    */
 
-  return netdev_findbyname(imsf->imsf_name);
+  return netdev_findby_lipv4addr(imsf->imsf_interface.s_addr);
 }
 #endif
 
@@ -1507,6 +1505,7 @@ ssize_t net_ioctl_arglen(int cmd)
       case SIOCSIFFLAGS:
       case SIOCGIFFLAGS:
         return sizeof(struct ifreq);
+
       case SIOCGLIFADDR:
       case SIOCSLIFADDR:
       case SIOCGLIFDSTADDR:
@@ -1518,26 +1517,34 @@ ssize_t net_ioctl_arglen(int cmd)
       case SIOCGLIFMTU:
       case SIOCIFAUTOCONF:
         return sizeof(struct lifreq);
+
       case SIOCGIFCONF:
         return sizeof(struct ifconf);
+
       case SIOCGLIFCONF:
         return sizeof(struct lifconf);
+
       case SIOCGIPMSFILTER:
       case SIOCSIPMSFILTER:
         return sizeof(struct ip_msfilter);
+
       case SIOCSARP:
       case SIOCDARP:
       case SIOCGARP:
         return sizeof(struct arpreq);
+
       case SIOCADDRT:
       case SIOCDELRT:
         return sizeof(struct rtentry);
+
       case SIOCMIINOTIFY:
-        return sizeof(struct mii_iotcl_notify_s);
+        return sizeof(struct mii_ioctl_notify_s);
+
       case SIOCGMIIPHY:
       case SIOCGMIIREG:
       case SIOCSMIIREG:
         return sizeof(struct mii_ioctl_data_s);
+
       default:
 #ifdef CONFIG_NETDEV_IOCTL
 #  ifdef CONFIG_NETDEV_WIRELESS_IOCTL
@@ -1789,7 +1796,14 @@ void netdev_ifdown(FAR struct net_driver_s *dev)
       /* Notify clients that the network has been taken down */
 
       (void)devif_dev_event(dev, NULL, NETDEV_DOWN);
+
+#ifdef CONFIG_NETDOWN_NOTIFIER
+      /* Provide signal notifications to threads that want to be
+       * notified of the network down state via signal.
+       */
+
+      netdown_notifier_signal(dev);
+#endif
     }
 }
 
-#endif /* CONFIG_NET && CONFIG_NSOCKET_DESCRIPTORS */

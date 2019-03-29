@@ -51,11 +51,12 @@
 #include "group/group.h"
 #include "environ/environ.h"
 
-#if defined(HAVE_TASK_GROUP) && !defined(CONFIG_DISABLE_PTHREAD)
+#ifndef CONFIG_DISABLE_PTHREAD
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Is this worth making a configuration option? */
 
 #define GROUP_REALLOC_MEMBERS 4
@@ -228,4 +229,4 @@ int group_join(FAR struct pthread_tcb_s *tcb)
   return OK;
 }
 
-#endif /* HAVE_TASK_GROUP && !CONFIG_DISABLE_PTHREAD */
+#endif /* !CONFIG_DISABLE_PTHREAD */

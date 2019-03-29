@@ -60,26 +60,28 @@
  * Description:
  *   Perform architecture-specific initialization
  *
- *   CONFIG_BOARD_INITIALIZE=y :
- *     Called from board_initialize().
+ *   CONFIG_BOARD_LATE_INITIALIZE=y :
+ *     Called from board_late_initialize().
  *
- *   CONFIG_BOARD_INITIALIZE=n && CONFIG_LIB_BOARDCTL=y :
+ *   CONFIG_BOARD_LATE_INITIALIZE=n && CONFIG_LIB_BOARDCTL=y && CONFIG_NSH_ARCHINIT:
  *     Called from the NSH library
  *
  ****************************************************************************/
 
 int stm32_bringup(void)
 {
-#ifdef CONFIG_FS_PROCFS
-  int ret;
+  int ret = OK;
 
+  UNUSED(ret);
+
+#ifdef CONFIG_FS_PROCFS
 #ifdef CONFIG_STM32_CCM_PROCFS
   /* Register the CCM procfs entry.  This must be done before the procfs is
    * mounted.
    */
 
   (void)ccm_procfs_register();
-#endif
+#endif  /* CONFIG_STM32_CCM_PROCFS */
 
   /* Mount the procfs file system */
 
@@ -90,7 +92,7 @@ int stm32_bringup(void)
              "ERROR: Failed to mount the PROC filesystem: %d (%d)\n",
              ret, errno);
     }
-#endif
+#endif  /* CONFIG_FS_PROCFS */
 
 #ifdef CONFIG_BUTTONS
   /* Register the BUTTON driver */
@@ -100,7 +102,7 @@ int stm32_bringup(void)
     {
       syslog(LOG_ERR, "ERROR: btn_lower_initialize() failed: %d\n", ret);
     }
-#endif
+#endif  /* CONFIG_BUTTONS */
 
 #ifdef CONFIG_ADC
   /* Initialize ADC and register the ADC driver. */
@@ -110,7 +112,43 @@ int stm32_bringup(void)
     {
       syslog(LOG_ERR, "ERROR: stm32_adc_setup failed: %d\n", ret);
     }
-#endif
+#endif  /* CONFIG_ADC */
+
+#ifdef CONFIG_SENSORS_LSM6DSL
+  ret = stm32_lsm6dsl_initialize("/dev/lsm6dsl0");
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize LSM6DSL driver: %d\n", ret);
+    }
+#endif  /* CONFIG_SENSORS_LSM6DSL */
+
+#ifdef CONFIG_SENSORS_LSM303AGR
+  ret = stm32_lsm303agr_initialize("/dev/lsm303mag0");
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize LSM303AGR driver: %d\n", ret);
+    }
+#endif  /* CONFIG_SENSORS_LSM303AGR */
+
+#ifdef CONFIG_WL_NRF24L01
+  ret = stm32_wlinitialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize wireless driver: %d\n", ret);
+    }
+#endif  /* CONFIG_WL_NRF24L01 */
+
+#if defined(CONFIG_CDCACM) && !defined(CONFIG_CDCACM_CONSOLE)
+  /* Initialize CDCACM */
+
+  syslog(LOG_INFO, "Initialize CDCACM device\n");
+
+  ret = cdcacm_initialize(0, NULL);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: cdcacm_initialize failed: %d\n", ret);
+    }
+#endif  /* CONFIG_CDCACM & !CONFIG_CDCACM_CONSOLE */
 
   return OK;
 }

@@ -46,6 +46,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* General ioctl definitions ************************************************/
 /* Each NuttX ioctl commands are uint16_t's consisting of an 8-bit type
  * identifier and an 8-bit command number.  All command type identifiers are
@@ -135,7 +136,8 @@
 #define FIOC_REFORMAT   _FIOC(0x0002)     /* IN:  None
                                            * OUT: None
                                            */
-#define FIOC_OPTIMIZE   _FIOC(0x0003)     /* IN:  None
+#define FIOC_OPTIMIZE   _FIOC(0x0003)     /* IN:  The number of bytes to recover
+                                           *      (ignored on most file systems)
                                            * OUT: None
                                            */
 #define FIOC_FILENAME   _FIOC(0x0004)     /* IN:  FAR const char ** pointer
@@ -143,17 +145,24 @@
                                            *      (Guaranteed to persist while the file
                                            *      is open).
                                            */
+#define FIOC_INTEGRITY  _FIOC(0x0005)     /* Run a consistency check on the
+                                           *      file system media.
+                                           * IN:  None
+                                           * OUT: None */
+#define FIOC_DUMP       _FIOC(0x0006)     /* Dump logical content of media.
+                                           * IN:  None
+                                           * OUT: None */
 
-#define FIONREAD        _FIOC(0x0005)     /* IN:  Location to return value (int *)
+#define FIONREAD        _FIOC(0x0007)     /* IN:  Location to return value (int *)
                                            * OUT: Bytes readable from this fd
                                            */
-#define FIONWRITE       _FIOC(0x0006)     /* IN:  Location to return value (int *)
+#define FIONWRITE       _FIOC(0x0008)     /* IN:  Location to return value (int *)
                                            * OUT: Number bytes in send queue
                                            */
-#define FIONSPACE       _FIOC(0x0007)     /* IN:  Location to return value (int *)
+#define FIONSPACE       _FIOC(0x0009)     /* IN:  Location to return value (int *)
                                            * OUT: Free space in send queue.
                                            */
-#define FIONUSERFS      _FIOC(0x0008)     /* IN:  Pointer to struct usefs_config_s
+#define FIONUSERFS      _FIOC(0x000a)     /* IN:  Pointer to struct usefs_config_s
                                            *      holding userfs configuration.
                                            * OUT: Instance number is returned on
                                            *      success.
@@ -240,7 +249,7 @@
                                            *      the block with specific debug
                                            *      command and data.
                                            * OUT: None.  */
-#define BIOC_GEOMETRY   _BIOC(0x000c)    /* Used only by BCH to return the
+#define BIOC_GEOMETRY   _BIOC(0x000c)     /* Used only by BCH to return the
                                            * geometry of the contained block
                                            * driver.
                                            * IN:  Pointer to writable instance
@@ -248,6 +257,10 @@
                                            *      to return geometry.
                                            * OUT: Data return in user-provided
                                            *      buffer. */
+#define BIOC_FLUSH      _BIOC(0x000d)     /* Flush the block device write buffer
+                                           * IN:  None
+                                           * OUT: None (ioctl return value provides
+                                           *      success/failure indication). */
 
 /* NuttX MTD driver ioctl definitions ***************************************/
 

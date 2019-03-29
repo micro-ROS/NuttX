@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs/ea3152/src/lpc31_fillpage.c
  *
- *   Copyright (C) 2011, 2013, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2013, 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -277,7 +277,7 @@ static inline void lpc31_initsrc(void)
 
       /* Open the selected path for read-only access */
 
-      g_pgsrc.fd = open(CONFIG_PAGING_BINPATH, O_RDONLY);
+      g_pgsrc.fd = nx_open(CONFIG_PAGING_BINPATH, O_RDONLY);
       DEBUGASSERT(g_pgsrc.fd >= 0);
 
       /* Then we are initialized */
@@ -515,7 +515,7 @@ void weak_function lpc31_pginitialize(void)
    *   that it is called.
    *
    * In reality, however, this function is not very useful: This function is called
-   * from a low level (before os_start() is even called), it may not be possible to
+   * from a low level (before nx_start() is even called), it may not be possible to
    * perform file system operations or even to get debug output yet.  Therefore,
    * to keep life simple, initialization will be deferred in all cases until the first
    * time that up_fillpage() is called.

@@ -80,7 +80,7 @@
  *
  * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately.  (See
- *   task_schedsetup() for possible failure conditions).  On failure, the
+ *   nxtask_schedsetup() for possible failure conditions).  On failure, the
  *   caller is responsible for freeing the stack memory and for calling
  *   sched_releasetcb() to free the TCB (which could be in most any state).
  *
@@ -103,25 +103,21 @@ int task_init(FAR struct tcb_s *tcb, const char *name, int priority,
 
   /* Create a new task group */
 
-#ifdef HAVE_TASK_GROUP
   ret = group_allocate(ttcb, tcb->flags);
   if (ret < 0)
     {
       errcode = -ret;
       goto errout;
     }
-#endif
 
   /* Associate file descriptors with the new task */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
   ret = group_setuptaskfiles(ttcb);
   if (ret < 0)
     {
       errcode = -ret;
       goto errout_with_group;
     }
-#endif
 
   /* Configure the user provided stack region */
 
@@ -129,8 +125,8 @@ int task_init(FAR struct tcb_s *tcb, const char *name, int priority,
 
   /* Initialize the task control block */
 
-  ret = task_schedsetup(ttcb, priority, task_start, entry,
-                        TCB_FLAG_TTYPE_TASK);
+  ret = nxtask_schedsetup(ttcb, priority, nxtask_start, entry,
+                          TCB_FLAG_TTYPE_TASK);
   if (ret < OK)
     {
       errcode = -ret;
@@ -139,26 +135,23 @@ int task_init(FAR struct tcb_s *tcb, const char *name, int priority,
 
   /* Setup to pass parameters to the new task */
 
-  (void)task_argsetup(ttcb, name, argv);
+  (void)nxtask_argsetup(ttcb, name, argv);
 
   /* Now we have enough in place that we can join the group */
 
-#ifdef HAVE_TASK_GROUP
   ret = group_initialize(ttcb);
   if (ret < 0)
     {
       errcode = -ret;
       goto errout_with_group;
     }
-#endif
+
   return OK;
 
 errout_with_group:
-#ifdef HAVE_TASK_GROUP
   group_leave(tcb);
 
 errout:
-#endif
   set_errno(errcode);
   return ERROR;
 }

@@ -56,14 +56,6 @@
 #ifdef CONFIG_NET_IGMP
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#ifdef CONFIG_NET_IPv6
-#  error "IGMP for IPv6 not supported"
-#endif
-
-/****************************************************************************
  * Public Data
  ****************************************************************************/
 
@@ -102,7 +94,7 @@ void igmp_initialize(void)
 void igmp_devinit(struct net_driver_s *dev)
 {
   ninfo("IGMP initializing dev %p\n", dev);
-  DEBUGASSERT(dev->grplist.head == NULL);
+  DEBUGASSERT(dev->d_igmp_grplist.head == NULL);
 
   /* Add the all systems address to the group */
 

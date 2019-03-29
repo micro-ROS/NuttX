@@ -336,7 +336,7 @@ static int  spirit_ifup(FAR struct net_driver_s *dev);
 static int  spirit_ifdown(FAR struct net_driver_s *dev);
 static int  spirit_txavail(FAR struct net_driver_s *dev);
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  spirit_addmac(FAR struct net_driver_s *dev,
               FAR const uint8_t *mac);
 static int  spirit_rmmac(FAR struct net_driver_s *dev,
@@ -620,7 +620,7 @@ static void spirit_set_ipaddress(FAR struct net_driver_s *dev)
   dev->d_ipv6addr[4]  = 0;
   dev->d_ipv6addr[5]  = HTONS(0x00ff);
   dev->d_ipv6addr[6]  = HTONS(0xfe00);
-  dev->d_ipv6addr[7]  = (uint16_t)addr->nv_addr[0] << 8 ^ 0x0200;
+  dev->d_ipv6addr[7]  = (uint16_t)addr->nv_addr[0] << 8;
 }
 
 /****************************************************************************
@@ -2112,7 +2112,7 @@ static int spirit_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int spirit_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   return -ENOSYS;
@@ -2135,7 +2135,7 @@ static int spirit_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int spirit_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   return -ENOSYS;
@@ -2835,7 +2835,7 @@ int spirit_netdev_initialize(FAR struct spi_dev_s *spi,
   dev->d_ifup         = spirit_ifup;       /* I/F up (new IP address) callback */
   dev->d_ifdown       = spirit_ifdown;     /* I/F down callback */
   dev->d_txavail      = spirit_txavail;    /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   dev->d_addmac       = spirit_addmac;     /* Add multicast MAC address */
   dev->d_rmmac        = spirit_rmmac;      /* Remove multicast MAC address */
 #endif

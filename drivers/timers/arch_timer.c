@@ -43,8 +43,6 @@
 #include <nuttx/clock.h>
 #include <nuttx/timers/arch_timer.h>
 
-#include <string.h>
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -93,18 +91,21 @@ static struct arch_timer_s g_timer;
  * Private Functions
  ****************************************************************************/
 
-#ifdef CONFIG_SCHED_TICKLESS
-static inline uint64_t timespec_to_usec(const FAR struct timespec *ts)
-{
-  return (uint64_t)ts->tv_sec * USEC_PER_SEC + ts->tv_nsec / NSEC_PER_USEC;
-}
-
+#if defined(CONFIG_SCHED_TICKLESS) || defined(CONFIG_SCHED_CRITMONITOR) \
+    || defined(CONFIG_SCHED_IRQMONITOR_GETTIME)
 static inline void timespec_from_usec(FAR struct timespec *ts,
                                       uint64_t microseconds)
 {
   ts->tv_sec    = microseconds / USEC_PER_SEC;
   microseconds -= (uint64_t)ts->tv_sec * USEC_PER_SEC;
   ts->tv_nsec   = microseconds * NSEC_PER_USEC;
+}
+#endif
+
+#ifdef CONFIG_SCHED_TICKLESS
+static inline uint64_t timespec_to_usec(const FAR struct timespec *ts)
+{
+  return (uint64_t)ts->tv_sec * USEC_PER_SEC + ts->tv_nsec / NSEC_PER_USEC;
 }
 
 static inline bool timeout_diff(uint32_t new, uint32_t old)
@@ -145,12 +146,13 @@ static uint64_t current_usec(void)
 {
   struct timer_status_s status;
   uint64_t timebase;
-  irqstate_t flags;
 
-  flags = enter_critical_section();
-  TIMER_GETSTATUS(g_timer.lower, &status);
-  timebase = g_timer.timebase;
-  leave_critical_section(flags);
+  do
+    {
+      timebase = g_timer.timebase;
+      TIMER_GETSTATUS(g_timer.lower, &status);
+    }
+  while (timebase != g_timer.timebase);
 
   return timebase + (status.timeout - status.timeleft);
 }
@@ -217,10 +219,10 @@ static bool timer_callback(FAR uint32_t *next_interval_us, FAR void *arg)
   struct timer_status_s status;
   uint32_t next_interval;
 
-  g_timer.timebase += *next_interval_us;
-  next_interval = g_timer.maxtimeout;
+  g_timer.timebase     += *next_interval_us;
+  next_interval         = g_timer.maxtimeout;
   g_timer.next_interval = &next_interval;
-  sched_timer_expiration();
+  nxsched_timer_expiration();
   g_timer.next_interval = NULL;
 
   TIMER_GETSTATUS(g_timer.lower, &status);
@@ -229,9 +231,10 @@ static bool timer_callback(FAR uint32_t *next_interval_us, FAR void *arg)
       g_timer.timebase += status.timeout - status.timeleft;
       *next_interval_us = next_interval;
     }
+
 #else
   g_timer.timebase += USEC_PER_TICK;
-  sched_process_timer();
+  nxsched_process_timer();
 #endif
 
   return true;
@@ -263,7 +266,7 @@ void up_timer_set_lowerhalf(FAR struct timer_lowerhalf_s *lower)
  *
  * Description:
  *   Return the elapsed time since power-up (or, more correctly, since
- *   the archtecture-specific timer was initialized).  This function is
+ *   the architecture-specific timer was initialized).  This function is
  *   functionally equivalent to:
  *
  *      int clock_gettime(clockid_t clockid, FAR struct timespec *ts);
@@ -294,14 +297,15 @@ void up_timer_set_lowerhalf(FAR struct timer_lowerhalf_s *lower)
 #ifdef CONFIG_CLOCK_TIMEKEEPING
 int up_timer_getcounter(FAR uint64_t *cycles)
 {
-  if (!g_timer.lower)
+  int ret = -EAGAIN;
+
+  if (g_timer.lower != NULL)
     {
-      *cycles = 0;
-      return 0;
+      *cycles = current_usec() / USEC_PER_TICK;
+      ret = 0;
     }
 
-  *cycles = current_usec() / USEC_PER_TICK;
-  return 0;
+  return ret;
 }
 
 void up_timer_getmask(FAR uint64_t *mask)
@@ -322,14 +326,15 @@ void up_timer_getmask(FAR uint64_t *mask)
 #elif defined(CONFIG_SCHED_TICKLESS)
 int up_timer_gettime(FAR struct timespec *ts)
 {
-  if (!g_timer.lower)
+  int ret = -EAGAIN;
+
+  if (g_timer.lower != NULL)
     {
-      memset(ts, 0, sizeof(*ts));
-      return 0;
+      timespec_from_usec(ts, current_usec());
+      ret = 0;
     }
 
-  timespec_from_usec(ts, current_usec());
-  return 0;
+  return ret;
 }
 #endif
 
@@ -339,7 +344,7 @@ int up_timer_gettime(FAR struct timespec *ts)
  * Description:
  *   Cancel the interval timer and return the time remaining on the timer.
  *   These two steps need to be as nearly atomic as possible.
- *   sched_timer_expiration() will not be called unless the timer is
+ *   nxsched_timer_expiration() will not be called unless the timer is
  *   restarted with up_timer_start().
  *
  *   If, as a race condition, the timer has already expired when this
@@ -372,13 +377,15 @@ int up_timer_gettime(FAR struct timespec *ts)
 #ifdef CONFIG_SCHED_TICKLESS
 int up_timer_cancel(FAR struct timespec *ts)
 {
-  if (!g_timer.lower)
+  int ret = -EAGAIN;
+
+  if (g_timer.lower != NULL)
     {
-      return -EAGAIN;
+      timespec_from_usec(ts, update_timeout(g_timer.maxtimeout));
+      ret = 0;
     }
 
-  timespec_from_usec(ts, update_timeout(g_timer.maxtimeout));
-  return 0;
+  return ret;
 }
 #endif
 
@@ -386,14 +393,14 @@ int up_timer_cancel(FAR struct timespec *ts)
  * Name: up_timer_start
  *
  * Description:
- *   Start the interval timer.  sched_timer_expiration() will be called at
+ *   Start the interval timer.  nxsched_timer_expiration() will be called at
  *   the completion of the timeout (unless up_timer_cancel is called to stop
  *   the timing.
  *
  *   Provided by platform-specific code and called from the RTOS base code.
  *
  * Input Parameters:
- *   ts - Provides the time interval until sched_timer_expiration() is
+ *   ts - Provides the time interval until nxsched_timer_expiration() is
  *        called.
  *
  * Returned Value:
@@ -410,13 +417,53 @@ int up_timer_cancel(FAR struct timespec *ts)
 #ifdef CONFIG_SCHED_TICKLESS
 int up_timer_start(FAR const struct timespec *ts)
 {
-  if (!g_timer.lower)
+  int ret = -EAGAIN;
+
+  if (g_timer.lower != NULL)
     {
-      return -EAGAIN;
+      update_timeout(timespec_to_usec(ts));
+      ret = 0;
     }
 
-  update_timeout(timespec_to_usec(ts));
-  return 0;
+  return ret;
+}
+#endif
+
+/********************************************************************************
+ * Name: up_critmon_*
+ *
+ * Description:
+ *   The first interface simply provides the current time value in unknown
+ *   units.  NOTE:  This function may be called early before the timer has
+ *   been initialized.  In that event, the function should just return a
+ *   start time of zero.
+ *
+ *   Nothing is assumed about the units of this time value.  The following
+ *   are assumed, however: (1) The time is an unsigned integer value, (2)
+ *   the time is monotonically increasing, and (3) the elapsed time (also
+ *   in unknown units) can be obtained by subtracting a start time from
+ *   the current time.
+ *
+ *   The second interface simple converts an elapsed time into well known
+ *   units.
+ ********************************************************************************/
+
+#ifdef CONFIG_SCHED_CRITMONITOR
+uint32_t up_critmon_gettime(void)
+{
+  uint32_t ret = 0;
+
+  if (g_timer.lower != NULL)
+    {
+      ret = current_usec();
+    }
+
+  return ret;
+}
+
+void up_critmon_convert(uint32_t elapsed, FAR struct timespec *ts)
+{
+  timespec_from_usec(ts, elapsed);
 }
 #endif
 
@@ -446,11 +493,11 @@ void up_mdelay(unsigned int milliseconds)
 
 void up_udelay(useconds_t microseconds)
 {
-  if (g_timer.lower)
+  if (g_timer.lower != NULL)
     {
       udelay_accurate(microseconds);
     }
-  else /* period timer doesn't init yet */
+  else /* Period timer hasn't been initialized yet */
     {
       udelay_coarse(microseconds);
     }

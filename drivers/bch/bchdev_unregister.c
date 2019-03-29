@@ -1,7 +1,8 @@
 /****************************************************************************
  * drivers/bch/bchdev_unregister.c
  *
- *   Copyright (C) 2008-2009, 2012, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2012, 2016, 2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,14 +65,15 @@
  *
  * Description:
  *   Unregister character driver access to a block device that was created
- *   by a previous call to bchdev_register().
+ /
+*   by a previous call to bchdev_register().
  *
  ****************************************************************************/
 
 int bchdev_unregister(FAR const char *chardev)
 {
   FAR struct bchlib_s *bch;
-  int fd;
+  FAR struct file filestruct;
   int ret;
 
   /* Sanity check */
@@ -85,19 +87,20 @@ int bchdev_unregister(FAR const char *chardev)
 
   /* Open the character driver associated with chardev */
 
-  fd = open(chardev, O_RDONLY);
-  if (fd < 0)
+  ret = file_open(&filestruct, chardev, O_RDONLY);
+  if (ret < 0)
     {
-      _err("ERROR: Failed to open %s: %d\n", chardev, errno);
-      return -errno;
+      _err("ERROR: Failed to open %s: %d\n", chardev, ret);
+      return ret;
     }
 
   /* Get a reference to the internal data structure.  On success, we
    * will hold a reference count on the state structure.
    */
 
-  ret = ioctl(fd, DIOC_GETPRIV, (unsigned long)((uintptr_t)&bch));
-  (void)close(fd);
+  ret = file_ioctl(&filestruct, DIOC_GETPRIV,
+                   (unsigned long)((uintptr_t)&bch));
+  (void)file_close(&filestruct);
 
   if (ret < 0)
     {

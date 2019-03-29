@@ -40,21 +40,11 @@
 #include <nuttx/config.h>
 
 #include <stdlib.h>
-#include <elf32.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <arch/elf.h>
-#include <nuttx/arch.h>
-#include <nuttx/binfmt/elf.h>
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-#ifdef CONFIG_UCLIBCXX_EXCEPTION
-extern void init_unwind_exidx(Elf32_Addr start, Elf32_Addr end);
-#endif
+#include <nuttx/elf.h>
 
 /****************************************************************************
  * Public Functions
@@ -164,7 +154,7 @@ int up_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
     case R_ARM_CALL:
     case R_ARM_JUMP24:
       {
-        binfo("Performing PC24 [%d] link at addr %08lx [%08lx] to sym '%s' st_value=%08lx\n",
+        binfo("Performing PC24 [%d] link at addr %08lx [%08lx] to sym '%p' st_value=%08lx\n",
               ELF32_R_TYPE(rel->r_info), (long)addr, (long)(*(uint32_t *)addr),
               sym, (long)sym->st_value);
 
@@ -175,7 +165,7 @@ int up_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
           }
 
         offset += sym->st_value - addr;
-        if (offset & 3 || offset <= (int32_t) 0xfe000000 || offset >= (int32_t) 0x02000000)
+        if (offset & 3 || offset < (int32_t) 0xfe000000 || offset >= (int32_t) 0x02000000)
           {
             berr("ERROR:   ERROR: PC24 [%d] relocation out of range, offset=%08lx\n",
                  ELF32_R_TYPE(rel->r_info), offset);
@@ -306,9 +296,9 @@ int up_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
 
         /* Check the range of the offset */
 
-        if (offset <= (int32_t)0xff000000 || offset >= (int32_t)0x01000000)
+        if (offset < (int32_t)0xff000000 || offset >= (int32_t)0x01000000)
           {
-            berr("ERROR:   ERROR: JUMP24 [%d] relocation out of range, branch taget=%08lx\n",
+            berr("ERROR:   ERROR: JUMP24 [%d] relocation out of range, branch target=%08lx\n",
                  ELF32_R_TYPE(rel->r_info), offset);
 
             return -EINVAL;
@@ -367,7 +357,6 @@ int up_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
 
         offset = *(uint32_t *)addr;
         offset = ((offset & 0xf0000) >> 4) | (offset & 0xfff);
-        offset = (offset ^ 0x8000) - 0x8000;
 
         offset += sym->st_value;
         if (ELF32_R_TYPE(rel->r_info) == R_ARM_MOVT_ABS)
@@ -427,10 +416,6 @@ int up_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
                  ((lower_insn & 0x7000) >> 4) |  /* imm3 -> imm16[8:10] */
                   (lower_insn & 0x00ff);         /* imm8 -> imm16[0:7] */
 
-        /* Sign extend */
-
-        offset = (offset ^ 0x8000) - 0x8000;
-
         /* And perform the relocation */
 
         binfo("  offset=%08lx branch target=%08lx\n",
@@ -460,6 +445,41 @@ int up_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
       }
       break;
 
+    case R_ARM_THM_JUMP11:
+      {
+        offset = (uint32_t)(*(uint16_t *)addr & 0x7ff) << 1;
+        if (offset & 0x0800)
+          {
+            offset -= 0x1000;
+          }
+
+        offset += sym->st_value - addr;
+
+        if (ELF32_ST_TYPE(sym->st_info) == STT_FUNC && (offset & 1) == 0)
+          {
+            berr("ERROR: JUMP11 [%d] requires odd offset, offset=%08lx\n",
+                 ELF32_R_TYPE(rel->r_info), offset);
+
+            return -EINVAL;
+          }
+
+        /* Check the range of the offset */
+
+        if (offset < (int32_t)0xfffff800 || offset >= (int32_t)0x0800)
+          {
+            berr("ERROR: JUMP11 [%d] relocation out of range, branch taget=%08lx\n",
+                 ELF32_R_TYPE(rel->r_info), offset);
+
+            return -EINVAL;
+          }
+
+        offset >>= 1;
+
+        *(uint16_t *)addr &= 0xf800;
+        *(uint16_t *)addr |= offset & 0x7ff;
+      }
+      break;
+
     default:
       berr("ERROR: Unsupported relocation: %d\n", ELF32_R_TYPE(rel->r_info));
       return -EINVAL;
@@ -474,13 +494,3 @@ int up_relocateadd(FAR const Elf32_Rela *rel, FAR const Elf32_Sym *sym,
   berr("ERROR: RELA relocation not supported\n");
   return -ENOSYS;
 }
-
-#ifdef CONFIG_UCLIBCXX_EXCEPTION
-int up_init_exidx(Elf32_Addr address, Elf32_Word size)
-{
-  init_unwind_exidx(address, size);
-
-  return OK;
-}
-#endif
-

@@ -1,7 +1,12 @@
 /****************************************************************************
  * sched/signal/sig_notification.c
  *
- *   Copyright (C) 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
+ *
+ * Derives from code originally written by:
+ *
+ *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,48 +44,16 @@
 
 #include <nuttx/config.h>
 
-#include <sys/types.h>
+#include <debug.h>
 #include <signal.h>
-#include <assert.h>
-#include <errno.h>
 
-#include <nuttx/kmalloc.h>
-#include <nuttx/wqueue.h>
+#include <nuttx/signal.h>
 
-#ifdef CONFIG_SIG_EVTHREAD
+#include "sched/sched.h"
+#include "signal/signal.h"
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-/* Use the low-prioriry work queue is it is available */
-
-#if defined(CONFIG_SCHED_LPWORK)
-#  define NTWORK LPWORK
-#elif defined(CONFIG_SCHED_HPWORK)
-#  define NTWORK HPWORK
-#else
-#  error Work queue is not enabled
-#endif
-
-/****************************************************************************
- * Private Type Definitions
- ****************************************************************************/
-
-/* This structure retains all that is necessary to perform the notification */
-
-struct sig_notify_s
-{
-  struct work_s nt_work;           /* Work queue structure */
-  union sigval nt_value;           /* Data passed with notification */
-  sigev_notify_function_t nt_func; /* Notification function */
-};
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: nxsig_notify_worker
+ * Name: nxsig_notification_worker
  *
  * Description:
  *   Perform the callback from the context of the worker thread.
@@ -93,24 +66,23 @@ struct sig_notify_s
  *
  ****************************************************************************/
 
-static void nxsig_notify_worker(FAR void *arg)
+#ifdef CONFIG_SIG_EVTHREAD
+static void nxsig_notification_worker(FAR void *arg)
 {
-  FAR struct sig_notify_s *notify = (FAR struct sig_notify_s *)arg;
+  FAR struct sigwork_s *work = (FAR struct sigwork_s *)arg;
 
-  DEBUGASSERT(notify != NULL);
+  DEBUGASSERT(work != NULL);
 
   /* Perform the callback */
 
 #ifdef CONFIG_CAN_PASS_STRUCTS
-  notify->nt_func(notify->nt_value);
+  work->func(work->value);
 #else
-  notify->nt_func(notify->nt_value.sival_ptr);
+  work->func(work->value.sival_ptr);
 #endif
-
-  /* Free the alloated notification parameters */
-
-  kmm_free(notify);
 }
+
+#endif /* CONFIG_SIG_EVTHREAD */
 
 /****************************************************************************
  * Public Functions
@@ -120,14 +92,15 @@ static void nxsig_notify_worker(FAR void *arg)
  * Name: nxsig_notification
  *
  * Description:
- *   Notify a client a signal event via a function call.  This function is
- *   an internal OS interface that implements the common logic for signal
- *   event notification for the case of SIGEV_THREAD.
+ *   Notify a client an event via either a singal or function call
+ *   base on the sigev_notify field.
  *
  * Input Parameters:
  *   pid   - The task/thread ID a the client thread to be signaled.
  *   event - The instance of struct sigevent that describes how to signal
  *           the client.
+ *   code  - Source: SI_USER, SI_QUEUE, SI_TIMER, SI_ASYNCIO, or SI_MESGQ
+ *   work  - The work structure to queue
  *
  * Returned Value:
  *   This is an internal OS interface and should not be used by applications.
@@ -136,39 +109,78 @@ static void nxsig_notify_worker(FAR void *arg)
  *
  ****************************************************************************/
 
-int nxsig_notification(pid_t pid, FAR struct sigevent *event)
+int nxsig_notification(pid_t pid, FAR struct sigevent *event,
+                       int code, FAR struct sigwork_s *work)
 {
-  FAR struct sig_notify_s *notify;
-  DEBUGASSERT(event != NULL && event->sigev_notify_function != NULL);
-  int ret;
+  sinfo("pid=%p signo=%d code=%d sival_ptr=%p\n",
+         pid, event->sigev_signo, code, event->sigev_value.sival_ptr);
 
-  /* Allocate a structure to hold the notification information */
+  /* Notify client via a signal? */
 
-  notify = kmm_zalloc(sizeof(struct sig_notify_s));
-  if (notify == NULL)
+  if (event->sigev_notify == SIGEV_SIGNAL)
     {
-      return -ENOMEM;
+#ifdef CONFIG_SCHED_HAVE_PARENT
+      FAR struct tcb_s *rtcb = this_task();
+#endif
+      siginfo_t info;
+
+      /* Yes.. Create the siginfo structure */
+
+      info.si_signo  = event->sigev_signo;
+      info.si_code   = code;
+      info.si_errno  = OK;
+      info.si_value  = event->sigev_value;
+#ifdef CONFIG_SCHED_HAVE_PARENT
+      info.si_pid    = rtcb->pid;
+      info.si_status = OK;
+#endif
+
+      /* Send the signal */
+
+      return nxsig_dispatch(pid, &info);
     }
 
-  /* Initialize the notification information */
+#ifdef CONFIG_SIG_EVTHREAD
+  /* Notify the client via a function call */
+
+  else if (event->sigev_notify == SIGEV_THREAD)
+    {
+      /* Initialize the work information */
 
 #ifdef CONFIG_CAN_PASS_STRUCTS
-  notify->nt_value = event->sigev_value;
+      work->value = event->sigev_value;
 #else
-  notify->nt_value.sival_ptr = event->sigev_value.sival_ptr;
+      work->value.sival_ptr = event->sigev_value.sival_ptr;
 #endif
-  notify->nt_func = event->sigev_notify_function;
+      work->func = event->sigev_notify_function;
 
-  /* Then queue the work */
+      /* Then queue the work */
 
-  ret = work_queue(NTWORK, &notify->nt_work, nxsig_notify_worker,
-                   notify, 0);
-  if (ret < 0)
-    {
-      kmm_free(notify);
+      return work_queue(LPWORK, &work->work,
+                        nxsig_notification_worker, work, 0);
     }
+#endif
 
-  return ret;
+  return event->sigev_notify == SIGEV_NONE ? OK : -ENOSYS;
 }
 
-#endif /* CONFIG_SIG_EVTHREAD */
+/****************************************************************************
+ * Name: nxsig_cancel_notification
+ *
+ * Description:
+ *   Cancel the notification if it doesn't send yet.
+ *
+ * Input Parameters:
+ *   work  - The work structure to cancel
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SIG_EVTHREAD
+void nxsig_cancel_notification(FAR struct sigwork_s *work)
+{
+  work_cancel(LPWORK, &work->work);
+}
+#endif

@@ -117,12 +117,17 @@
 
 #undef LPC54_ACCEPT_ALLMULTICAST
 #if  defined(CONFIG_LPC54_ETH_RX_ALLMULTICAST) || \
-     defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+     defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 #  define LPC54_ACCEPT_ALLMULTICAST 1
 #endif
 
 /* The low priority work queue is preferred.  If it is not enabled, LPWORK
  * will be the same as HPWORK.
+ *
+ * NOTE:  However, the network should NEVER run on the high priority work
+ * queue!  That queue is intended only to service short back end interrupt
+ * processing that never suspends.  Suspending the high priority work queue
+ * may bring the system to its knees!
  */
 
 #define ETHWORK LPWORK
@@ -414,7 +419,7 @@ static int  lpc54_eth_ifdown(struct net_driver_s *dev);
 static void lpc54_eth_txavail_work(void *arg);
 static int  lpc54_eth_txavail(struct net_driver_s *dev);
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  lpc54_eth_addmac(struct net_driver_s *dev,
               const uint8_t *mac);
 static int  lpc54_eth_rmmac(struct net_driver_s *dev,
@@ -2332,7 +2337,7 @@ static int lpc54_eth_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lpc54_eth_addmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   /* Unlike other Ethernet hardware, the LPC54xx does not seem to support
@@ -2360,7 +2365,7 @@ static int lpc54_eth_addmac(struct net_driver_s *dev, const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lpc54_eth_rmmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   /* Unlike other Ethernet hardware, the LPC54xx does not seem to support
@@ -3054,7 +3059,7 @@ int up_netinitialize(int intf)
   priv->eth_dev.d_ifup    = lpc54_eth_ifup;     /* I/F up (new IP address) callback */
   priv->eth_dev.d_ifdown  = lpc54_eth_ifdown;   /* I/F down callback */
   priv->eth_dev.d_txavail = lpc54_eth_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->eth_dev.d_addmac  = lpc54_eth_addmac;   /* Add multicast MAC address */
   priv->eth_dev.d_rmmac   = lpc54_eth_rmmac;    /* Remove multicast MAC address */
 #endif

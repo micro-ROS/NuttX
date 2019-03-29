@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/lpc64628/lpc54_clockconfig.h
+ * arch/arm/src/lpc54xx/lpc54_clockconfig.h
  *
  *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -40,8 +40,8 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_ARM_SRCLPC54628_LPC54_CLOCKCONFIG_H
-#define __ARCH_ARM_SRCLPC54628_LPC54_CLOCKCONFIG_H
+#ifndef __ARCH_ARM_SRC_LPC54_LPC54_CLOCKCONFIG_H
+#define __ARCH_ARM_SRC_LPC54_LPC54_CLOCKCONFIG_H
 
 /****************************************************************************
  * Included Files
@@ -121,7 +121,7 @@ extern "C"
  * Name: lpc54_clockconfig
  *
  * Description:
- *   Called to initialize the LPC54628.  This does whatever setup is needed
+ *   Called to initialize the LPC54xx.  This does whatever setup is needed
  *   to put the MCU in a usable state.  This includes the initialization of
  *   clocking using the settings in board.h.  This function also performs
  *   other low-level chip as necessary.
@@ -136,4 +136,4 @@ void lpc54_clockconfig(FAR const struct pll_setup_s *pllsetup);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __ARCH_ARM_SRCLPC54628_LPC54_CLOCKCONFIG_H */
+#endif /* __ARCH_ARM_SRC_LPC54_LPC54_CLOCKCONFIG_H */

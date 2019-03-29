@@ -75,7 +75,7 @@
 
 /* Don't compile if prerequisites are not met */
 
-#if defined(CONFIG_USBHOST) && !defined(CONFIG_USBHOST_INT_DISABLE) && CONFIG_NFILE_DESCRIPTORS > 0
+#if defined(CONFIG_USBHOST) && !defined(CONFIG_USBHOST_INT_DISABLE)
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -351,7 +351,7 @@ static int usbhost_poll(FAR struct file *filep, FAR struct pollfd *fds,
  * device.
  */
 
-static const const struct usbhost_id_s g_hidkbd_id =
+static const struct usbhost_id_s g_hidkbd_id =
 {
   USB_CLASS_HID,            /* base     */
   USBHID_SUBCLASS_BOOTIF,   /* subclass */
@@ -2448,4 +2448,4 @@ int usbhost_kbdinit(void)
   return usbhost_registerclass(&g_hidkbd);
 }
 
-#endif /* CONFIG_USBHOST)&& !CONFIG_USBHOST_INT_DISABLE && CONFIG_NFILE_DESCRIPTORS */
+#endif /* CONFIG_USBHOST)&& !CONFIG_USBHOST_INT_DISABLE */

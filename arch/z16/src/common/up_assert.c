@@ -87,13 +87,13 @@ static void _up_assert(int errorcode) /* noreturn_function */
 
   /* Are we in an interrupt handler or the idle task? */
 
-  if (up_interrupt_context() || this_task()->pid == 0)
+  if (up_interrupt_context() || running_task()->flink == NULL)
     {
        (void)up_irq_save();
         for (;;)
           {
 #if CONFIG_BOARD_RESET_ON_ASSERT >= 1
-            board_reset(0);
+            board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 #endif
 #ifdef CONFIG_ARCH_LEDS
             board_autoled_on(LED_PANIC);
@@ -106,7 +106,7 @@ static void _up_assert(int errorcode) /* noreturn_function */
   else
     {
 #if CONFIG_BOARD_RESET_ON_ASSERT >= 2
-      board_reset(0);
+      board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 #endif
       exit(errorcode);
     }
@@ -152,7 +152,7 @@ void up_assert(void)
 #endif
 {
 #if CONFIG_TASK_NAME_SIZE > 0 && defined(CONFIG_DEBUG_ALERT)
-  struct tcb_s *rtcb = this_task();
+  struct tcb_s *rtcb = running_task();
 #endif
 
   board_autoled_on(LED_ASSERTION);
@@ -177,8 +177,8 @@ void up_assert(void)
 #endif
 #endif
 
-  up_stackdump();
   up_registerdump();
+  up_stackdump();
 
 #ifdef CONFIG_ARCH_USBDUMP
   /* Dump USB trace data */
@@ -191,7 +191,7 @@ void up_assert(void)
   (void)syslog_flush();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
-  board_crashdump(up_getsp(), this_task(), filename, lineno);
+  board_crashdump(up_getsp(), running_task(), filename, lineno);
 #endif
 
   _up_assert(EXIT_FAILURE);

@@ -43,8 +43,6 @@
 #include <nuttx/clock.h>
 #include <nuttx/timers/arch_alarm.h>
 
-#include <string.h>
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -79,7 +77,7 @@ static FAR struct oneshot_lowerhalf_s *g_oneshot_lower;
  ****************************************************************************/
 
 static inline void timespec_from_usec(FAR struct timespec *ts,
-                                      unsigned int microseconds)
+                                      uint64_t microseconds)
 {
   ts->tv_sec    = microseconds / USEC_PER_SEC;
   microseconds -= (uint64_t)ts->tv_sec * USEC_PER_SEC;
@@ -162,24 +160,30 @@ static void udelay_coarse(useconds_t microseconds)
     }
 }
 
-static void oneshot_callback(FAR struct oneshot_lowerhalf_s *lower, FAR void *arg)
+static void oneshot_callback(FAR struct oneshot_lowerhalf_s *lower,
+                             FAR void *arg)
 {
+  struct timespec now;
+
 #ifdef CONFIG_SCHED_TICKLESS
-  struct timespec now;
-
   ONESHOT_CURRENT(g_oneshot_lower, &now);
-  sched_alarm_expiration(&now);
+  nxsched_alarm_expiration(&now);
 #else
-  struct timespec now;
-  struct timespec next;
   struct timespec delta;
-  static uint64_t tick = 1;
 
-  timespec_from_usec(&next, ++tick * USEC_PER_TICK);
-  ONESHOT_CURRENT(g_oneshot_lower, &now);
-  clock_timespec_subtract(&next, &now, &delta);
+  do
+    {
+      static uint64_t tick = 1;
+      struct timespec next;
+
+      nxsched_process_timer();
+      timespec_from_usec(&next, ++tick * USEC_PER_TICK);
+      ONESHOT_CURRENT(g_oneshot_lower, &now);
+      clock_timespec_subtract(&next, &now, &delta);
+    }
+  while (delta.tv_sec == 0 && delta.tv_nsec == 0);
+
   ONESHOT_START(g_oneshot_lower, oneshot_callback, NULL, &delta);
-  sched_process_timer();
 #endif
 }
 
@@ -242,52 +246,57 @@ void up_alarm_set_lowerhalf(FAR struct oneshot_lowerhalf_s *lower)
 #ifdef CONFIG_CLOCK_TIMEKEEPING
 int up_timer_getcounter(FAR uint64_t *cycles)
 {
-  struct timespec now;
+  int ret = -EAGAIN;
 
-  if (!g_oneshot_lower)
+  if (g_oneshot_lower != NULL)
     {
-      *cycles = 0;
-      return 0;
+      struct timespec now;
+
+      ret = ONESHOT_CURRENT(g_oneshot_lower, &now);
+      if (ret == 0)
+        {
+          *cycles = timespec_to_usec(&now) / USEC_PER_TICK;
+        }
     }
 
-  ONESHOT_CURRENT(g_oneshot_lower, &now);
-  *cycles = timespec_to_usec(&now) / USEC_PER_TICK;
-  return 0;
+  return ret;
 }
 
 void up_timer_getmask(FAR uint64_t *mask)
 {
-  struct timespec maxts;
-  uint64_t maxticks = 0;
+  *mask = 0;
 
-  if (g_oneshot_lower)
+  if (g_oneshot_lower != NULL)
     {
+      struct timespec maxts;
+      uint64_t maxticks;
+
       ONESHOT_MAX_DELAY(g_oneshot_lower, &maxts);
       maxticks = timespec_to_usec(&maxts) / USEC_PER_TICK;
-    }
 
-  *mask = 0;
-  while (1)
-    {
-      uint64_t next = (*mask << 1) | 1;
-      if (next > maxticks)
+      for (; ; )
         {
-          break;
+          uint64_t next = (*mask << 1) | 1;
+          if (next > maxticks)
+            {
+              break;
+            }
+
+          *mask = next;
         }
-      *mask = next;
-  }
+    }
 }
 #elif defined(CONFIG_SCHED_TICKLESS)
 int up_timer_gettime(FAR struct timespec *ts)
 {
-  if (!g_oneshot_lower)
+  int ret = -EAGAIN;
+
+  if (g_oneshot_lower != NULL)
     {
-      memset(ts, 0, sizeof(*ts));
-      return 0;
+      ret = ONESHOT_CURRENT(g_oneshot_lower, ts);
     }
 
-  ONESHOT_CURRENT(g_oneshot_lower, ts);
-  return 0;
+  return ret;
 }
 #endif
 
@@ -297,7 +306,7 @@ int up_timer_gettime(FAR struct timespec *ts)
  * Description:
  *   Cancel the alarm and return the time of cancellation of the alarm.
  *   These two steps need to be as nearly atomic as possible.
- *   sched_alarm_expiration() will not be called unless the alarm is
+ *   nxsched_alarm_expiration() will not be called unless the alarm is
  *   restarted with up_alarm_start().
  *
  *   If, as a race condition, the alarm has already expired when this
@@ -328,14 +337,15 @@ int up_timer_gettime(FAR struct timespec *ts)
 #ifdef CONFIG_SCHED_TICKLESS
 int up_alarm_cancel(FAR struct timespec *ts)
 {
-  if (!g_oneshot_lower)
+  int ret = -EAGAIN;
+
+  if (g_oneshot_lower != NULL)
     {
-      return -EAGAIN;
+      ret = ONESHOT_CANCEL(g_oneshot_lower, ts);
+      ONESHOT_CURRENT(g_oneshot_lower, ts);
     }
 
-  ONESHOT_CANCEL(g_oneshot_lower, ts);
-  ONESHOT_CURRENT(g_oneshot_lower, ts);
-  return 0;
+  return ret;
 }
 #endif
 
@@ -343,14 +353,14 @@ int up_alarm_cancel(FAR struct timespec *ts)
  * Name: up_alarm_start
  *
  * Description:
- *   Start the alarm.  sched_alarm_expiration() will be called when the
+ *   Start the alarm.  nxsched_alarm_expiration() will be called when the
  *   alarm occurs (unless up_alaram_cancel is called to stop it).
  *
  *   Provided by platform-specific code and called from the RTOS base code.
  *
  * Input Parameters:
  *   ts - The time in the future at the alarm is expected to occur.  When
- *        the alarm occurs the timer logic will call sched_alarm_expiration().
+ *        the alarm occurs the timer logic will call nxsched_alarm_expiration().
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
@@ -366,18 +376,60 @@ int up_alarm_cancel(FAR struct timespec *ts)
 #ifdef CONFIG_SCHED_TICKLESS
 int up_alarm_start(FAR const struct timespec *ts)
 {
-  struct timespec now;
-  struct timespec delta;
+  int ret = -EAGAIN;
 
-  if (!g_oneshot_lower)
+  if (g_oneshot_lower != NULL)
     {
-      return -EAGAIN;
+      struct timespec now;
+      struct timespec delta;
+
+      ONESHOT_CURRENT(g_oneshot_lower, &now);
+      clock_timespec_subtract(ts, &now, &delta);
+      ret = ONESHOT_START(g_oneshot_lower, oneshot_callback, NULL, &delta);
     }
 
-  ONESHOT_CURRENT(g_oneshot_lower, &now);
-  clock_timespec_subtract(ts, &now, &delta);
-  ONESHOT_START(g_oneshot_lower, oneshot_callback, NULL, &delta);
-  return 0;
+  return ret;
+}
+#endif
+
+/*****************************************************************************
+ * Name: up_critmon_*
+ *
+ * Description:
+ *   The first interface simply provides the current time value in unknown
+ *   units.  NOTE:  This function may be called early before the timer has
+ *   been initialized.  In that event, the function should just return a
+ *   start time of zero.
+ *
+ *   Nothing is assumed about the units of this time value.  The following
+ *   are assumed, however: (1) The time is an unsigned integer value, (2)
+ *   the time is monotonically increasing, and (3) the elapsed time (also
+ *   in unknown units) can be obtained by subtracting a start time from
+ *   the current time.
+ *
+ *   The second interface simple converts an elapsed time into well known
+ *   units.
+ *****************************************************************************/
+
+#ifdef CONFIG_SCHED_CRITMONITOR
+uint32_t up_critmon_gettime(void)
+{
+  uint32_t ret = 0;
+
+  if (g_oneshot_lower != NULL)
+    {
+      struct timespec ts;
+
+      ONESHOT_CURRENT(g_oneshot_lower, &ts);
+      ret = timespec_to_usec(&ts);
+    }
+
+  return ret;
+}
+
+void up_critmon_convert(uint32_t elapsed, FAR struct timespec *ts)
+{
+  timespec_from_usec(ts, elapsed);
 }
 #endif
 
@@ -407,11 +459,11 @@ void up_mdelay(unsigned int milliseconds)
 
 void up_udelay(useconds_t microseconds)
 {
-  if (g_oneshot_lower)
+  if (g_oneshot_lower != NULL)
     {
       udelay_accurate(microseconds);
     }
-  else /* oneshot timer doesn't init yet */
+  else /* Oneshot timer hasn't been initialized yet */
     {
       udelay_coarse(microseconds);
     }

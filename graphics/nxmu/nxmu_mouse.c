@@ -1,7 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nxmu__mouse.c
  *
- *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2011-2012, 2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +46,7 @@
 
 #include <nuttx/nx/nxglib.h>
 #include <nuttx/nx/nx.h>
-#include "nxfe.h"
+#include "nxmu.h"
 
 #ifdef CONFIG_NX_XYINPUT
 
@@ -53,10 +54,44 @@
  * Private Data
  ****************************************************************************/
 
-static struct nxgl_point_s   g_mpos;
-static struct nxgl_point_s   g_mrange;
-static uint8_t               g_mbutton;
-static struct nxbe_window_s *g_mwnd;
+static struct nxgl_point_s       g_mpos;
+static struct nxgl_point_s       g_mrange;
+static uint8_t                   g_mbutton;
+static FAR struct nxbe_window_s *g_mwnd;
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nxmu_revalidate_g_mwnd
+ *
+ * Description:
+ *   Check if the window pointed to by g_mwnd still exists. If it does,
+ *   this function returns a pointer to it. Otherwise returns NULL.
+ *
+ ****************************************************************************/
+
+static struct nxbe_window_s *
+nxmu_revalidate_g_mwnd(FAR struct nxbe_window_s *wnd)
+{
+  if (!g_mwnd)
+    {
+      return NULL;
+    }
+
+  while (wnd)
+    {
+      if (wnd == g_mwnd)
+        {
+          return wnd;
+        }
+
+      wnd = wnd->below;
+    }
+
+  return NULL;
+}
 
 /****************************************************************************
  * Public Functions
@@ -114,7 +149,8 @@ int nxmu_mousereport(struct nxbe_window_s *wnd)
           outmsg.buttons = g_mbutton;
           nxgl_vectsubtract(&outmsg.pos, &g_mpos, &wnd->bounds.pt1);
 
-          return nxmu_sendclientwindow(wnd, &outmsg, sizeof(struct nxclimsg_mousein_s));
+          return nxmu_sendclientwindow(wnd, &outmsg,
+                                       sizeof(struct nxclimsg_mousein_s));
         }
     }
 
@@ -133,10 +169,10 @@ int nxmu_mousereport(struct nxbe_window_s *wnd)
  *
  ****************************************************************************/
 
-int nxmu_mousein(FAR struct nxfe_state_s *fe,
+int nxmu_mousein(FAR struct nxmu_state_s *fe,
                  FAR const struct nxgl_point_s *pos, int buttons)
 {
-  struct nxbe_window_s *wnd;
+  FAR struct nxbe_window_s *wnd;
   nxgl_coord_t x = pos->x;
   nxgl_coord_t y = pos->y;
   uint8_t oldbuttons;
@@ -178,15 +214,25 @@ int nxmu_mousein(FAR struct nxfe_state_s *fe,
        * started in.
        */
 
-      if (oldbuttons && g_mwnd && g_mwnd->cb->mousein)
+      if (oldbuttons)
         {
-          struct nxclimsg_mousein_s outmsg;
-          outmsg.msgid   = NX_CLIMSG_MOUSEIN;
-          outmsg.wnd     = g_mwnd;
-          outmsg.buttons = g_mbutton;
-          nxgl_vectsubtract(&outmsg.pos, &g_mpos, &g_mwnd->bounds.pt1);
+          g_mwnd = nxmu_revalidate_g_mwnd(fe->be.topwnd);
+          if (g_mwnd && g_mwnd->cb->mousein)
+            {
+              struct nxclimsg_mousein_s outmsg;
+              outmsg.msgid   = NX_CLIMSG_MOUSEIN;
+              outmsg.wnd     = g_mwnd;
+              outmsg.buttons = g_mbutton;
+              nxgl_vectsubtract(&outmsg.pos, &g_mpos, &g_mwnd->bounds.pt1);
 
-          return nxmu_sendclientwindow(g_mwnd, &outmsg, sizeof(struct nxclimsg_mousein_s));
+              return nxmu_sendclientwindow(g_mwnd, &outmsg, sizeof(struct nxclimsg_mousein_s));
+            }
+          else
+            {
+              /* Ignore events until the button is released */
+
+              return OK;
+            }
         }
 
       /* Pick the window to receive the mouse event.  Start with the top

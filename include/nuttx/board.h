@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/board.h
  *
- *   Copyright (C) 2015-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -120,20 +120,53 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: board_initialize
+ * Name: board_early_initialize
  *
  * Description:
- *   If CONFIG_BOARD_INITIALIZE is selected, then an additional
+ *   If CONFIG_BOARD_EARLY_INITIALIZE is selected, then an additional
  *   initialization call will be performed in the boot-up sequence to a
- *   function called board_initialize().  board_initialize() will be
- *   called immediately after up_initialize() is called and just before the
- *   initial application is started.  This additional initialization phase
- *   may be used, for example, to initialize board-specific device drivers.
+ *   function called board_early_initialize().  board_early_initialize()
+ *   will be called immediately after up_initialize() and well before
+ *   board_early_initialize() is called and the initial application is
+ *   started.  The context in which board_early_initialize() executes is
+ *   suitable for early initialization of most, simple device drivers and
+ *   is a logical, board-specific extension of up_initialize().
+ *
+ *   board_early_initialize() runs on the startup, initialization thread.
+ *   Some initialization operations cannot be performed on the start-up,
+ *   initialization thread.  That is because the initialization thread
+ *   cannot wait for event.  Waiting may be required, for example, to
+ *   mount a file system or or initialize a device such as an SD card.
+ *   For this reason, such driver initialize must be deferred to
+ *   board_late_initialize().
+
+ ****************************************************************************/
+
+#ifdef CONFIG_BOARD_EARLY_INITIALIZE
+void board_early_initialize(void);
+#endif
+
+/****************************************************************************
+ * Name: board_late_initialize
+ *
+ * Description:
+ *   If CONFIG_BOARD_LATE_INITIALIZE is selected, then an additional
+ *   initialization call will be performed in the boot-up sequence to a
+ *   function called board_late_initialize().  board_late_initialize() will
+ *   be called after up_initialize() and board_early_initialize() and just
+ *   before the initial application is started.  This additional
+ *   initialization phase may be used, for example, to initialize board-
+ *   specific device drivers for which board_early_initialize() is not
+ *   suitable.
+ *
+ *   Waiting for events, use of I2C, SPI, etc are permissable in the context
+ *   of board_late_initialize().  That is because board_late_initialize()
+ *   will run on a temporary, internal kernel thread.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_BOARD_INITIALIZE
-void board_initialize(void);
+#ifdef CONFIG_BOARD_LATE_INITIALIZE
+void board_late_initialize(void);
 #endif
 
 /****************************************************************************
@@ -212,13 +245,14 @@ int board_power_off(int status);
  * Name: board_reset
  *
  * Description:
- *   Reset board.  This function may or may not be supported by a
- *   particular board architecture.
+ *   Reset board.  Support for this function is required by board-level
+ *   logic if CONFIG_BOARDCTL_RESET is selected.
  *
  * Input Parameters:
  *   status - Status information provided with the reset event.  This
- *     meaning of this status information is board-specific.  If not used by
- *     a board, the value zero may be provided in calls to board_reset.
+ *            meaning of this status information is board-specific.  If not
+ *            used by a board, the value zero may be provided in calls to
+ *            board_reset().
  *
  * Returned Value:
  *   If this function returns, then it was not possible to power-off the
@@ -255,6 +289,28 @@ int board_reset(int status);
 
 #ifdef CONFIG_BOARDCTL_UNIQUEID
 int board_uniqueid(FAR uint8_t *uniqueid);
+#endif
+
+/****************************************************************************
+ * Name:  board_timerhook
+ *
+ * Description:
+ *   If the system is not configured for Tickless operation, then a system
+ *   timer interrupt will be used.  If CONFIG_SYSTEMTICK_HOOK is selected
+ *   then the OS will call out to this user-provided function on every
+ *   timer interrupt.  This permits custom actions that may be performed on
+ *   each by boad-specific, OS internal logic.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SYSTEMTICK_HOOK
+void board_timerhook(void);
 #endif
 
 /****************************************************************************
@@ -315,7 +371,7 @@ FAR void *board_composite_connect(int port, int configid);
  *   initialization, then this board interface should be provided.
  *
  *   This is an internal OS interface. It is invoked by graphics sub-system
- *   initialization logic (nx_start()) or from the LCD framebuffer driver
+ *   initialization logic (nxmu_start()) or from the LCD framebuffer driver
  *   (when the NX server is not used).
  *
  ****************************************************************************/
@@ -640,7 +696,7 @@ void board_crashdump(uintptr_t currentsp, FAR void *tcb,
 #endif
 
 /****************************************************************************
- * Name: board_initrngseed
+ * Name: board_init_rngseed
  *
  * Description:
  *   If CONFIG_BOARD_INITRNGSEED is selected then board_init_rngseed is

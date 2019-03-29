@@ -541,6 +541,10 @@ DRAMBOOT
   it will boot on power up and you can download NuttX directly into DRAM by
   sending the nuttx.hex file over the serial connection.
 
+  The configs/sama5d4-ek/README.txt also describes variants AT25BOOT and
+  SRAMBOOT.  This have not been ported to the SAMA5D3x-EK, but are available
+  if they are usefult too you.
+
 NAND FLASH Memory Map
 ---------------------
 
@@ -3763,48 +3767,6 @@ Configurations
     The NxWM unit test can be found at:
 
       nuttx-git/NxWidgets/UnitTests/nxwm
-
-    Documentation for installing the NxWM unit test can be found here:
-
-      nuttx-git/NxWidgets/UnitTests/README.txt
-
-    Here is the quick summary of the build steps.  These steps assume that
-    you have the entire NuttX GIT in some directory ~/nuttx-git.  You may
-    have these components installed elsewhere.  In that case, you will need
-    to adjust all of the paths in the following accordingly:
-
-    1. Install the nxwm configuration
-
-       $ tools/configure.sh sama5d3x-ek/nxwm
-
-    2. Make the build context (only)
-
-       $ make context
-
-    3. Install the nxwm unit test
-
-       $ cd ~/nuttx-git/NxWidgets
-       $ tools/install.sh ~/nuttx-git/apps nxwm
-       Creating symbolic link
-        - To ~/nuttx-git/NxWidgets/UnitTests/nxwm
-        - At ~/nuttx-git/apps/external
-
-    4. Build the NxWidgets library
-
-       $ cd ~/nuttx-git/NxWidgets/libnxwidgets
-       $ make TOPDIR=~/nuttx-git/nuttx
-       ...
-
-    5. Build the NxWM library
-
-       $ cd ~/nuttx-git/NxWidgets/nxwm
-       $ make TOPDIR=~/nuttx-git/nuttx
-       ...
-
-    6. Built NuttX with the installed unit test as the application
-
-       $ cd ~/nuttx-git/nuttx
-       $ make
 
     STATUS:
     See the To-Do list below

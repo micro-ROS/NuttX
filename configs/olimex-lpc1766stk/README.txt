@@ -596,7 +596,7 @@ Olimex LPC1766-STK Configuration Options
       Also needs CONFIG_DEBUG_FEATURES.
     CONFIG_LPC17_ETH_HASH - Enable receipt of near-perfect match frames.
     CONFIG_LPC17_MULTICAST - Enable receipt of multicast (and unicast) frames.
-      Automatically set if CONFIG_NET_IGMP is selected.
+      Automatically set if CONFIG_NET_MCASTGROUP is selected.
 
   LPC17xx USB Device Configuration
 
@@ -746,8 +746,28 @@ Configuration Sub-Directories
        CONFIG_DEBUG_INFO=y
        CONFIG_DEBUG_FTPC=y
 
+  hidkbd:
+    This configuration directory supports a variant of an NSH configuration.
+    It is set up to perform the HID keyboard test at apps/examples/hidkbd.
+
+    NOTES:
+
+    1. Default platform/toolchain: This is how the build is configured by
+       be default.  These options can easily be re-confured, however.
+
+       CONFIG_HOST_LINUX=y                     : Linux
+       CONFIG_ARMV7M_TOOLCHAIN_EABIL=y         : Generic EABI toolchain
+
+    STATUS:
+      2018-10-07:  Not all keyboards will connect successfully. I have not
+        looked into the details but it may be that those keyboards are not
+        compatible with the driver (which only accepts "boot" keyboards).
+        Also, when typing input into the HID keyboard, characters are often
+        missing and sometimes duplicated.  This is like some issue with the
+        read logic of drivers/usbhost_hidkbc.c.
+
   hidmouse:
-    This configuration directory supports a variant of an NSH configution.
+    This configuration directory supports a variant of an NSH configuration.
     It is set up to perform the touchscreen test at apps/examples/touchscreen
     using a USB HIB mouse instead a touchsceen device.
 

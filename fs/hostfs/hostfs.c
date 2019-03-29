@@ -244,7 +244,8 @@ static void hostfs_mkpath(FAR struct hostfs_mountpt_s  *fs,
           x += 2;
         }
 
-      else if (relpath[x] == '/' && relpath[x+1] != '/' && relpath[x+1] != '\0')
+      else if (relpath[x] == '/' && relpath[x + 1] != '/' &&
+               relpath[x + 1] != '\0')
         {
           depth++;
           x++;
@@ -257,7 +258,7 @@ static void hostfs_mkpath(FAR struct hostfs_mountpt_s  *fs,
 
   if (depth >= 0)
     {
-      strncat(path, &relpath[first], pathlen-strlen(path)-1);
+      strncat(path, &relpath[first], pathlen - strlen(path) - 1);
     }
 }
 
@@ -277,7 +278,6 @@ static int hostfs_open(FAR struct file *filep, FAR const char *relpath,
   /* Sanity checks */
 
   DEBUGASSERT((filep->f_priv == NULL) && (filep->f_inode != NULL));
-
 
   /* Get the mountpoint inode reference from the file structure and the
    * mountpoint private data from the inode structure
@@ -391,12 +391,14 @@ static int hostfs_close(FAR struct file *filep)
   hostfs_semtake(fs);
 
   /* Check if we are the last one with a reference to the file and
-   * only close if we are. */
+   * only close if we are.
+   */
 
   if (hf->crefs > 1)
     {
       /* The file is opened more than once.  Just decrement the
-       * reference count and return. */
+       * reference count and return.
+       */
 
       hf->crefs--;
       goto okout;
@@ -920,11 +922,9 @@ static int hostfs_bind(FAR struct inode *blkdriver, FAR const void *data,
                        FAR void **handle)
 {
   FAR struct hostfs_mountpt_s  *fs;
-  struct stat buf;
   FAR char *options;
   char *ptr, *saveptr;
-  int len, timeout = 0;
-  int ret;
+  int len;
 
   /* Validate the block driver is NULL */
 
@@ -935,7 +935,9 @@ static int hostfs_bind(FAR struct inode *blkdriver, FAR const void *data,
 
   /* Create an instance of the mountpt state structure */
 
-  fs = (FAR struct hostfs_mountpt_s *)kmm_zalloc(sizeof(struct hostfs_mountpt_s));
+  fs = (FAR struct hostfs_mountpt_s *)
+    kmm_zalloc(sizeof(struct hostfs_mountpt_s));
+
   if (fs == NULL)
     {
       return -ENOMEM;
@@ -943,7 +945,6 @@ static int hostfs_bind(FAR struct inode *blkdriver, FAR const void *data,
 
   /* The options we suppor are:
    *  "fs=whatever", remote dir
-   *  "timeout=xx", bind timeout, unit (ms)
    */
 
   options = strdup(data);
@@ -954,15 +955,11 @@ static int hostfs_bind(FAR struct inode *blkdriver, FAR const void *data,
     }
 
   ptr = strtok_r(options, ",", &saveptr);
-  while(ptr != NULL)
+  while (ptr != NULL)
     {
       if ((strncmp(ptr, "fs=", 3) == 0))
         {
           strncpy(fs->fs_root, &ptr[3], sizeof(fs->fs_root));
-        }
-      else if ((strncmp(ptr, "timeout=", 8) == 0))
-        {
-          timeout = atoi(&ptr[8]);
         }
 
       ptr = strtok_r(NULL, ",", &saveptr);
@@ -971,7 +968,8 @@ static int hostfs_bind(FAR struct inode *blkdriver, FAR const void *data,
   kmm_free(options);
 
   /* If the global semaphore hasn't been initialized, then
-   * initialized it now. */
+   * initialized it now.
+   */
 
   fs->fs_sem = &g_sem;
   if (!g_seminitialized)
@@ -1002,33 +1000,12 @@ static int hostfs_bind(FAR struct inode *blkdriver, FAR const void *data,
     {
       /* Remove trailing '/' */
 
-      fs->fs_root[len-1] = '\0';
-    }
-
-  /* Try to stat the file in the host FS */
-
-  while (1)
-    {
-      ret = host_stat(fs->fs_root, &buf);
-      if ((ret != 0 && timeout <= 0) ||
-              (ret == 0 && (buf.st_mode & S_IFDIR) == 0))
-        {
-          hostfs_semgive(fs);
-          kmm_free(fs);
-          return -ENOENT;
-        }
-      else if (ret == 0)
-        {
-          break;
-        }
-
-      usleep(HOSTFS_RETRY_DELAY_MS * 1000);
-      timeout -= HOSTFS_RETRY_DELAY_MS;
+      fs->fs_root[len - 1] = '\0';
     }
 
   /* Append a '/' to the name now */
 
-  if (fs->fs_root[len-1] != '/')
+  if (fs->fs_root[len - 1] != '/')
     {
       strcat(fs->fs_root, "/");
     }

@@ -1,7 +1,8 @@
 /****************************************************************************
  *  sched/group/group_setupidlefiles.c
  *
- *   Copyright (C) 2007-2010, 2012-2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2010, 2012-2013, 2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,8 +52,6 @@
 
 #include "group/group.h"
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -75,24 +74,18 @@
 
 int group_setupidlefiles(FAR struct task_tcb_s *tcb)
 {
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
   FAR struct task_group_s *group = tcb->cmn.group;
-#endif
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
+#ifdef CONFIG_DEV_CONSOLE
   int fd;
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-  DEBUGASSERT(group);
-#endif
+  DEBUGASSERT(group != NULL);
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
   /* Initialize file descriptors for the TCB */
 
   files_initlist(&group->tg_filelist);
-#endif
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
+#ifdef CONFIG_NET
   /* Allocate socket descriptors for the TCB */
 
   net_initlist(&group->tg_socketlist);
@@ -103,8 +96,8 @@ int group_setupidlefiles(FAR struct task_tcb_s *tcb)
    * descriptor 0.
    */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
-  fd = open("/dev/console", O_RDWR);
+#ifdef CONFIG_DEV_CONSOLE
+  fd = nx_open("/dev/console", O_RDWR);
   if (fd == 0)
     {
       /* Successfully opened /dev/console as stdin (fd == 0) */
@@ -125,7 +118,7 @@ int group_setupidlefiles(FAR struct task_tcb_s *tcb)
         }
       else
         {
-          serr("ERROR: Failed to open /dev/console: %d\n", errno);
+          serr("ERROR: Failed to open /dev/console: %d\n", fd);
         }
 
       return -ENFILE;
@@ -141,4 +134,3 @@ int group_setupidlefiles(FAR struct task_tcb_s *tcb)
 #endif
 }
 
-#endif /* CONFIG_NFILE_DESCRIPTORS || CONFIG_NSOCKET_DESCRIPTORS */

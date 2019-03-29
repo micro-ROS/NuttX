@@ -55,7 +55,7 @@
  *
  ****************************************************************************/
 
-int unregister_blockdriver(const char *path)
+int unregister_blockdriver(FAR const char *path)
 {
   int ret;
 

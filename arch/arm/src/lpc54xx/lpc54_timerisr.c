@@ -106,7 +106,7 @@ static int lpc54_timerisr(int irq, uint32_t *regs, void *arg)
 {
   /* Process timer interrupt */
 
-  sched_process_timer();
+  nxsched_process_timer();
   return 0;
 }
 
@@ -146,6 +146,8 @@ void arm_timer_initialize(void)
 
   /* Make sure that the SYSTICK clock source is set to use the SysTick
    * function clock (CLKSOURCE==0).
+   *
+   * REVISIT: This is over-writted with CLKSOURCE==1 below.
    */
 
   regval  = getreg32(NVIC_SYSTICK_CTRL);

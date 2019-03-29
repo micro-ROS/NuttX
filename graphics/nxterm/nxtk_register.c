@@ -182,7 +182,8 @@ static int nxtkcon_bitmap(FAR struct nxterm_state_s *priv,
  *
  ****************************************************************************/
 
-NXTERM nxtk_register(NXTKWINDOW hfwnd, FAR struct nxterm_window_s *wndo, int minor)
+NXTERM nxtk_register(NXTKWINDOW hfwnd, FAR struct nxterm_window_s *wndo,
+                     int minor)
 {
   return nxterm_register((NXTERM)hfwnd, wndo, &g_nxtkops, minor);
 }

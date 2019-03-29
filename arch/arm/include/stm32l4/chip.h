@@ -93,12 +93,12 @@
       defined(CONFIG_STM32L4_STM32L462XX)
 #  define STM32L4_SRAM1_SIZE       (128*1024)  /* 128Kb SRAM1 on AHB bus Matrix */
 #  define STM32L4_SRAM2_SIZE       (32*1024)   /* 32Kb SRAM2 on AHB bus Matrix */
-#elif defined(CONFIG_STM32L4_STM32L432XX)
+#elif defined(CONFIG_STM32L4_STM32L432XX) || defined(CONFIG_STM32L4_STM32L433XX)
 #  define STM32L4_SRAM1_SIZE       (48*1024)   /* 48Kb SRAM1 on AHB bus Matrix */
 #  define STM32L4_SRAM2_SIZE       (16*1024)   /* 16Kb SRAM2 on AHB bus Matrix */
-#elif defined(CONFIG_STM32L4_STM32L433XX)
-#  define STM32L4_SRAM1_SIZE       (48*1024)   /* 48Kb SRAM1 on AHB bus Matrix */
-#  define STM32L4_SRAM2_SIZE       (16*1024)   /* 16Kb SRAM2 on AHB bus Matrix */
+#elif defined(CONFIG_STM32L4_STM32L412XX) || defined(CONFIG_STM32L4_STM32L422XX)
+#  define STM32L4_SRAM1_SIZE       (32*1024)   /* 32Kb SRAM1 on AHB bus Matrix */
+#  define STM32L4_SRAM2_SIZE       (8*1024)    /* 8Kb SRAM2 on AHB bus Matrix */
 #else
 #  error "Unsupported STM32L4 chip"
 #endif
@@ -303,7 +303,37 @@
 #  define STM32L4_NCRC                     1   /* CRC */
 #  define STM32L4_NCOMP                    2   /* Comparators */
 #  define STM32L4_NOPAMP                   1   /* Operational Amplifiers */
-#endif /* CONFIG_STM32L4_STM32L432XX */
+#endif /* CONFIG_STM32L4_STM32L433XX */
+
+#if defined(CONFIG_STM32L4_STM32L412XX) || defined(CONFIG_STM32L4_STM32L422XX)
+#  define STM32L4_NFSMC                    0   /* No FSMC memory controller */
+#  define STM32L4_NATIM                    1   /* One advanced timer TIM1 */
+#  define STM32L4_NGTIM32                  1   /* 32-bit general timer TIM2 with DMA */
+#  define STM32L4_NGTIM16                  2   /* 16-bit general timers TIM15-16 with DMA */
+#  define STM32L4_NGTIMNDMA                0   /* No 16-bit general timers without DMA */
+#  define STM32L4_NBTIM                    1   /* One basic timer, TIM6 */
+#  define STM32L4_NLPTIM                   2   /* Two low-power timers, LPTIM1-2 */
+#  define STM32L4_NRNG                     1   /* Random number generator (RNG) */
+#  define STM32L4_NUART                    0   /* No UART */
+#  define STM32L4_NUSART                   3   /* USART 1-3 */
+#  define STM32L4_NLPUART                  1   /* LPUART 1 */
+#  define STM32L4_QSPI                     1   /* QuadSPI1 */
+#  define STM32L4_NSPI                     3   /* SPI1-SPI3 */
+#  define STM32L4_NI2C                     3   /* I2C1-I2C3 */
+#  define STM32L4_NSWPMI                   0   /* No SWPMI */
+#  define STM32L4_NUSBOTGFS                0   /* No USB OTG FS */
+#  define STM32L4_NUSBFS                   1   /* USB FS */
+#  define STM32L4_NCAN                     0   /* No CAN */
+#  define STM32L4_NSAI                     0   /* No SAI */
+#  define STM32L4_NSDMMC                   0   /* No SDMMC interface */
+#  define STM32L4_NDMA                     2   /* DMA1-2 */
+#  define STM32L4_NPORTS                   8   /* 8 GPIO ports, GPIOA-H */
+#  define STM32L4_NADC                     2   /* 12-bit ADC1-2, 10 channels */
+#  define STM32L4_NDAC                     0   /* No DAC */
+#  define STM32L4_NCRC                     1   /* CRC */
+#  define STM32L4_NCOMP                    2   /* Comparators */
+#  define STM32L4_NOPAMP                   1   /* Operational Amplifiers */
+#endif /* CONFIG_STM32L4_STM32L412XX || CONFIG_STM32L4_STM32L422XX */
 
 /* NVIC priority levels *************************************************************/
 /* 16 Programmable interrupt levels */
@@ -312,54 +342,5 @@
 #define NVIC_SYSH_PRIORITY_DEFAULT 0x80 /* Midpoint is the default */
 #define NVIC_SYSH_PRIORITY_MAX     0x00 /* Zero is maximum priority */
 #define NVIC_SYSH_PRIORITY_STEP    0x10 /* Four bits of interrupt priority used */
-
-/* If CONFIG_ARMV7M_USEBASEPRI is selected, then interrupts will be disabled
- * by setting the BASEPRI register to NVIC_SYSH_DISABLE_PRIORITY so that most
- * interrupts will not have execution priority.  SVCall must have execution
- * priority in all cases.
- *
- * In the normal cases, interrupts are not nest-able and all interrupts run
- * at an execution priority between NVIC_SYSH_PRIORITY_MIN and
- * NVIC_SYSH_PRIORITY_MAX (with NVIC_SYSH_PRIORITY_MAX reserved for SVCall).
- *
- * If, in addition, CONFIG_ARCH_HIPRI_INTERRUPT is defined, then special
- * high priority interrupts are supported.  These are not "nested" in the
- * normal sense of the word.  These high priority interrupts can interrupt
- * normal processing but execute outside of OS (although they can "get back
- * into the game" via a PendSV interrupt).
- *
- * In the normal course of things, interrupts must occasionally be disabled
- * using the irqsave() inline function to prevent contention in use of
- * resources that may be shared between interrupt level and non-interrupt
- * level logic.  Now the question arises, if CONFIG_ARCH_HIPRI_INTERRUPT,
- * do we disable all interrupts (except SVCall), or do we only disable the
- * "normal" interrupts.  Since the high priority interrupts cannot interact
- * with the OS, you may want to permit the high priority interrupts even if
- * interrupts are disabled.  The setting CONFIG_ARCH_INT_DISABLEALL can be
- * used to select either behavior:
- *
- *   ----------------------------+--------------+----------------------------
- *   CONFIG_ARCH_HIPRI_INTERRUPT |      NO      |             YES
- *   ----------------------------+--------------+--------------+-------------
- *   CONFIG_ARCH_INT_DISABLEALL  |     N/A      |     YES      |      NO
- *   ----------------------------+--------------+--------------+-------------
- *                               |              |              |    SVCall
- *                               |    SVCall    |    SVCall    |    HIGH
- *   Disable here and below --------> MAXNORMAL ---> HIGH --------> MAXNORMAL
- *                               |              |    MAXNORMAL |
- *   ----------------------------+--------------+--------------+-------------
- */
-
-#if defined(CONFIG_ARCH_HIPRI_INTERRUPT) && defined(CONFIG_ARCH_INT_DISABLEALL)
-#  define NVIC_SYSH_MAXNORMAL_PRIORITY  (NVIC_SYSH_PRIORITY_MAX + 2*NVIC_SYSH_PRIORITY_STEP)
-#  define NVIC_SYSH_HIGH_PRIORITY       (NVIC_SYSH_PRIORITY_MAX + NVIC_SYSH_PRIORITY_STEP)
-#  define NVIC_SYSH_DISABLE_PRIORITY    NVIC_SYSH_HIGH_PRIORITY
-#  define NVIC_SYSH_SVCALL_PRIORITY     NVIC_SYSH_PRIORITY_MAX
-#else
-#  define NVIC_SYSH_MAXNORMAL_PRIORITY  (NVIC_SYSH_PRIORITY_MAX + NVIC_SYSH_PRIORITY_STEP)
-#  define NVIC_SYSH_HIGH_PRIORITY       NVIC_SYSH_PRIORITY_MAX
-#  define NVIC_SYSH_DISABLE_PRIORITY    NVIC_SYSH_MAXNORMAL_PRIORITY
-#  define NVIC_SYSH_SVCALL_PRIORITY     NVIC_SYSH_PRIORITY_MAX
-#endif
 
 #endif /* __ARCH_ARM_INCLUDE_STM32L4_CHIP_H */

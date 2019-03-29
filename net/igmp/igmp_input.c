@@ -137,13 +137,14 @@ void igmp_input(struct net_driver_s *dev)
       return;
     }
 
-  /* Find the group (or create a new one) using the incoming IP address */
+  /* Find the group (or create a new one) using the incoming IP address. */
 
   destipaddr = net_ip4addr_conv32(IGMPBUF->destipaddr);
+
   group = igmp_grpallocfind(dev, &destipaddr);
-  if (!group)
+  if (group == NULL)
     {
-      nerr("ERROR: Failed to allocate/find group: %08x\n", destipaddr);
+      nerr("ERROR: Failed to find/allocate group: %08x\n", destipaddr);
       return;
     }
 
@@ -196,7 +197,8 @@ void igmp_input(struct net_driver_s *dev)
                   }
 
                 IGMP_STATINCR(g_netstats.igmp.query_received);
-                for (member = (FAR struct igmp_group_s *)dev->grplist.head;
+
+                for (member = (FAR struct igmp_group_s *)dev->d_igmp_grplist.head;
                      member;
                      member = member->next)
                   {
@@ -216,20 +218,26 @@ void igmp_input(struct net_driver_s *dev)
               }
             else /* if (IGMPBUF->grpaddr != 0) */
               {
-                ninfo("Group-specific multicast queury\n");
+                ninfo("Group-specific multicast query\n");
 
                 /* We first need to re-lookup the group since we used dest last time.
                  * Use the incoming IPaddress!
                  */
 
                 IGMP_STATINCR(g_netstats.igmp.ucast_query);
+
                 grpaddr = net_ip4addr_conv32(IGMPBUF->grpaddr);
                 group   = igmp_grpallocfind(dev, &grpaddr);
-                ticks   = net_dsec2tick((int)IGMPBUF->maxresp);
-                if (IS_IDLEMEMBER(group->flags) || igmp_cmptimer(group, ticks))
+
+                if (group != NULL)
                   {
-                    igmp_startticks(group, ticks);
-                    CLR_IDLEMEMBER(group->flags);
+                    ticks   = net_dsec2tick((int)IGMPBUF->maxresp);
+
+                    if (IS_IDLEMEMBER(group->flags) || igmp_cmptimer(group, ticks))
+                      {
+                        igmp_startticks(group, ticks);
+                        CLR_IDLEMEMBER(group->flags);
+                      }
                   }
               }
           }
@@ -266,14 +274,17 @@ void igmp_input(struct net_driver_s *dev)
               CLR_LASTREPORT(group->flags);
             }
         }
-      break;
+        break;
 
       default:
         {
           nwarn("WARNING: Unexpected msg %02x\n", IGMPBUF->type);
         }
-      break;
+        break;
     }
+
+  dev->d_len = 0;
+  return;
 }
 
 #endif /* CONFIG_NET_IGMP */

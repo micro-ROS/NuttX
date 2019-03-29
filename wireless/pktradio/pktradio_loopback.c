@@ -168,7 +168,7 @@ static int  lo_ifup(FAR struct net_driver_s *dev);
 static int  lo_ifdown(FAR struct net_driver_s *dev);
 static void lo_txavail_work(FAR void *arg);
 static int  lo_txavail(FAR struct net_driver_s *dev);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 static int  lo_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
@@ -221,7 +221,7 @@ static void lo_addr2ip(FAR struct net_driver_s *dev)
   dev->d_ipv6addr[4]  = 0;
   dev->d_ipv6addr[5]  = HTONS(0x00ff);
   dev->d_ipv6addr[6]  = HTONS(0xfe00);
-  dev->d_ipv6addr[7]  = (uint16_t)g_mac_addr[0] << 8 ^ 0x0200;
+  dev->d_ipv6addr[7]  = (uint16_t)g_mac_addr[0] << 8;
 
 #elif CONFIG_PKTRADIO_ADDRLEN == 2
   /* Set the IP address based on the 2 byte address */
@@ -230,7 +230,6 @@ static void lo_addr2ip(FAR struct net_driver_s *dev)
   dev->d_ipv6addr[5]  = HTONS(0x00ff);
   dev->d_ipv6addr[6]  = HTONS(0xfe00);
   dev->d_ipv6addr[7]  = (uint16_t)g_mac_addr[0] << 8 | (uint16_t)g_mac_addr[1];
-  dev->d_ipv6addr[7] ^= 0x0200;
 
 #elif CONFIG_PKTRADIO_ADDRLEN == 8
   /* Set the IP address based on the 8-byte address */
@@ -239,7 +238,6 @@ static void lo_addr2ip(FAR struct net_driver_s *dev)
   dev->d_ipv6addr[5]  = (uint16_t)g_mac_addr[2] << 8 | (uint16_t)g_mac_addr[3];
   dev->d_ipv6addr[6]  = (uint16_t)g_mac_addr[4] << 8 | (uint16_t)g_mac_addr[5];
   dev->d_ipv6addr[7]  = (uint16_t)g_mac_addr[6] << 8 | (uint16_t)g_mac_addr[7];
-  dev->d_ipv6addr[4] ^= 0x0200;
 #endif
 }
 
@@ -671,7 +669,7 @@ static int lo_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
 #if CONFIG_PKTRADIO_ADDRLEN == 1
@@ -709,7 +707,7 @@ static int lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lo_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
 #if CONFIG_PKTRADIO_ADDRLEN == 1
@@ -1026,7 +1024,7 @@ int pktradio_loopback(void)
   dev->d_ifup         = lo_ifup;          /* I/F up (new IP address) callback */
   dev->d_ifdown       = lo_ifdown;        /* I/F down callback */
   dev->d_txavail      = lo_txavail;       /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   dev->d_addmac       = lo_addmac;        /* Add multicast MAC address */
   dev->d_rmmac        = lo_rmmac;         /* Remove multicast MAC address */
 #endif

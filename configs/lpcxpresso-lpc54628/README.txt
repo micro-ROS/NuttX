@@ -97,9 +97,27 @@ STATUS
     is "basic" in the sense that it supports only polled mode (no DMA).
   2018-01-18:  Added the lvgl configuration.  See notes under "Configuration
     Sub-directories" for additional status.
+  2018-10-22:  Dave Marples recently fixed the LPC43 version of the USB
+    device controller driver.  That driver is a clone from the LPC54 USB
+    DCD.  I have backported Dave's changes to the LPC54 DCD.  Unfortunately,
+    it did not fixe the problem.  Then I discovered this errata for the LPC54:
+
+      For the 4-bit mode to work successfully, four otherwise unused upper
+      data bits (SD_D[4] to SD_D[7]) must be functionally assigned to GPIO
+      pins with pull-up resistor. These pins do not need to be physically
+      connected on the hardware.
+
+    With that change (and a lot of other fidgeting), there is some
+    improvement.  I am able to mount and read the SD card .. at least most
+    of the time.  I still get CRC errors when writing and I have not
+    successfully written to the SD card.  It is closer but more TLC is
+    needed.
+  2018-10-24:  Dave Marples now has the LPC43 SD/MMC working reliably.  I
+    have ported all of Dave's change to the LPC54 but have done no further
+    testing as of this writing.  The feature is still marked EXPERIMENTAL.
 
   There is still no support for the Accelerometer, SPIFI, or USB.  There is
-  a complete but not-yet-functional SD card driver and and tested SPI
+  a complete but not entirely functional SD card driver and and tested SPI
   driver.  There are no on-board devices to support SPI testing.
 
 Configurations
@@ -458,54 +476,35 @@ Configurations
 
     The NxWM window manager can be found here:
 
-      <nuttx-code>/NxWidgets/nxwm
+      apps/graphics/NxWidgets/nxwm
 
     The NxWM unit test can be found at:
 
-      <nuttx-code>/NxWidgets/UnitTests/nxwm
+      apps/graphics/NxWidgets/UnitTests/nxwm
 
-    Documentation for installing the NxWM unit test can be found here:
+  pwfb:
 
-      <nuttx-code>/NxWidgets/UnitTests/README.txt
+    This configuration uses the test at apps/examples/pwfb to verify the
+    operation of the per-window framebuffers.  That example shows three
+    windows containing text moving around, crossing each other from
+    "above" and from "below".  The example application is NOT updating the
+    windows any anyway!  The application is only changing the window
+    position.  The windows are being updated from the per-winidow
+    framebuffers automatically.
 
-    Where <nuttx-code> is whatever path you have select to install
-    NuttX.
+    This example is reminescent of Pong:  Each window travels in straight
+    line until it hits an edge, then it bounces off.  The window is also
+    raised when it hits the edge (gets "focus").  This tests all
+    combinations of overap.
 
-    Here is the quick summary of the build steps (Assuming that all of
-    the required packages are available in a directory ~/<nuttx-code>):
+      2019-03-19:  Everything works fine!
 
-    1. Install the nxwm configuration
+  pwlines:
 
-       $ cd ~/<nuttx-code>/nuttx
-       $ tools/configure.sh [OPTIONS] lpcxpresso-lpc54628/nxwm
+    This configuration uses the test at apps/examples/pwline.  It is another
+    verification of the operation of the per-window framebuffers.  This
+    examples is very similar to the pwfb example used in pwfb configuration
+    except that instead of text, each window has an (trivial) animated
+    graphic (based on the rotating line of apps/examples/nslines).
 
-       Use the -l option with the configure.sh script if you are using a
-       Linux host; use the -c option if you are using Cygwin under Windows.
-       Use the -h option to see other selections.
-
-    2. Make the build context (only)
-
-       $ make context
-
-    3. Install the nxwm unit test
-
-       $ cd ~/<nuttx-code>/NxWidgets
-       $ tools/install.sh ~/<nuttx-code>/apps nxwm
-       Creating symbolic link
-        - To ~/<nuttx-code>/NxWidgets/UnitTests/nxwm
-        - At ~/<nuttx-code>/apps/external
-
-    4. Build the NxWidgets library
-
-       $ cd ~/<nuttx-code>/NxWidgets/libnxwidgets
-       $ make TOPDIR=~/<nuttx-code>/nuttx
-
-    5. Build the NxWM library
-
-       $ cd ~/<nuttx-code>/NxWidgets/nxwm
-       $ make TOPDIR=~/<nuttx-code>/nuttx
-
-    6. Built NuttX with the installed unit test as the application
-
-       $ cd ~/<nuttx-code>/nuttx
-       $ make
+      2019-03-20:  Everything works fine!

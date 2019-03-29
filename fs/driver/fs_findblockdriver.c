@@ -1,5 +1,5 @@
 /****************************************************************************
- * fs/driver/fs_openblockdriver.c
+ * fs/driver/fs_findblockdriver.c
  *
  *   Copyright (C) 2008, 2017 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -62,36 +62,29 @@
  *   Return the inode of the block driver specified by 'pathname'
  *
  * Input Parameters:
- *   pathname - the full path to the block driver to be located
- *   mountflags - if MS_RDONLY is not set, then driver must support write
- *     operations (see include/sys/mount.h)
- *   ppinode - address of the location to return the inode reference
+ *   pathname   - The full path to the block driver to be located
+ *   mountflags - If MS_RDONLY is not set, then driver must support write
+ *                operations (see include/sys/mount.h)
+ *   ppinode    - Address of the location to return the inode reference
  *
  * Returned Value:
  *   Returns zero on success or a negated errno on failure:
  *
- *   EINVAL  - pathname or pinode is NULL
  *   ENOENT  - No block driver of this name is registered
  *   ENOTBLK - The inode associated with the pathname is not a block driver
  *   EACCESS - The MS_RDONLY option was not set but this driver does not
- *     support write access
+ *             support write access
  *
  ****************************************************************************/
 
-int find_blockdriver(FAR const char *pathname, int mountflags, FAR struct inode **ppinode)
+int find_blockdriver(FAR const char *pathname, int mountflags,
+                     FAR struct inode **ppinode)
 {
   struct inode_search_s desc;
   FAR struct inode *inode;
   int ret = 0; /* Assume success */
 
-  /* Sanity checks */
-
-#ifdef CONFIG_DEBUG_FEATURES
-  if (!pathname || !ppinode)
-    {
-      return -EINVAL;
-    }
-#endif
+  DEBUGASSERT(pathname != NULL || ppinode != NULL);
 
   /* Find the inode registered with this pathname */
 

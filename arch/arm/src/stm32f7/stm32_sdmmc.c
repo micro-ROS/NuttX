@@ -4,6 +4,7 @@
  *   Copyright (C) 2009, 2011-2018 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            David Sidrane <david_s5@nscdg.com>
+ *            Bob Feretich <bob.feretich@rafresearch.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -59,10 +60,10 @@
 #include <nuttx/irq.h>
 #include <arch/board/board.h>
 
-#include "cache.h"
 #include "chip.h"
 #include "up_arch.h"
 
+#include "stm32_dtcm.h"
 #include "stm32_dma.h"
 #include "stm32_gpio.h"
 #include "stm32_sdmmc.h"
@@ -93,8 +94,6 @@
  *   CONFIG_SDMMC1/2_WIDTH_D1_ONLY - This may be selected to force the driver
  *     operate with only a single data line (the default is to use all
  *     4 SD data lines).
- *   CONFIG_SDMMC_PRI - SDMMC interrupt priority.  This setting is not very
- *     important since interrupt nesting is not currently supported.
  *   CONFIG_SDMMMC_DMAPRIO - SDMMC DMA priority.  This can be selecte if
  *     CONFIG_STM32F7_SDMMC_DMA is enabled.
  *   CONFIG_CONFIG_STM32F7_SDMMC_XFRDEBUG - Enables some very low-level debug
@@ -126,10 +125,6 @@
 #endif
 
 #ifdef CONFIG_STM32F7_SDMMC1
-#  if defined(CONFIG_ARCH_IRQPRIO) && !defined(CONFIG_SDMMC1_PRI)
-#    define CONFIG_SDMMC1_PRI        NVIC_SYSH_PRIORITY_DEFAULT
-#  endif
-
 #  ifdef CONFIG_STM32F7_SDMMC_DMA
 #    ifndef CONFIG_STM32F7_SDMMC1_DMAPRIO
 #        define CONFIG_STM32F7_SDMMC1_DMAPRIO DMA_SCR_PRIVERYHI
@@ -143,10 +138,6 @@
 #endif
 
 #ifdef CONFIG_STM32F7_SDMMC2
-#  if defined(CONFIG_ARCH_IRQPRIO) && !defined(CONFIG_SDMMC2_PRI)
-#    define CONFIG_SDMMC2_PRI        NVIC_SYSH_PRIORITY_DEFAULT
-#  endif
-
 #  ifdef CONFIG_STM32F7_SDMMC_DMA
 #    ifndef CONFIG_STM32F7_SDMMC2_DMAPRIO
 #        define CONFIG_STM32F7_SDMMC2_DMAPRIO DMA_SCR_PRIVERYHI
@@ -361,9 +352,6 @@ struct stm32_dev_s
   /* STM32-specific extensions */
   uint32_t          base;
   int               nirq;
-#ifdef CONFIG_ARCH_IRQPRIO
-  int               irqprio;
-#endif
 #ifdef CONFIG_MMCSD_SDIOWAIT_WRCOMPLETE
   uint32_t          d0_gpio;
 #endif
@@ -563,7 +551,11 @@ static int  stm32_dmarecvsetup(FAR struct sdio_dev_s *dev,
               FAR uint8_t *buffer, size_t buflen);
 static int  stm32_dmasendsetup(FAR struct sdio_dev_s *dev,
               FAR const uint8_t *buffer, size_t buflen);
+#ifdef CONFIG_ARCH_HAVE_SDIO_DELAYED_INVLDT
+static int  stm32_dmadelydinvldt(FAR struct sdio_dev_s *dev,
+              FAR const uint8_t *buffer, size_t buflen);
 #endif
+#endif /* CONFIG_STM32F7_SDMMC_DMA */
 
 /* Initialization/uninitialization/reset ************************************/
 
@@ -612,20 +604,20 @@ struct stm32_dev_s g_sdmmcdev1 =
 #endif
     .dmarecvsetup     = stm32_dmarecvsetup,
     .dmasendsetup     = stm32_dmasendsetup,
+#ifdef CONFIG_ARCH_HAVE_SDIO_DELAYED_INVLDT
+    .dmadelydinvldt   = stm32_dmadelydinvldt,
+#endif
 #else
 #ifdef CONFIG_ARCH_HAVE_SDIO_PREFLIGHT
     .dmapreflight     = NULL,
 #endif
     .dmarecvsetup     = stm32_recvsetup,
     .dmasendsetup     = stm32_sendsetup,
-#endif
-#endif
+#endif /* CONFIG_STM32F7_SDMMC_DMA */
+#endif /* CONFIG_SDIO_DMA*/
   },
   .base              = STM32_SDMMC1_BASE,
   .nirq              = STM32_IRQ_SDMMC1,
-#ifdef CONFIG_SDMMC1_PRI
-  .irqprio           = CONFIG_SDMMC1_PRI,
-#endif
 #ifdef CONFIG_MMCSD_SDIOWAIT_WRCOMPLETE
   .d0_gpio           = GPIO_SDMMC1_D0,
 #endif
@@ -687,13 +679,13 @@ struct stm32_dev_s g_sdmmcdev2 =
 #endif
     .dmarecvsetup     = stm32_dmarecvsetup,
     .dmasendsetup     = stm32_dmasendsetup,
+#ifdef CONFIG_ARCH_HAVE_SDIO_DELAYED_INVLDT
+    .dmadelydinvldt   = stm32_dmadelydinvldt,
+#endif
 #endif
   },
   .base              = STM32_SDMMC2_BASE,
   .nirq              = STM32_IRQ_SDMMC2,
-#ifdef CONFIG_SDMMC2_PRI
-  .irqprio           = CONFIG_SDMMC2_PRI,
-#endif
 #ifdef CONFIG_MMCSD_SDIOWAIT_WRCOMPLETE
   .d0_gpio           = GPIO_SDMMC2_D0,
 #endif
@@ -2117,13 +2109,6 @@ static int stm32_attach(FAR struct sdio_dev_s *dev)
        */
 
       up_enable_irq(priv->nirq);
-
-#if defined(CONFIG_ARCH_IRQPRIO) && (defined(CONFIG_STM32F7_SDMMC1_DMAPRIO) || \
-                                     defined(CONFIG_STM32F7_SDMMC2_DMAPRIO))
-      /* Set the interrupt priority */
-
-      up_prioritize_irq(priv->nirq, priv->irqprio);
-#endif
     }
 
   return ret;
@@ -2524,7 +2509,7 @@ static int stm32_recvshortcrc(FAR struct sdio_dev_s *dev, uint32_t cmd,
 
   else if ((cmd & MMCSD_RESPONSE_MASK) != MMCSD_R1_RESPONSE &&
            (cmd & MMCSD_RESPONSE_MASK) != MMCSD_R1B_RESPONSE &&
-	   (cmd & MMCSD_RESPONSE_MASK) != MMCSD_R5_RESPONSE  &&
+           (cmd & MMCSD_RESPONSE_MASK) != MMCSD_R5_RESPONSE &&
            (cmd & MMCSD_RESPONSE_MASK) != MMCSD_R6_RESPONSE)
     {
       mcerr("ERROR: Wrong response CMD=%08x\n", cmd);
@@ -3009,7 +2994,7 @@ static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
 #else
 #  if defined(CONFIG_ARMV7M_DCACHE) && !defined(CONFIG_ARMV7M_DCACHE_WRITETHROUGH)
   /* buffer alignment is required for DMA transfers with dcache in buffered
-   * mode (not write-through) because the arch_invalidate_dcache could lose
+   * mode (not write-through) because the up_invalidate_dcache could lose
    * buffered buffered writes if the buffer alignment and sizes are not on
    * ARMV7M_DCACHE_LINESIZE boundaries.
    */
@@ -3055,7 +3040,12 @@ static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
 
   /* Force RAM reread */
 
-  arch_invalidate_dcache((uintptr_t)buffer,(uintptr_t)buffer + buflen);
+  if ((uintptr_t)buffer < DTCM_START || (uintptr_t)buffer + buflen > DTCM_END)
+    {
+#if !defined(CONFIG_ARCH_HAVE_SDIO_DELAYED_INVLDT)
+      up_invalidate_dcache((uintptr_t)buffer,(uintptr_t)buffer + buflen);
+#endif
+    }
 
   /* Start the DMA */
 
@@ -3099,7 +3089,7 @@ static int stm32_dmasendsetup(FAR struct sdio_dev_s *dev,
 #else
 #  if defined(CONFIG_ARMV7M_DCACHE) && !defined(CONFIG_ARMV7M_DCACHE_WRITETHROUGH)
   /* buffer alignment is required for DMA transfers with dcache in buffered
-   * mode (not write-through) because the arch_flush_dcache would corrupt adjacent
+   * mode (not write-through) because the up_flush_dcache would corrupt adjacent
    * memory if the buffer alignment and sizes are not on ARMV7M_DCACHE_LINESIZE
    * boundaries.
    */
@@ -3121,9 +3111,16 @@ static int stm32_dmasendsetup(FAR struct sdio_dev_s *dev,
   stm32_sampleinit();
   stm32_sample(priv, SAMPLENDX_BEFORE_SETUP);
 
-  /* Flush cache to physical memory */
+  /* Flush cache to physical memory when not in DTCM memory */
 
-  arch_flush_dcache((uintptr_t)buffer, (uintptr_t)buffer + buflen);
+  if ((uintptr_t)buffer < DTCM_START || (uintptr_t)buffer + buflen > DTCM_END)
+    {
+#ifdef CONFIG_ARMV7M_DCACHE_WRITETHROUGH
+      up_invalidate_dcache((uintptr_t)buffer, (uintptr_t)buffer + buflen);
+#else
+      up_flush_dcache((uintptr_t)buffer, (uintptr_t)buffer + buflen);
+#endif
+    }
 
   /* Save the source buffer information for use by the interrupt handler */
 
@@ -3153,6 +3150,42 @@ static int stm32_dmasendsetup(FAR struct sdio_dev_s *dev,
   /* Enable TX interrupts */
 
   stm32_configxfrints(priv, STM32_SDMMC_DMASEND_MASK);
+
+  return OK;
+}
+#endif
+
+/****************************************************************************
+ * Name: stm32_dmadelydinvldt
+ *
+ * Description:
+ *   Delayed D-cache invalidation.
+ *   This function should be called after receive DMA completion to perform
+ *   D-cache invalidation. This eliminates the need for cache aligned DMA
+ *   buffers when the D-cache is in store-through mode.
+ *
+ * Input Parameters:
+ *   dev    - An instance of the SDIO device interface
+ *   buffer - The memory to DMA into
+ *   buflen - The size of the DMA transfer in bytes
+ *
+ * Returned Value:
+ *   OK on success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_ARCH_HAVE_SDIO_DELAYED_INVLDT)
+static int stm32_dmadelydinvldt(FAR struct sdio_dev_s *dev,
+                              FAR const uint8_t *buffer, size_t buflen)
+{
+  /* Invaliate cache to physical memory when not in DTCM memory. */
+
+  if ((uintptr_t)buffer < DTCM_START ||
+      (uintptr_t)buffer + buflen > DTCM_END)
+    {
+      up_invalidate_dcache((uintptr_t)buffer,
+                           (uintptr_t)buffer + buflen);
+    }
 
   return OK;
 }

@@ -56,6 +56,7 @@
 #include "lpc17_emacram.h"
 #include "lpc17_ohciram.h"
 #include "lpc17_mpuinit.h"
+#include "lpc17_start.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -233,7 +234,7 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
    * is aligned to the MPU requirement.
    */
 
-  log2  = (int)mpu_log2regionfloor(ubase, usize);
+  log2  = (int)mpu_log2regionfloor(usize);
   DEBUGASSERT((CONFIG_RAM_END & ((1 << log2) - 1)) == 0);
 
   usize = (1 << log2);
@@ -247,10 +248,44 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 
   /* Allow user-mode access to the user heap memory */
 
-   lpc17_mpu_uheap(ubase, usize);
+   lpc17_mpu_uheap((uintptr_t)ubase, usize);
+
+#elif CONFIG_MM_REGIONS >= 3 && defined(CONFIG_LPC17_EXTDRAM) && \
+    defined(CONFIG_LPC17_EXTDRAMHEAP)
+  /* We are going to allocate a DRAM heap.  In the case where a bootloader
+   * is used (and has initialized SDRAM), it is possible that .data, .bss,
+   * and the IDLE stack reside in SDRAM.
+   */
+
+    uintptr_t sram_start = CONFIG_RAM_START;
+
+    /* Is SRAM the primary RAM? I.e., do .data, .bss, and the IDLE thread
+     * stack lie in SRAM?
+     */
+
+    if (g_idle_topstack >= CONFIG_RAM_START &&
+        g_idle_topstack < CONFIG_RAM_END)
+      {
+        /* Yes, then the SRAM heap starts in SRAM after the IDLE stack */
+
+        sram_start = g_idle_topstack;
+      }
+    else
+      {
+        /* Use the entire SRAM for heap */
+
+        sram_start = CONFIG_RAM_START;
+      }
+
+  board_autoled_on(LED_HEAPALLOCATE);
+  *heap_start = (FAR void *)sram_start;
+  *heap_size  = CONFIG_RAM_END - sram_start;
+
 #else
 
-  /* Return the heap settings */
+  /* Return the heap settings (assuming that .data, .bss, and the IDLE
+   * stack lie in SRAM).
+   */
 
   board_autoled_on(LED_HEAPALLOCATE);
   *heap_start = (FAR void *)g_idle_topstack;
@@ -265,6 +300,9 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
  *   For the kernel build (CONFIG_BUILD_PROTECTED=y) with both kernel- and
  *   user-space heaps (CONFIG_MM_KERNEL_HEAP=y), this function allocates
  *   (and protects) the kernel-space heap.
+ *
+ *   REVISIT:  This does not account for the possibility that the kernel
+ *   heap might lie in SDRAM.
  *
  ****************************************************************************/
 
@@ -287,7 +325,7 @@ void up_allocate_kheap(FAR void **heap_start, size_t *heap_size)
    * is aligned to the MPU requirement.
    */
 
-  log2  = (int)mpu_log2regionfloor(ubase, usize);
+  log2  = (int)mpu_log2regionfloor(usize);
   DEBUGASSERT((CONFIG_RAM_END & ((1 << log2) - 1)) == 0);
 
   usize = (1 << log2);
@@ -342,15 +380,56 @@ void up_addregion(void)
 
 #if CONFIG_MM_REGIONS >= 3
 #if defined(CONFIG_LPC17_EXTDRAM) && defined(CONFIG_LPC17_EXTDRAMHEAP)
+  {
+    /* Memory may be reserved at the beginning of DRAM for other purposes
+     * (for example for video framebuffers).  Memory can similar be
+     * reserved at the end of DRAM using LPC17_EXTDRAMSIZE.  The amount to
+     * be added to the heap will be from DRAM_BASE + LPC17_EXTDRAMHEAP_OFFSET
+     * through DRAM_BASE + LPC17_EXTDRAMSIZE where (DRAM_BASE is the base
+     * address of CS0).
+     */
+
+    uintptr_t dram_end = LPC17_EXTDRAM_CS0 + CONFIG_LPC17_EXTDRAMSIZE;
+    uintptr_t dram_start;
+    uintptr_t heap_size;
+
+    /* Is SDRAM the primary RAM? I.e., do .data, .bss, and the IDLE thread
+     * stack lie in SDRAM?
+     */
+
+    if (g_idle_topstack >= LPC17_EXTDRAM_CS0 &&
+        g_idle_topstack < dram_end)
+      {
+        /* Yes, then the SDRAM heap starts in SDRAM after the IDLE stack */
+
+        dram_start = g_idle_topstack;
+      }
+    else
+      {
+        /* Use the entire SDRAM for heap (possible reserving a portion at
+         * the beginning of DRAM).
+         */
+
+        dram_start = LPC17_EXTDRAM_CS0 + CONFIG_LPC17_EXTDRAMHEAP_OFFSET;
+      }
+
+    heap_size = dram_end - dram_start;
+
 #if defined(CONFIG_BUILD_PROTECTED) && defined(CONFIG_MM_KERNEL_HEAP)
-  /* Allow user-mode access to external DRAM heap memory */
+    /* Allow user-mode access to the external DRAM heap memory.
+     *
+     * REVISIT:  In PROTECTED mode, it would be necessary to align
+     * dram_start to an address that is easily spanned by an MPU
+     * region if dram_start is not at the beginning of CS0.
+     */
 
-  lpc17_mpu_uheap((uintptr_t)LPC17_EXTDRAM_CS0, CONFIG_LPC17_EXTDRAMSIZE);
-
+    lpc17_mpu_uheap(dram_start, heap_size);
 #endif
-  /* Add external DRAM heap memory to the user heap */
 
-  kumm_addregion((FAR void *)LPC17_EXTDRAM_CS0, CONFIG_LPC17_EXTDRAMSIZE);
+    /* Add external DRAM heap memory to the user heap */
+
+    kumm_addregion((FAR void *)dram_start, heap_size);
+  }
 #endif
 
 #if !defined(CONFIG_LPC17_EXTDRAMHEAP) || (CONFIG_MM_REGIONS >= 4)

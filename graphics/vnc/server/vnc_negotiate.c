@@ -45,15 +45,19 @@
 #include <assert.h>
 
 #if defined(CONFIG_VNCSERVER_DEBUG) && !defined(CONFIG_DEBUG_GRAPHICS)
-#  undef  CONFIG_DEBUG_FEATURES
 #  undef  CONFIG_DEBUG_ERROR
 #  undef  CONFIG_DEBUG_WARN
 #  undef  CONFIG_DEBUG_INFO
-#  define CONFIG_DEBUG_FEATURES 1
-#  define CONFIG_DEBUG_ERROR    1
-#  define CONFIG_DEBUG_WARN     1
-#  define CONFIG_DEBUG_INFO     1
-#  define CONFIG_DEBUG_GRAPHICS 1
+#  undef  CONFIG_DEBUG_GRAPHICS_ERROR
+#  undef  CONFIG_DEBUG_GRAPHICS_WARN
+#  undef  CONFIG_DEBUG_GRAPHICS_INFO
+#  define CONFIG_DEBUG_ERROR          1
+#  define CONFIG_DEBUG_WARN           1
+#  define CONFIG_DEBUG_INFO           1
+#  define CONFIG_DEBUG_GRAPHICS       1
+#  define CONFIG_DEBUG_GRAPHICS_ERROR 1
+#  define CONFIG_DEBUG_GRAPHICS_WARN  1
+#  define CONFIG_DEBUG_GRAPHICS_INFO  1
 #endif
 #include <debug.h>
 
@@ -86,7 +90,7 @@ static const char g_vncname[] = CONFIG_VNCSERVER_NAME;
  * Name: vnc_negotiate
  *
  * Description:
- *  Perform the VNC initialization sequence after the client has sucessfully
+ *  Perform the VNC initialization sequence after the client has successfully
  *  connected to the server.  Negotiate security, framebuffer and color
  *  properties.
  *

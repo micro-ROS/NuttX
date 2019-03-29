@@ -53,6 +53,10 @@
 #  include <nuttx/mm/iob.h>
 #endif
 
+#ifdef CONFIG_UDP_READAHEAD_NOTIFIER
+#  include <nuttx/wqueue.h>
+#endif
+
 #if defined(CONFIG_NET_UDP) && !defined(CONFIG_NET_UDP_NO_STACK)
 
 /****************************************************************************
@@ -63,8 +67,7 @@
 
 /* Conditions for support UDP poll/select operations */
 
-#if !defined(CONFIG_DISABLE_POLL) && CONFIG_NSOCKET_DESCRIPTORS > 0 && \
-    defined(CONFIG_NET_UDP_READAHEAD)
+#if !defined(CONFIG_DISABLE_POLL) && defined(CONFIG_NET_UDP_READAHEAD)
 #  define HAVE_UDP_POLL
 #endif
 
@@ -331,6 +334,27 @@ void udp_ipv6_select(FAR struct net_driver_s *dev);
 void udp_poll(FAR struct net_driver_s *dev, FAR struct udp_conn_s *conn);
 
 /****************************************************************************
+ * Name: psock_udp_cansend
+ *
+ * Description:
+ *   psock_udp_cansend() returns a value indicating if a write to the socket
+ *   would block.  It is still possible that the write may block if another
+ *   write occurs first.
+ *
+ * Input Parameters:
+ *   psock    An instance of the internal socket structure.
+ *
+ * Returned Value:
+ *   -ENOSYS (Function not implemented, always have to wait to send).
+ *
+ * Assumptions:
+ *   None
+ *
+ ****************************************************************************/
+
+int psock_udp_cansend(FAR struct socket *psock);
+;
+/****************************************************************************
  * Name: udp_send
  *
  * Description:
@@ -495,7 +519,10 @@ int udp_ipv4_input(FAR struct net_driver_s *dev);
  *   Handle incoming UDP input in an IPv6 packet
  *
  * Input Parameters:
- *   dev - The device driver structure containing the received UDP packet
+ *   dev   - The device driver structure containing the received UDP packet
+ *   iplen - The size of the IPv6 header.  This may be larger than
+ *           IPv6_HDRLEN the IPv6 header if IPv6 extension headers are
+ *           present.
  *
  * Returned Value:
  *   OK  The packet has been processed  and can be deleted
@@ -508,7 +535,7 @@ int udp_ipv4_input(FAR struct net_driver_s *dev);
  ****************************************************************************/
 
 #ifdef CONFIG_NET_IPv6
-int udp_ipv6_input(FAR struct net_driver_s *dev);
+int udp_ipv6_input(FAR struct net_driver_s *dev, unsigned int iplen);
 #endif
 
 /****************************************************************************
@@ -641,6 +668,84 @@ int udp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds);
 
 #ifdef HAVE_UDP_POLL
 int udp_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds);
+#endif
+
+/****************************************************************************
+ * Name: udp_notifier_setup
+ *
+ * Description:
+ *   Set up to perform a callback to the worker function when an UDP data
+ *   is added to the read-ahead buffer.  The worker function will execute
+ *   on the low priority worker thread.
+ *
+ * Input Parameters:
+ *   worker - The worker function to execute on the low priority work
+ *            queue when data is available in the UDP read-ahead buffer.
+ *   conn  - The UDP connection where read-ahead data is needed.
+ *   arg    - A user-defined argument that will be available to the worker
+ *            function when it runs.
+ *
+ * Returned Value:
+ *   > 0   - The notification is in place.  The returned value is a key that
+ *           may be used later in a call to udp_notifier_teardown().
+ *   == 0  - There is already buffered read-ahead data.  No notification
+ *           will be provided.
+ *   < 0   - An unexpected error occurred and no notification will occur.
+ *           The returned value is a negated errno value that indicates the
+ *           nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_UDP_READAHEAD_NOTIFIER
+int udp_notifier_setup(worker_t worker, FAR struct udp_conn_s *conn,
+                       FAR void *arg);
+#endif
+
+/****************************************************************************
+ * Name: udp_notifier_teardown
+ *
+ * Description:
+ *   Eliminate a UDP read-ahead notification previously setup by
+ *   udp_notifier_setup().  This function should only be called if the
+ *   notification should be aborted prior to the notification.  The
+ *   notification will automatically be torn down after the notification.
+ *
+ * Input Parameters:
+ *   key - The key value returned from a previous call to
+ *         udp_notifier_setup().
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_UDP_READAHEAD_NOTIFIER
+int udp_notifier_teardown(int key);
+#endif
+
+/****************************************************************************
+ * Name: udp_notifier_signal
+ *
+ * Description:
+ *   Read-ahead data has been buffered.  Notify all threads waiting for
+ *   read-ahead data to become available.
+ *
+ *   When read-ahead data becomes available, *all* of the workers waiting
+ *   for read-ahead data will be executed.  If there are multiple workers
+ *   waiting for read-ahead data then only the first to execute will get the
+ *   data.  Others will need to call udp_notifier_setup() once again.
+ *
+ * Input Parameters:
+ *   conn  - The UDP connection where read-ahead data was just buffered.
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_UDP_READAHEAD_NOTIFIER
+void udp_notifier_signal(FAR struct udp_conn_s *conn);
 #endif
 
 #undef EXTERN

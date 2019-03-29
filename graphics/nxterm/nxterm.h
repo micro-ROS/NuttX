@@ -55,7 +55,9 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* NxTerm Definitions ****************************************************/
+
 /* Bitmap flags */
 
 #define BMFLAGS_NOGLYPH    (1 << 0) /* No glyph available, use space */
@@ -122,43 +124,47 @@ struct nxterm_bitmap_s
 struct nxterm_state_s
 {
   FAR const struct nxterm_operations_s *ops; /* Window operations */
-  FAR void *handle;                         /* The window handle */
-  FAR struct nxterm_window_s wndo;          /* Describes the window and font */
-  sem_t exclsem;                            /* Forces mutually exclusive access */
-#ifdef CONFIG_DEBUG_FEATURES
-  pid_t holder;                             /* Deadlock avoidance */
+  FAR void *handle;                          /* The window handle */
+  FAR struct nxterm_window_s wndo;           /* Describes the window and font */
+  sem_t exclsem;                             /* Forces mutually exclusive access */
+#ifdef CONFIG_DEBUG_GRAPHICS
+  pid_t holder;                              /* Deadlock avoidance */
 #endif
-  uint8_t minor;                            /* Device minor number */
+#ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
+  bool unlinked;                             /* True:  Driver has been unlinked */
+  uint8_t orefs;                             /* Open reference count */
+#endif
+  uint8_t minor;                             /* Device minor number */
 
   /* Text output support */
 
-  uint8_t fheight;                          /* Max height of a font in pixels */
-  uint8_t fwidth;                           /* Max width of a font in pixels */
-  uint8_t spwidth;                          /* The width of a space */
+  uint8_t fheight;                           /* Max height of a font in pixels */
+  uint8_t fwidth;                            /* Max width of a font in pixels */
+  uint8_t spwidth;                           /* The width of a space */
 
-  uint16_t maxchars;                        /* Size of the bm[] array */
-  uint16_t nchars;                          /* Number of chars in the bm[] array */
+  uint16_t maxchars;                         /* Size of the bm[] array */
+  uint16_t nchars;                           /* Number of chars in the bm[] array */
 
-  struct nxgl_point_s fpos;                 /* Next display position */
+  struct nxgl_point_s fpos;                  /* Next display position */
 
   /* VT100 escape sequence processing */
 
-  char seq[VT100_MAX_SEQUENCE];             /* Buffered characters */
-  uint8_t nseq;                             /* Number of buffered characters */
+  char seq[VT100_MAX_SEQUENCE];              /* Buffered characters */
+  uint8_t nseq;                              /* Number of buffered characters */
 
   /* Font cache data storage */
 
-  FCACHE fcache;                            /* Font cache handle */
+  FCACHE fcache;                             /* Font cache handle */
   struct nxterm_bitmap_s cursor;
   struct nxterm_bitmap_s bm[CONFIG_NXTERM_MXCHARS];
 
   /* Keyboard input support */
 
 #ifdef CONFIG_NXTERM_NXKBDIN
-  sem_t waitsem;                            /* Supports waiting for input data */
-  uint8_t nwaiters;                         /* Number of threads waiting for data */
-  uint8_t head;                             /* rxbuffer head/input index */
-  uint8_t tail;                             /* rxbuffer tail/output index */
+  sem_t waitsem;                             /* Supports waiting for input data */
+  uint8_t nwaiters;                          /* Number of threads waiting for data */
+  uint8_t head;                              /* rxbuffer head/input index */
+  uint8_t tail;                              /* rxbuffer tail/output index */
 
   uint8_t rxbuffer[CONFIG_NXTERM_KBDBUFSIZE];
 
@@ -184,9 +190,10 @@ extern const struct file_operations g_nxterm_drvrops;
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
 /* Semaphore helpers */
 
-#ifdef CONFIG_DEBUG_FEATURES
+#ifdef CONFIG_DEBUG_GRAPHICS
 int nxterm_semwait(FAR struct nxterm_state_s *priv);
 int nxterm_sempost(FAR struct nxterm_state_s *priv);
 #else
@@ -194,11 +201,14 @@ int nxterm_sempost(FAR struct nxterm_state_s *priv);
 #  define nxterm_sempost(p) nxsem_post(&p->exclsem)
 #endif
 
-/* Common device registration */
+/* Common device registration/un-registration */
 
 FAR struct nxterm_state_s *nxterm_register(NXTERM handle,
     FAR struct nxterm_window_s *wndo, FAR const struct nxterm_operations_s *ops,
     int minor);
+#ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
+void nxterm_unregister(FAR struct nxterm_state_s *priv);
+#endif
 
 #ifdef CONFIG_NXTERM_NXKBDIN
 ssize_t nxterm_read(FAR struct file *filep, FAR char *buffer, size_t len);
@@ -214,6 +224,7 @@ enum nxterm_vt100state_e nxterm_vt100(FAR struct nxterm_state_s *priv, char ch);
 /* Generic text display helpers */
 
 void nxterm_home(FAR struct nxterm_state_s *priv);
+void nxterm_clear(FAR struct nxterm_state_s *priv);
 void nxterm_newline(FAR struct nxterm_state_s *priv);
 FAR const struct nxterm_bitmap_s *nxterm_addchar(FAR struct nxterm_state_s *priv,
     uint8_t ch);

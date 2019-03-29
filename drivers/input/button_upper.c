@@ -101,6 +101,7 @@ struct btn_open_s
 
   pid_t bo_pid;
   struct btn_notify_s bo_notify;
+  struct sigwork_s bo_work;
 #endif
 
 #ifndef CONFIG_DISABLE_POLL
@@ -198,7 +199,7 @@ static inline int btn_takesem(sem_t *sem)
 #if !defined(CONFIG_DISABLE_POLL) || !defined(CONFIG_DISABLE_SIGNALS)
 static void btn_enable(FAR struct btn_upperhalf_s *priv)
 {
-  FAR const struct btn_lowerhalf_s *lower = priv->bu_lower;
+  FAR const struct btn_lowerhalf_s *lower;
   FAR struct btn_open_s *opriv;
   btn_buttonset_t press;
   btn_buttonset_t release;
@@ -280,7 +281,7 @@ static void btn_interrupt(FAR const struct btn_lowerhalf_s *lower,
 
 static void btn_sample(FAR struct btn_upperhalf_s *priv)
 {
-  FAR const struct btn_lowerhalf_s *lower = priv->bu_lower;
+  FAR const struct btn_lowerhalf_s *lower;
   FAR struct btn_open_s *opriv;
   btn_buttonset_t sample;
 #if !defined(CONFIG_DISABLE_POLL) || !defined(CONFIG_DISABLE_SIGNALS)
@@ -356,15 +357,9 @@ static void btn_sample(FAR struct btn_upperhalf_s *priv)
         {
           /* Yes.. Signal the waiter */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-          union sigval value;
-          value.sival_int = (int)sample;
-          (void)nxsig_queue(opriv->bo_pid, opriv->bo_notify.bn_signo,
-                            value);
-#else
-          (void)nxsig_queue(opriv->bo_pid, opriv->bo_notify.dn.signo,
-                            (FAR void *)sample);
-#endif
+          opriv->bo_notify.bn_event.sigev_value.sival_int = sample;
+          nxsig_notification(opriv->bo_pid, &opriv->bo_notify.bn_event,
+                             SI_QUEUE, &opriv->bo_work);
         }
 #endif
     }
@@ -524,6 +519,10 @@ static int btn_close(FAR struct file *filep)
       priv->bu_open = opriv->bo_flink;
     }
 
+  /* Cancel any pending notification */
+
+  nxsig_cancel_notification(&opriv->bo_work);
+
   /* And free the open structure */
 
   kmm_free(opriv);
@@ -620,15 +619,16 @@ static int btn_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     {
     /* Command:     BTNIOC_SUPPORTED
      * Description: Report the set of button events supported by the hardware;
-     * Argument:    A pointer to writeable integer value in which to return the
-     *              set of supported buttons.
-     * Return:      Zero (OK) on success.  Minus one will be returned on failure
-     *              with the errno value set appropriately.
+     * Argument:    A pointer to writeable integer value in which to return
+     *              the set of supported buttons.
+     * Return:      Zero (OK) on success.  Minus one will be returned on
+     *              failure with the errno value set appropriately.
      */
 
     case BTNIOC_SUPPORTED:
       {
-        FAR btn_buttonset_t *supported = (FAR btn_buttonset_t *)((uintptr_t)arg);
+        FAR btn_buttonset_t *supported =
+          (FAR btn_buttonset_t *)((uintptr_t)arg);
 
         if (supported)
           {
@@ -696,7 +696,7 @@ static int btn_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
             opriv->bo_notify.bn_press   = notify->bn_press;
             opriv->bo_notify.bn_release = notify->bn_release;
-            opriv->bo_notify.bn_signo   = notify->bn_signo;
+            opriv->bo_notify.bn_event   = notify->bn_event;
             opriv->bo_pid               = getpid();
 
             /* Enable/disable interrupt handling */

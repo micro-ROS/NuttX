@@ -184,10 +184,10 @@ static int  skel_ifdown(FAR struct net_driver_s *dev);
 static void skel_txavail_work(FAR void *arg);
 static int  skel_txavail(FAR struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int  skel_addmac(FAR struct net_driver_s *dev,
               FAR const uint8_t *mac);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  skel_rmmac(FAR struct net_driver_s *dev,
               FAR const uint8_t *mac);
 #endif
@@ -310,8 +310,8 @@ static int skel_txpoll(FAR struct net_driver_s *dev)
 
           skel_transmit(priv);
 
-          /* Check if there is room in the device to hold another packet. If not,
-           * return a non-zero value to terminate the poll.
+          /* Check if there is room in the device to hold another packet.
+           * If not, return a non-zero value to terminate the poll.
            */
         }
     }
@@ -467,7 +467,8 @@ static void skel_receive(FAR struct skel_driver_s *priv)
           NETDEV_RXARP(&priv->sk_dev);
 
           /* If the above function invocation resulted in data that should be
-           * sent out on the network, the field  d_len will set to a value > 0.
+           * sent out on the network, the field  d_len will set to a value
+           * > 0.
            */
 
           if (priv->sk_dev.d_len > 0)
@@ -973,7 +974,7 @@ static int skel_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int skel_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct skel_driver_s *priv = (FAR struct skel_driver_s *)dev->d_private;
@@ -988,8 +989,8 @@ static int skel_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  * Name: skel_rmmac
  *
  * Description:
- *   NuttX Callback: Remove the specified MAC address from the hardware multicast
- *   address filtering
+ *   NuttX Callback: Remove the specified MAC address from the hardware
+ *   multicast address filtering
  *
  * Input Parameters:
  *   dev  - Reference to the NuttX driver state structure
@@ -1000,7 +1001,7 @@ static int skel_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int skel_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct skel_driver_s *priv = (FAR struct skel_driver_s *)dev->d_private;
@@ -1173,7 +1174,7 @@ int skel_initialize(int intf)
   priv->sk_dev.d_ifup    = skel_ifup;     /* I/F up (new IP address) callback */
   priv->sk_dev.d_ifdown  = skel_ifdown;   /* I/F down callback */
   priv->sk_dev.d_txavail = skel_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->sk_dev.d_addmac  = skel_addmac;   /* Add multicast MAC address */
   priv->sk_dev.d_rmmac   = skel_rmmac;    /* Remove multicast MAC address */
 #endif

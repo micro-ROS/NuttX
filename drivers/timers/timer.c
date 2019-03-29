@@ -46,7 +46,6 @@
 #include <string.h>
 #include <semaphore.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
@@ -67,11 +66,14 @@
 
 struct timer_upperhalf_s
 {
-  uint8_t   crefs;         /* The number of times the device has been opened */
-  uint8_t   signo;         /* The signal number to use in the notification */
-  pid_t     pid;           /* The ID of the task/thread to receive the signal */
-  FAR void *arg;           /* An argument to pass with the signal */
+  sem_t exclsem;           /* Supports mutual exclusion */
+  uint8_t crefs;           /* The number of times the device has been opened */
   FAR char *path;          /* Registration path */
+
+  /* The contained signal info */
+
+  struct timer_notify_s notify;
+  struct sigwork_s work;
 
   /* The contained lower-half driver */
 
@@ -129,20 +131,14 @@ static const struct file_operations g_timerops =
 static bool timer_notifier(FAR uint32_t *next_interval_us, FAR void *arg)
 {
   FAR struct timer_upperhalf_s *upper = (FAR struct timer_upperhalf_s *)arg;
-#ifdef CONFIG_CAN_PASS_STRUCTS
-  union sigval value;
-#endif
+  FAR struct timer_notify_s *notify = &upper->notify;
 
   DEBUGASSERT(upper != NULL);
 
   /* Signal the waiter.. if there is one */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-  value.sival_ptr = upper->arg;
-  (void)nxsig_queue(upper->pid, upper->signo, value);
-#else
-  (void)nxsig_queue(upper->pid, upper->signo, upper->arg);
-#endif
+  nxsig_notification(notify->pid, &notify->event,
+                     SI_QUEUE, &upper->work);
 
   return true;
 }
@@ -164,6 +160,14 @@ static int timer_open(FAR struct file *filep)
 
   tmrinfo("crefs: %d\n", upper->crefs);
 
+  /* Get exclusive access to the device structures */
+
+  ret = nxsem_wait(&upper->exclsem);
+  if (ret < 0)
+    {
+      goto errout;
+    }
+
   /* Increment the count of references to the device.  If this the first
    * time that the driver has been opened for this device, then initialize
    * the device.
@@ -175,13 +179,16 @@ static int timer_open(FAR struct file *filep)
       /* More than 255 opens; uint8_t overflows to zero */
 
       ret = -EMFILE;
-      goto errout;
+      goto errout_with_sem;
     }
 
   /* Save the new open count */
 
   upper->crefs = tmp;
   ret = OK;
+
+errout_with_sem:
+  nxsem_post(&upper->exclsem);
 
 errout:
   return ret;
@@ -199,8 +206,17 @@ static int timer_close(FAR struct file *filep)
 {
   FAR struct inode *inode = filep->f_inode;
   FAR struct timer_upperhalf_s *upper = inode->i_private;
+  int ret;
 
   tmrinfo("crefs: %d\n", upper->crefs);
+
+  /* Get exclusive access to the device structures */
+
+  ret = nxsem_wait(&upper->exclsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Decrement the references to the driver.  If the reference count will
    * decrement to 0, then uninitialize the driver.
@@ -211,6 +227,7 @@ static int timer_close(FAR struct file *filep)
       upper->crefs--;
     }
 
+  nxsem_post(&upper->exclsem);
   return OK;
 }
 
@@ -265,6 +282,14 @@ static int timer_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   lower = upper->lower;
   DEBUGASSERT(lower != NULL);
 
+  /* Get exclusive access to the device structures */
+
+  ret = nxsem_wait(&upper->exclsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   /* Handle built-in ioctl commands */
 
   switch (cmd)
@@ -298,14 +323,9 @@ static int timer_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       {
         /* Stop the timer */
 
-        if (lower->ops->stop)
-          {
-            ret = lower->ops->stop(lower);
-          }
-        else
-          {
-            ret = -ENOSYS;
-          }
+        DEBUGASSERT(lower->ops->stop != NULL); /* Required */
+        ret = lower->ops->stop(lower);
+        nxsig_cancel_notification(&upper->work);
       }
       break;
 
@@ -364,10 +384,7 @@ static int timer_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
     /* cmd:         TCIOC_NOTIFICATION
      * Description: Notify application via a signal when the timer expires.
-     * Argument:    signal number
-     *
-     * NOTE: This ioctl cannot be support in the kernel build mode. In that
-     * case direct callbacks from kernel space into user space is forbidden.
+     * Argument:    signal information
      */
 
     case TCIOC_NOTIFICATION:
@@ -377,10 +394,7 @@ static int timer_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
         if (notify != NULL)
           {
-            upper->signo = notify->signo;
-            upper->pid   = notify->pid;
-            upper->arg   = notify->arg;
-
+            memcpy(&upper->notify, notify, sizeof(*notify));
             ret = timer_setcallback((FAR void *)upper, timer_notifier, upper);
           }
         else
@@ -433,6 +447,7 @@ static int timer_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       break;
     }
 
+  nxsem_post(&upper->exclsem);
   return ret;
 }
 
@@ -490,6 +505,7 @@ FAR void *timer_register(FAR const char *path,
    */
 
   upper->lower = lower;
+  nxsem_init(&upper->exclsem, 0, 1);
 
   /* Copy the registration path */
 
@@ -515,6 +531,7 @@ errout_with_path:
   kmm_free(upper->path);
 
 errout_with_upper:
+  nxsem_destroy(&upper->exclsem);
   kmm_free(upper);
 
 errout:
@@ -553,6 +570,7 @@ void timer_unregister(FAR void *handle)
 
   DEBUGASSERT(lower->ops->stop); /* Required */
   (void)lower->ops->stop(lower);
+  nxsig_cancel_notification(&upper->work);
 
   /* Unregister the timer device */
 
@@ -560,6 +578,7 @@ void timer_unregister(FAR void *handle)
 
   /* Then free all of the driver resources */
 
+  nxsem_destroy(&upper->exclsem);
   kmm_free(upper->path);
   kmm_free(upper);
 }

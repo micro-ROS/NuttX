@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/lc823450/lc823450_usbdev.c
  *
- *   Copyright 2014,2015,2016,2017 Sony Video & Sound Products Inc.
+ *   Copyright 2014, 2015, 2016, 2017 Sony Video & Sound Products Inc.
  *   Author: Masatoshi Tateishi <Masatoshi.Tateishi@jp.sony.com>
  *   Author: Masayuki Ishikawa <Masayuki.Ishikawa@jp.sony.com>
  *
@@ -100,7 +100,7 @@
 #if 0
 #  define DPRINTF(fmt, args...) uinfo(fmt, ##args)
 #else
-#  define DPRINTF(fmt, args...) do {} while(0)
+#  define DPRINTF(fmt, args...) do {} while (0)
 #endif
 
 #ifndef container_of
@@ -155,9 +155,9 @@ struct lc823450_usbdev_s
 #endif /* CONFIG_USBDEV_CHARGER */
 };
 
-/*******************************************************************************
+/****************************************************************************
  * Private Functions
- *******************************************************************************/
+ ****************************************************************************/
 
 static void lc823450_epack(int epnum, bool ack);
 static int epbuf_write(int epnum, void *buf, size_t len);
@@ -173,11 +173,13 @@ static void lc823450_epfreereq(struct usbdev_ep_s *ep,
 static void *lc823450_epallocbuffer(struct usbdev_ep_s *ep, uint16_t bytes);
 static void lc823450_epfreebuffer(struct usbdev_ep_s *ep, void *buf);
 #endif /* CONFIG_USBDEV_DMA */
-static int lc823450_epsubmit(struct usbdev_ep_s *ep, struct usbdev_req_s *req);
-static int lc823450_epcancel(struct usbdev_ep_s *ep, struct usbdev_req_s *req);
+static int lc823450_epsubmit(struct usbdev_ep_s *ep,
+  struct usbdev_req_s *req);
+static int lc823450_epcancel(struct usbdev_ep_s *ep,
+  struct usbdev_req_s *req);
 static int lc823450_epstall(struct usbdev_ep_s *ep, bool resume);
-static struct usbdev_ep_s *lc823450_allocep(struct usbdev_s *dev, uint8_t eplog,
-  bool in, uint8_t eptype);
+static struct usbdev_ep_s *lc823450_allocep(struct usbdev_s *dev,
+  uint8_t eplog, bool in, uint8_t eptype);
 static void lc823450_freeep(struct usbdev_s *dev, struct usbdev_ep_s *ep);
 static int lc823450_getframe(struct usbdev_s *dev);
 static int lc823450_wakeup(struct usbdev_s *dev);
@@ -192,25 +194,33 @@ static void usb_reset_work_func(void *arg);
 #endif
 
 /****************************************************************************
- * Private Data
+ * Public Function Prototypes
  ****************************************************************************/
-
-static struct lc823450_usbdev_s g_usbdev;
-
-static DMA_HANDLE hdma;
-sem_t dma_wait;
-struct lc823450_dma_llist dma_list[16];
 
 #ifdef CONFIG_DVFS
 #define DVFS_BOOST_TIMEOUT (200) /* 200ms */
 extern int lc823450_dvfs_boost(int timeout);
 #endif
 
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static struct lc823450_usbdev_s g_usbdev;
+
+static DMA_HANDLE g_hdma;
+static sem_t dma_wait;
+
+#ifdef CONFIG_USBMSC_OPT
+static struct lc823450_dma_llist g_dma_list[16];
+#endif
+
 #ifdef CONFIG_PM
-static void usbdev_pmnotify(struct pm_callback_s *cb, enum pm_state_e pmstate);
-static struct pm_callback_s pm_cb =
+static void usbdev_pmnotify(struct pm_callback_s *cb,
+                            enum pm_state_e pmstate);
+static struct pm_callback_s g_pm_cb =
 {
-  .notify = usbdev_pmnotify,
+  .notify      = usbdev_pmnotify,
 };
 #endif
 
@@ -240,24 +250,24 @@ static const struct usbdev_ops_s g_devops =
 };
 
 #if defined(CONFIG_BATTERY) && defined(CONFIG_USBDEV_CHARGER)
-static struct work_s usb_reset_work;
+static struct work_s g_reset_work;
 #endif
 
 #ifdef CONFIG_WAKELOCK
-static struct work_s usb_suspend_work;
+static struct work_s g_suspend_work;
 #endif
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_epack
  *
  * Description:
  *   ACK or NAK and endpoint
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static void lc823450_epack(int epnum, bool ack)
 {
@@ -277,13 +287,13 @@ static void lc823450_epack(int epnum, bool ack)
   epcmd_write(epnum, (privep->epcmd));
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: epbuf_read
  *
  * Description:
  *   read from RX Endpoint Buffer
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 int epbuf_read(int epnum, void *buf, size_t len)
 {
@@ -307,18 +317,20 @@ int epbuf_read(int epnum, void *buf, size_t len)
   return len;
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: epbuf_write
  *
  * Description:
  *   Write to TX Endpoint Buffer
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static int epbuf_write(int epnum, void *buf, size_t len)
 {
   struct lc823450_ep_s *privep;
-  int bufidx, txn, total;
+  int bufidx;
+  int txn;
+  int total;
   int tout = 0;
 
   total = len;
@@ -338,11 +350,11 @@ cont:
     }
   else
     {
-    while (!(getreg32(USB_EPCTRL(epnum)) & USB_EPCTRL_EMPTY) &&
-           !privep->disable && tout++ < 1000000)
-      {
-        up_udelay(1);
-      }
+      while (!(getreg32(USB_EPCTRL(epnum)) & USB_EPCTRL_EMPTY) &&
+             !privep->disable && tout++ < 1000000)
+        {
+          up_udelay(1);
+        }
     }
 
   txn = MIN(len, privep->ep.maxpacket);
@@ -354,6 +366,7 @@ cont:
 
   lc823450_epack(epnum, true);
   epcmd_write(epnum, USB_EPCMD_NACK_CLR);
+
   len -= txn;
   buf += txn;
   if (len > 0)
@@ -364,13 +377,13 @@ cont:
   return total;
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: epcmd_write
  *
  * Description:
  *   Write to EP command register
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static void epcmd_write(int epnum, uint32_t val)
 {
@@ -379,7 +392,7 @@ static void epcmd_write(int epnum, uint32_t val)
   putreg32(val, USB_EPCMD(epnum));
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_epconfigure
  *
  * Description:
@@ -392,7 +405,7 @@ static void epcmd_write(int epnum, uint32_t val)
  *          needs to take special action when all of the endpoints have been
  *          configured.
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static int lc823450_epconfigure(struct usbdev_ep_s *ep,
                                 const struct usb_epdesc_s *desc,
@@ -474,13 +487,13 @@ static int lc823450_epconfigure(struct usbdev_ep_s *ep,
   return 0;
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_epdisable
  *
  * Description:
  *   The endpoint will no longer be used
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static int lc823450_epclearreq(struct usbdev_ep_s *ep)
 {
@@ -508,13 +521,13 @@ static int lc823450_epclearreq(struct usbdev_ep_s *ep)
   return 0;
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_epdisable
  *
  * Description:
  *   The endpoint will no longer be used
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static int lc823450_epdisable(struct usbdev_ep_s *ep)
 {
@@ -540,18 +553,18 @@ static int lc823450_epdisable(struct usbdev_ep_s *ep)
 
   g_usbdev.bufoffset = 0x180;
   privep->disable = 1;
-  lc823450_dmastop(hdma);
+  lc823450_dmastop(g_hdma);
   nxsem_post(&dma_wait);
   return lc823450_epclearreq(ep);
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_epallocreq
  *
  * Description:
  *   Allocate an I/O request
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static struct usbdev_req_s *lc823450_epallocreq(struct usbdev_ep_s *ep)
 {
@@ -567,7 +580,9 @@ static struct usbdev_req_s *lc823450_epallocreq(struct usbdev_ep_s *ep)
 
   usbtrace(TRACE_EPALLOCREQ, ((struct lc823450_ep_s *)ep)->epphy);
 
-  privreq = (struct lc823450_req_s *)kmm_malloc(sizeof(struct lc823450_req_s));
+  privreq = (struct lc823450_req_s *)
+    kmm_malloc(sizeof(struct lc823450_req_s));
+
   if (!privreq)
     {
       usbtrace(TRACE_DEVERROR(LC823450_TRACEERR_ALLOCFAIL), 0);
@@ -578,15 +593,16 @@ static struct usbdev_req_s *lc823450_epallocreq(struct usbdev_ep_s *ep)
   return &privreq->req;
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_epfreereq
  *
  * Description:
  *   Free an I/O request
  *
- ******************************************************************************/
+ ****************************************************************************/
 
-static void lc823450_epfreereq(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
+static void lc823450_epfreereq(struct usbdev_ep_s *ep,
+                               struct usbdev_req_s *req)
 {
   struct lc823450_req_s *privreq = (struct lc823450_req_s *)req;
 
@@ -603,13 +619,13 @@ static void lc823450_epfreereq(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
 }
 
 #ifdef CONFIG_USBDEV_DMA
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_epallocbuffer
  *
  * Description:
  *   Allocate an I/O buffer
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static void *lc823450_epallocbuffer(struct usbdev_ep_s *ep, uint16_t bytes)
 {
@@ -624,13 +640,13 @@ static void *lc823450_epallocbuffer(struct usbdev_ep_s *ep, uint16_t bytes)
 #endif
 
 #ifdef CONFIG_USBDEV_DMA
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_epfreebuffer
  *
  * Description:
  *   Free an I/O buffer
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static void lc823450_epfreebuffer(struct usbdev_ep_s *ep, void *buf)
 {
@@ -644,13 +660,13 @@ static void lc823450_epfreebuffer(struct usbdev_ep_s *ep, void *buf)
 }
 #endif
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_epsubmit
  *
  * Description:
  *   Submit an I/O request to the endpoint
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static int lc823450_epsubmit(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
 {
@@ -704,13 +720,13 @@ static int lc823450_epsubmit(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
   return 0;
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_epcancel
  *
  * Description:
  *   Cancel an I/O request previously sent to an endpoint
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static int lc823450_epcancel(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
 {
@@ -718,7 +734,7 @@ static int lc823450_epcancel(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
   struct lc823450_ep_s *privep = (struct lc823450_ep_s *)ep;
   irqstate_t flags;
 
-  /* remove request from req_queue */
+  /* Remove request from req_queue */
 
   flags = spin_lock_irqsave();
   sq_remafter(&privreq->q_ent, &privep->req_q);
@@ -726,13 +742,13 @@ static int lc823450_epcancel(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
   return 0;
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_epstall
  *
  * Description:
  *   Stall or resume and endpoint
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static int lc823450_epstall(struct usbdev_ep_s *ep, bool resume)
 {
@@ -772,24 +788,25 @@ void up_epignore_clear_stall(struct usbdev_ep_s *ep, bool ignore)
 }
 #endif /* CONFIG_USBMSC_IGNORE_CLEAR_STALL */
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_allocep
  *
  * Description:
  *   Allocate an endpoint matching the parameters.
  *
  * Input Parameters:
- *   eplog  - 7-bit logical endpoint number (direction bit ignored).  Zero means
- *            that any endpoint matching the other requirements will suffice.  The
- *            assigned endpoint can be found in the eplog field.
+ *   eplog  - 7-bit logical endpoint number (direction bit ignored).  Zero
+ *            means that any endpoint matching the other requirements will
+ *            suffice.  The assigned endpoint can be found in the eplog field.
  *   in     - true: IN (device-to-host) endpoint requested
- *   eptype - Endpoint type.  One of {USB_EP_ATTR_XFER_ISOC, USB_EP_ATTR_XFER_BULK,
- *            USB_EP_ATTR_XFER_INT}
+ *   eptype - Endpoint type.  One of {USB_EP_ATTR_XFER_ISOC,
+ *            USB_EP_ATTR_XFER_BULK, USB_EP_ATTR_XFER_INT}
  *
  ******************************************************************************/
 
-static struct usbdev_ep_s *lc823450_allocep(struct usbdev_s *dev, uint8_t eplog,
-                                               bool in, uint8_t eptype)
+static struct usbdev_ep_s *lc823450_allocep(struct usbdev_s *dev,
+                                            uint8_t eplog, bool in,
+                                            uint8_t eptype)
 {
   struct lc823450_usbdev_s *priv = (struct lc823450_usbdev_s *)dev;
   struct lc823450_ep_s *privep;
@@ -818,13 +835,13 @@ static struct usbdev_ep_s *lc823450_allocep(struct usbdev_s *dev, uint8_t eplog,
   return &privep->ep;
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_freeep
  *
  * Description:
  *   Free the previously allocated endpoint
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static void lc823450_freeep(struct usbdev_s *dev, struct usbdev_ep_s *ep)
 {
@@ -838,13 +855,13 @@ static void lc823450_freeep(struct usbdev_s *dev, struct usbdev_ep_s *ep)
   return;
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_getframe
  *
  * Description:
  *   Returns the current frame number
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static int lc823450_getframe(struct usbdev_s *dev)
 {
@@ -853,13 +870,13 @@ static int lc823450_getframe(struct usbdev_s *dev)
   return (int)(getreg32(USB_TSTAMP));
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_wakeup
  *
  * Description:
  *   Tries to wake up the host connected to this device
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static int lc823450_wakeup(struct usbdev_s *dev)
 {
@@ -869,26 +886,26 @@ static int lc823450_wakeup(struct usbdev_s *dev)
   return OK;
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_selfpowered
  *
  * Description:
  *   Sets/clears the device selfpowered feature
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static int lc823450_selfpowered(struct usbdev_s *dev, bool selfpowered)
 {
   return OK;
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_usbpullup
  *
  * Description:
  *   Software-controlled connect to/disconnect from USB host
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 int lc823450_usbpullup(struct usbdev_s *dev, bool enable)
 {
@@ -904,13 +921,13 @@ int lc823450_usbpullup(struct usbdev_s *dev, bool enable)
 }
 
 #ifdef CONFIG_WAKELOCK
-/******************************************************************************
+/****************************************************************************
  * Name: subintr_usbdev
  *
  * Description:
  *   USB dev interrupt sub handler
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static void usb_suspend_work_func(void *arg)
 {
@@ -944,9 +961,9 @@ static void usb_suspend_work_func(void *arg)
 #endif
 
 #if defined(CONFIG_BATTERY) && defined(CONFIG_USBDEV_CHARGER)
-/******************************************************************************
+/****************************************************************************
  * Name: usb_reset_work_func
- ******************************************************************************/
+ ****************************************************************************/
 
 static void usb_reset_work_func(void *arg)
 {
@@ -959,7 +976,7 @@ static void usb_reset_work_func(void *arg)
 #  endif
 
       g_usbdev.charger = 0;
-      work_queue(HPWORK, &usb_reset_work, usb_reset_work_func, NULL,
+      work_queue(HPWORK, &g_reset_work, usb_reset_work_func, NULL,
                  MSEC2TICK(100));
     }
   else
@@ -973,9 +990,9 @@ static void usb_reset_work_func(void *arg)
 }
 #endif
 
-/******************************************************************************
+/****************************************************************************
  * Name: subintr_usbdev
- ******************************************************************************/
+ ****************************************************************************/
 
 static void subintr_usbdev(void)
 {
@@ -988,8 +1005,8 @@ static void subintr_usbdev(void)
 #ifdef CONFIG_USBDEV_CHARGER
   if (g_usbdev.charger)
     {
-      work_cancel(HPWORK, &usb_reset_work);
-      work_queue(HPWORK, &usb_reset_work, usb_reset_work_func, NULL, 0);
+      work_cancel(HPWORK, &g_reset_work);
+      work_queue(HPWORK, &g_reset_work, usb_reset_work_func, NULL, 0);
 
       /* Disable interrupts */
 
@@ -1035,8 +1052,8 @@ static void subintr_usbdev(void)
 #ifdef CONFIG_WAKELOCK
       g_deepsleep_cancel = 0;
 
-      work_cancel(HPWORK, &usb_suspend_work);
-      work_queue(HPWORK, &usb_suspend_work, usb_suspend_work_func, priv,
+      work_cancel(HPWORK, &g_suspend_work);
+      work_queue(HPWORK, &g_suspend_work, usb_suspend_work_func, priv,
                  MSEC2TICK(1000));
 #endif
     }
@@ -1053,7 +1070,7 @@ static void subintr_usbdev(void)
 #endif
 #ifdef CONFIG_WAKELOCK
       wake_lock(&priv->wlock);
-      work_cancel(HPWORK, &usb_suspend_work);
+      work_cancel(HPWORK, &g_suspend_work);
 #endif
 
 #if defined(CONFIG_BATTERY) && defined(CONFIG_USBDEV_CHARGER)
@@ -1061,26 +1078,27 @@ static void subintr_usbdev(void)
           (USBSTAT_LINESTE_0 | USBSTAT_LINESTE_1))
         {
           g_usbdev.charger = 1;
-          work_cancel(HPWORK, &usb_reset_work);
-          work_queue(HPWORK, &usb_reset_work, usb_reset_work_func, NULL, 0);
+          work_cancel(HPWORK, &g_reset_work);
+          work_queue(HPWORK, &g_reset_work, usb_reset_work_func, NULL, 0);
         }
 #endif
     }
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: subintr_ep0
  *
  * Description:
  *   Endpoint0 interrupt sub handler
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static void subintr_ep0(void)
 {
   uint32_t epctrl;
   struct lc823450_usbdev_s *priv = &g_usbdev;
-  int len, handled = 0;
+  int len;
+  int handled = 0;
   char resp[2];
   uint8_t epnum;
 
@@ -1170,7 +1188,8 @@ static void subintr_ep0(void)
                       }
                     else
                       {
-                        putreg32(1 << ctrl.index[1] | USB_TESTC_FORCE_HS, USB_TESTC);
+                        putreg32(1 << ctrl.index[1] | USB_TESTC_FORCE_HS,
+                                 USB_TESTC);
                       }
 
                     handled = 1;
@@ -1242,13 +1261,13 @@ static void subintr_ep0(void)
     }
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: subintr_epin
  *
  * Description:
  *   Endpoint interrupt sub handler
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static void subintr_epin(uint8_t epnum, struct lc823450_ep_s *privep)
 {
@@ -1286,13 +1305,13 @@ static void subintr_epin(uint8_t epnum, struct lc823450_ep_s *privep)
     }
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: subintr_epout
  *
  * Description:
  *   Endpoint interrupt sub handler
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static void subintr_epout(uint8_t epnum, struct lc823450_ep_s *privep)
 {
@@ -1337,13 +1356,13 @@ static void subintr_epout(uint8_t epnum, struct lc823450_ep_s *privep)
     }
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: subintr_ep
  *
  * Description:
  *   Endpoint interrupt sub handler
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static void subintr_ep(uint8_t epnum)
 {
@@ -1365,13 +1384,13 @@ static void subintr_ep(uint8_t epnum)
     }
 }
 
-/******************************************************************************
+/****************************************************************************
  * Name: lc823450_usbinterrupt
  *
  * Description:
  *   USB interrupt handler
  *
- ******************************************************************************/
+ ****************************************************************************/
 
 static int lc823450_usbinterrupt(int irq, void *context, FAR void *arg)
 {
@@ -1412,8 +1431,10 @@ static int lc823450_usbinterrupt(int irq, void *context, FAR void *arg)
 
 /****************************************************************************
  * Name: up_usbinitialize
+ *
  * Description:
  *   Initialize the USB driver
+ *
  * Input Parameters:
  *   None
  *
@@ -1449,8 +1470,8 @@ void up_usbinitialize(void)
     }
 
   nxsem_init(&dma_wait, 0, 0);
-  hdma = lc823450_dmachannel(DMA_CHANNEL_USBDEV);
-  lc823450_dmarequest(hdma, DMA_REQUEST_USBDEV);
+  g_hdma = lc823450_dmachannel(DMA_CHANNEL_USBDEV);
+  lc823450_dmarequest(g_hdma, DMA_REQUEST_USBDEV);
 
 #ifdef CONFIG_WAKELOCK
   wake_lock_init(&g_usbdev.wlock, "usb");
@@ -1463,7 +1484,8 @@ void up_usbinitialize(void)
 
 int usbdev_register(struct usbdevclass_driver_s *driver)
 {
-  int ret = -1, i;
+  int ret = -1;
+  int i;
 
 #ifdef CONFIG_DVFS
   lc823450_dvfs_boost(DVFS_BOOST_TIMEOUT * 20);
@@ -1507,7 +1529,6 @@ int usbdev_register(struct usbdevclass_driver_s *driver)
 
   modifyreg32(USB_CONF, 0, USB_CONF_SOFT_RESET);
   while (getreg32(USB_CONF) & USB_CONF_SOFT_RESET);
-
 
   putreg32(0, USB_CONF);
 
@@ -1596,7 +1617,7 @@ int usbdev_register(struct usbdevclass_driver_s *driver)
         }
 
 #ifdef CONFIG_PM
-      pm_register(&pm_cb);
+      pm_register(&g_pm_cb);
 #endif /* CONFIG_PM */
       up_enable_irq(LC823450_IRQ_USBDEV);
     }
@@ -1627,7 +1648,8 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
   /* At present, there is only a single USB device support. Hence it is
    * pre-allocated as g_otgfsdev.  However, in most code, the private data
    * structure will be referenced using the 'priv' pointer (rather than the
-   * global data) in order to simplify any future support for multiple devices.
+   * global data) in order to simplify any future support for multiple
+   * devices.
    */
 
   struct lc823450_usbdev_s *priv = &g_usbdev;
@@ -1652,7 +1674,7 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
 #ifdef CONFIG_WAKELOCK
   /* cancel USB suspend work */
 
-  work_cancel(HPWORK, &usb_suspend_work);
+  work_cancel(HPWORK, &g_suspend_work);
 #endif
 
   /* Unbind the class driver */
@@ -1680,7 +1702,7 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
   priv->driver = NULL;
 
 #ifdef CONFIG_PM
-  pm_unregister(&pm_cb);
+  pm_unregister(&g_pm_cb);
 #endif /* CONFIG_PM */
 
   spin_unlock_irqrestore(flags);
@@ -1699,6 +1721,7 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
 }
 
 /* FOR USBMSC optimization */
+
 #ifdef CONFIG_USBMSC_OPT
 /****************************************************************************
  * Name: usbdev_msc_read_enter
@@ -1714,7 +1737,7 @@ void usbdev_msc_read_enter()
   privep = &g_usbdev.eplist[CONFIG_USBMSC_EPBULKIN];
   privep->epcmd &= ~USB_EPCMD_EMPTY_EN;
   epcmd_write(CONFIG_USBMSC_EPBULKIN, (privep->epcmd));
-  lc823450_dmareauest_dir(hdma, DMA_REQUEST_USBDEV, 1);
+  lc823450_dmareauest_dir(g_hdma, DMA_REQUEST_USBDEV, 1);
   nxsem_init(&dma_wait, 0, 0);
 }
 
@@ -1766,30 +1789,30 @@ int usbdev_msc_epwrite(void *buf, int len)
 
   for (i = 1; i < len / pksz; i++)
     {
-      dma_list[i - 1].srcaddr = (uint32_t)buf + i * pksz;
-      dma_list[i - 1].dstaddr = (uint32_t)privep->inbuf + 0x8000;
+      g_dma_list[i - 1].srcaddr = (uint32_t)buf + i * pksz;
+      g_dma_list[i - 1].dstaddr = (uint32_t)privep->inbuf + 0x8000;
       if (i == (len / pksz) - 1)
         {
           /* last link */
 
-          dma_list[i - 1].nextlli = 0;
-          dma_list[i - 1].ctrl = ctrl | LC823450_DMA_ITC | pksz;
+          g_dma_list[i - 1].nextlli = 0;
+          g_dma_list[i - 1].ctrl = ctrl | LC823450_DMA_ITC | pksz;
         }
       else
         {
-          dma_list[i - 1].nextlli = (uint32_t)&dma_list[i];
-          dma_list[i - 1].ctrl = ctrl | pksz;
+          g_dma_list[i - 1].nextlli = (uint32_t)&g_dma_list[i];
+          g_dma_list[i - 1].ctrl = ctrl | pksz;
         }
     }
 
-  lc823450_dmallsetup(hdma,
+  lc823450_dmallsetup(g_hdma,
                       ctrl,
                       (uint32_t)buf,
                       (uint32_t)privep->inbuf + 0x8000,
                       pksz,
-                      len <= pksz ? 0 : (uint32_t)dma_list);
+                      len <= pksz ? 0 : (uint32_t)g_dma_list);
 
-  lc823450_dmastart(hdma, usbdev_dma_callback, &dma_wait);
+  lc823450_dmastart(g_hdma, usbdev_dma_callback, &dma_wait);
 
   putreg32(len, USB_DMATCI1);
 
@@ -1817,7 +1840,7 @@ void usbdev_msc_write_enter0(void)
   privep = &g_usbdev.eplist[CONFIG_USBMSC_EPBULKOUT];
   privep->epcmd &= ~USB_EPCMD_READY_EN;
   epcmd_write(CONFIG_USBMSC_EPBULKOUT, (privep->epcmd));
-  lc823450_dmareauest_dir(hdma, DMA_REQUEST_USBDEV, 0);
+  lc823450_dmareauest_dir(g_hdma, DMA_REQUEST_USBDEV, 0);
   nxsem_init(&dma_wait, 0, 0);
 }
 
@@ -1872,30 +1895,30 @@ int usbdev_msc_epread(void *buf, int len)
 
   for (i = 1; i < len / pksz; i++)
     {
-      dma_list[i - 1].srcaddr = (uint32_t)privep->outbuf + 0x8000;
-      dma_list[i - 1].dstaddr = (uint32_t)buf + i * pksz;
+      g_dma_list[i - 1].srcaddr = (uint32_t)privep->outbuf + 0x8000;
+      g_dma_list[i - 1].dstaddr = (uint32_t)buf + i * pksz;
       if (i == (len / pksz) - 1)
         {
           /* last link */
 
-          dma_list[i - 1].nextlli = 0;
-          dma_list[i - 1].ctrl = ctrl | LC823450_DMA_ITC | pksz;
+          g_dma_list[i - 1].nextlli = 0;
+          g_dma_list[i - 1].ctrl = ctrl | LC823450_DMA_ITC | pksz;
         }
       else
         {
-          dma_list[i - 1].nextlli = (uint32_t)&dma_list[i];
-          dma_list[i - 1].ctrl = ctrl | pksz;
+          g_dma_list[i - 1].nextlli = (uint32_t)&g_dma_list[i];
+          g_dma_list[i - 1].ctrl = ctrl | pksz;
         }
     }
 
-  lc823450_dmallsetup(hdma,
+  lc823450_dmallsetup(g_hdma,
                       ctrl,
                       (uint32_t)privep->outbuf + 0x8000,
                       (uint32_t)buf,
                       pksz,
-                      len <= pksz ? 0 : (uint32_t)dma_list);
+                      len <= pksz ? 0 : (uint32_t)g_dma_list);
 
-  lc823450_dmastart(hdma, usbdev_dma_callback, &dma_wait);
+  lc823450_dmastart(g_hdma, usbdev_dma_callback, &dma_wait);
 
   putreg32(len, USB_DMATCI1);
   putreg32(64 << USB_DMAC_BSIZE_SHIFT |
@@ -1909,7 +1932,7 @@ int usbdev_msc_epread(void *buf, int len)
 
 void usbdev_msc_stop(void)
 {
-  lc823450_dmastop(hdma);
+  lc823450_dmastop(g_hdma);
   nxsem_post(&dma_wait);
 }
 #endif /* CONFIG_USBMSC */

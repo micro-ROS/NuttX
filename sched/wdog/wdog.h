@@ -46,7 +46,29 @@
 #include <stdbool.h>
 
 #include <nuttx/compiler.h>
+#include <nuttx/clock.h>
 #include <nuttx/wdog.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: wd_elapse
+ *
+ * Description:
+ *   This function is used to get time-elapse from last time wd_timer() be
+ *   called. In case of CONFIG_SCHED_TICKLESS configured, wd_timer() may
+ *   take lots of ticks, during this time, wd_start()/wd_cancel() may
+ *   called, so we need wd_elapse() to correct the delay/lag.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SCHED_TICKLESS
+#  define wd_elapse() (clock_systimer() - g_wdtickbase)
+#else
+#  define wd_elapse() (0)
+#endif
 
 /****************************************************************************
  * Public Data
@@ -79,6 +101,14 @@ extern sq_queue_t g_wdactivelist;
  */
 
 extern uint16_t g_wdnfree;
+
+/* This is wdog tickbase, for wd_gettime() may called many times
+ * between 2 times of wd_timer(), we use it to update wd_gettime().
+ */
+
+#ifdef CONFIG_SCHED_TICKLESS
+extern clock_t g_wdtickbase;
+#endif
 
 /****************************************************************************
  * Public Function Prototypes
@@ -140,7 +170,7 @@ void wd_timer(void);
  * Name: wd_recover
  *
  * Description:
- *   This function is called from task_recover() when a task is deleted via
+ *   This function is called from nxtask_recover() when a task is deleted via
  *   task_delete() or via pthread_cancel(). It checks if the deleted task
  *   is waiting for a timed event and if so cancels the timeout
  *

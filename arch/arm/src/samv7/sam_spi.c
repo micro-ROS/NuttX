@@ -61,7 +61,6 @@
 
 #include "up_internal.h"
 #include "up_arch.h"
-#include "cache.h"
 
 #include "sam_gpio.h"
 #include "sam_xdmac.h"
@@ -1736,7 +1735,7 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
   rxflags = DMACH_FLAG_FIFOCFG_LARGEST | DMACH_FLAG_PERIPHPID(spi->pid) |
             DMACH_FLAG_PERIPHH2SEL | DMACH_FLAG_PERIPHISPERIPH |
             DMACH_FLAG_PERIPHCHUNKSIZE_1 | DMACH_FLAG_MEMPID_MAX |
-            DMACH_FLAG_MEMCHUNKSIZE_1;
+            DMACH_FLAG_MEMCHUNKSIZE_1 | DMACH_FLAG_PERIPHAHB_AHB_IF1;
 
   /* Set the source and destination width bits */
 
@@ -1760,7 +1759,7 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
        * the DMA completes
        */
 
-      arch_invalidate_dcache((uintptr_t)rxbuffer, (uintptr_t)rxbuffer + nbytes);
+      up_invalidate_dcache((uintptr_t)rxbuffer, (uintptr_t)rxbuffer + nbytes);
 
       /* Use normal RX memory incrementing. */
 
@@ -1772,7 +1771,7 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
   txflags = DMACH_FLAG_FIFOCFG_LARGEST | DMACH_FLAG_PERIPHPID(spi->pid) |
             DMACH_FLAG_PERIPHH2SEL | DMACH_FLAG_PERIPHISPERIPH |
             DMACH_FLAG_PERIPHCHUNKSIZE_1 | DMACH_FLAG_MEMPID_MAX |
-            DMACH_FLAG_MEMCHUNKSIZE_1;
+            DMACH_FLAG_MEMCHUNKSIZE_1 | DMACH_FLAG_PERIPHAHB_AHB_IF1;
 
   /* Set the source and destination width bits */
 

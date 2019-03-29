@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmpv6/icmpv6_neighbor.c
  *
- *   Copyright (C) 2015-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015-2016, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -136,16 +136,14 @@ static uint16_t icmpv6_neighbor_eventhandler(FAR struct net_driver_s *dev,
           return flags;
         }
 
-      /* It looks like we are good to send the data */
-      /* Copy the packet data into the device packet buffer and send it */
+      /* It looks like we are good to send the data.
+       *
+       * Copy the packet data into the device packet buffer and send it.
+       */
 
       icmpv6_solicit(dev, state->snd_ipaddr);
 
-      /* Make sure no additional Neighbor Solicitation overwrites this one.
-       * This flag will be cleared in icmpv6_out().
-       */
-
-      IFF_SET_NOARP(dev->d_flags);
+      IFF_SET_IPv6(dev->d_flags);
 
       /* Don't allow any further call backs. */
 
@@ -203,7 +201,7 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
   struct icmpv6_notify_s notify;
   struct timespec delay;
   struct icmpv6_neighbor_s state;
-  FAR const uint16_t *lookup;
+  net_ipv6addr_t lookup;
   int ret;
 
   /* First check if destination is a local broadcast or a multicast address.
@@ -215,31 +213,21 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
   if (net_ipv6addr_cmp(ipaddr, g_ipv6_unspecaddr) ||
       net_is_addr_mcast(ipaddr))
     {
-      /* We don't need to send the Neighbor Solicitation */
+      /* We don't need to send the Neighbor Solicitation.  But for the case
+       * of the Multicast address, a routing able entry will be required.
+       */
 
       return OK;
     }
 
   /* Get the device that can route this request */
 
-  dev = netdev_findby_ipv6addr(g_ipv6_unspecaddr, ipaddr);
+  dev = netdev_findby_ripv6addr(g_ipv6_unspecaddr, ipaddr);
   if (!dev)
     {
       nerr("ERROR: Unreachable: %08lx\n", (unsigned long)ipaddr);
       ret = -EHOSTUNREACH;
       goto errout;
-    }
-
-  /* Send the Neighbor Solicitation request only if this device uses the
-   * Ethernet data link protocol.
-   *
-   * REVISIT:  Other link layer protocols may require Neighbor Discovery
-   * as well.
-   */
-
-  if (dev->d_lltype != NET_LL_ETHERNET)
-    {
-      return OK;
     }
 
   /* Check if the destination address is on the local network. */
@@ -248,12 +236,10 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
     {
       /* Yes.. use the input address for the lookup */
 
-      lookup = ipaddr;
+      net_ipv6addr_copy(lookup, ipaddr);
     }
   else
     {
-      net_ipv6addr_t dripaddr;
-
       /* Destination address is not on the local network */
 
 #ifdef CONFIG_NET_ROUTE
@@ -264,18 +250,14 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
        * destination address when determining the MAC address.
        */
 
-      netdev_ipv6_router(dev, ipaddr, dripaddr);
+      netdev_ipv6_router(dev, ipaddr, lookup);
 #else
       /* Use the device's default router IP address instead of the
        * destination address when determining the MAC address.
        */
 
-      net_ipv6addr_copy(dripaddr, dev->d_ipv6draddr);
+      net_ipv6addr_copy(lookup, dev->d_ipv6draddr);
 #endif
-
-      /* Use the router address for the lookup */
-
-      lookup = dripaddr;
     }
 
   /* Allocate resources to receive a callback.  This and the following
@@ -284,7 +266,7 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
    */
 
   net_lock();
-  state.snd_cb = icmpv6_callback_alloc(dev);
+  state.snd_cb = devif_callback_alloc((dev), &(dev)->d_conncb);
   if (!state.snd_cb)
     {
       nerr("ERROR: Failed to allocate a callback\n");
@@ -313,6 +295,11 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
    * re-sending the Neighbor Solicitation if it is not.
    */
 
+  /* The optimal delay would be the worst case round trip time. */
+
+  delay.tv_sec  = CONFIG_ICMPv6_NEIGHBOR_DELAYSEC;
+  delay.tv_nsec = CONFIG_ICMPv6_NEIGHBOR_DELAYNSEC;
+
   ret = -ETIMEDOUT; /* Assume a timeout failure */
 
   while (state.snd_retries < CONFIG_ICMPv6_NEIGHBOR_MAXTRIES)
@@ -324,7 +311,7 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
        * issue.
        */
 
-      if (neighbor_findentry(lookup) != NULL)
+      if (neighbor_lookup(lookup, NULL) >= 0)
         {
           /* We have it!  Break out with success */
 
@@ -347,7 +334,7 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
 
       /* Notify the device driver that new TX data is available. */
 
-      dev->d_txavail(dev);
+      netdev_txnotify_dev(dev);
 
       /* Wait for the send to complete or an error to occur.
        * net_lockedwait will also terminate if a signal is received.
@@ -359,13 +346,7 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
         }
       while (!state.snd_sent);
 
-      /* Now wait for response to the Neighbor Advertisement to be received.
-       * The optimal delay would be the work case round trip time.
-       * NOTE: The network is locked.
-       */
-
-      delay.tv_sec  = CONFIG_ICMPv6_NEIGHBOR_DELAYSEC;
-      delay.tv_nsec = CONFIG_ICMPv6_NEIGHBOR_DELAYNSEC;
+      /* Now wait for response to the Neighbor Advertisement to be received. */
 
       ret = icmpv6_wait(&notify, &delay);
 
@@ -378,15 +359,18 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
           break;
         }
 
-      /* Increment the retry count */
+      /* Increment the retry count and double the delay time */
 
+      clock_timespec_add(&delay, &delay, &delay);
       state.snd_retries++;
     }
 
   nxsem_destroy(&state.snd_sem);
-  icmpv6_callback_free(dev, state.snd_cb);
+  devif_dev_callback_free(dev, state.snd_cb);
+
 errout_with_lock:
   net_unlock();
+
 errout:
   return ret;
 }

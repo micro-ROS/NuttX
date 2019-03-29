@@ -46,10 +46,8 @@
 #include <errno.h>
 
 #include <nuttx/irq.h>
-#include <nuttx/signal.h>
 
 #include "clock/clock.h"
-#include "signal/signal.h"
 #include "timer/timer.h"
 
 #ifndef CONFIG_DISABLE_POSIX_TIMERS
@@ -87,40 +85,8 @@ static void timer_timeout(int argc, wdparm_t itimer);
 
 static inline void timer_signotify(FAR struct posix_timer_s *timer)
 {
-  siginfo_t info;
-
-  /* Notify client via a signal? */
-
-  if (timer->pt_event.sigev_notify == SIGEV_SIGNAL)
-    {
-      /* Yes.. Create the siginfo structure */
-
-      info.si_signo           = timer->pt_event.sigev_signo;
-      info.si_code            = SI_TIMER;
-      info.si_errno           = OK;
-#ifdef CONFIG_CAN_PASS_STRUCTS
-      info.si_value           = timer->pt_event.sigev_value;
-#else
-      info.si_value.sival_ptr = timer->pt_event.sigev_value.sival_ptr;
-#endif
-#ifdef CONFIG_SCHED_HAVE_PARENT
-      info.si_pid             = 0;  /* Not applicable */
-      info.si_status          = OK;
-#endif
-
-      /* Send the signal */
-
-      DEBUGVERIFY(nxsig_dispatch(timer->pt_owner, &info));
-    }
-
-#ifdef CONFIG_SIG_EVTHREAD
-  /* Notify the client via a function call */
-
-  else if (timer->pt_event.sigev_notify == SIGEV_THREAD)
-    {
-      DEBUGVERIFY(nxsig_notification(timer->pt_owner, &timer->pt_event));
-    }
-#endif
+  DEBUGVERIFY(nxsig_notification(timer->pt_owner, &timer->pt_event,
+                                 SI_TIMER, &timer->pt_work));
 }
 
 /****************************************************************************
@@ -321,6 +287,10 @@ int timer_settime(timer_t timerid, int flags,
    */
 
   (void)wd_cancel(timer->pt_wdog);
+
+  /* Cancel any pending notification */
+
+  nxsig_cancel_notification(&timer->pt_work);
 
   /* If the it_value member of value is zero, the timer will not be re-armed */
 

@@ -41,10 +41,34 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/wqueue.h>
 
 #include <sys/types.h>
 #include <stdbool.h>
 #include <signal.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#ifdef CONFIG_SIG_EVTHREAD
+  #define sigwork_init(work) memset(work, 0, sizeof(*work));
+#else
+  #define sigwork_init(work) (void)(work)
+#endif
+
+/****************************************************************************
+ * Public Type Definitions
+ ****************************************************************************/
+
+struct sigwork_s
+{
+#ifdef CONFIG_SIG_EVTHREAD
+  struct work_s work;           /* Work queue structure */
+  union sigval value;           /* Data passed with notification */
+  sigev_notify_function_t func; /* Notification function */
+#endif
+};
 
 /****************************************************************************
  * Public Function Prototypes
@@ -61,6 +85,11 @@
  * (libuc.a and libunx.a).  The that case, the correct interface must be
  * used for the build context.
  *
+ * REVISIT:  In the flat build, the same functions must be used both by
+ * the OS and by applications.  We have to use the normal user functions
+ * in this case or we will fail to set the errno or fail to create the
+ * cancellation point.
+ *
  * The interfaces sigtimedwait(), sigwait(), sigwaitinfo(), sleep(),
  * nanosleep(), and usleep()  are cancellation points.
  *
@@ -69,7 +98,7 @@
  * the calling function to become a cancellation points!
  */
 
-#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
+#if !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
 #  define _SIG_PROCMASK(h,s,o)  nxsig_procmask(h,s,o)
 #  define _SIG_SIGACTION(s,a,o) nxsig_action(s,a,o,false)
 #  define _SIG_QUEUE(p,s,v)     nxsig_queue(p,s,v)
@@ -185,7 +214,7 @@ int nxsig_action(int signo, FAR const struct sigaction *act,
  *   sigqueue() except that it does not modify the errno value.
  *
  * Input Parameters:
- *   pid - Process ID of task to receive signal
+ *   pid   - Process ID of task to receive signal
  *   signo - Signal number
  *   value - Value to pass to task with signal
  *
@@ -312,8 +341,6 @@ int nxsig_kill(pid_t pid, int signo);
 
 int nxsig_timedwait(FAR const sigset_t *set, FAR struct siginfo *info,
                     FAR const struct timespec *timeout);
-int nxsig_timedwait(FAR const sigset_t *set, FAR struct siginfo *info,
-                    FAR const struct timespec *timeout);
 
 /****************************************************************************
  * Name: nxsig_nanosleep
@@ -434,14 +461,15 @@ int nxsig_usleep(useconds_t usec);
  * Name: nxsig_notification
  *
  * Description:
- *   Notify a client a signal event via a function call.  This function is
- *   an internal OS interface that implements the common logic for signal
- *   event notification for the case of SIGEV_THREAD.
+ *   Notify a client an event via either a signal or a function call
+ *   base on the sigev_notify field.
  *
  * Input Parameters:
  *   pid   - The task/thread ID a the client thread to be signaled.
  *   event - The instance of struct sigevent that describes how to signal
  *           the client.
+ *   code  - Source: SI_USER, SI_QUEUE, SI_TIMER, SI_ASYNCIO, or SI_MESGQ
+ *   work  - The work structure to queue
  *
  * Returned Value:
  *   This is an internal OS interface and should not be used by applications.
@@ -450,8 +478,27 @@ int nxsig_usleep(useconds_t usec);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_SIG_EVTHREAD) && defined(CONFIG_BUILD_FLAT)
-int nxsig_notification(pid_t pid, FAR struct sigevent *event);
+int nxsig_notification(pid_t pid, FAR struct sigevent *event,
+                       int code, FAR struct sigwork_s *work);
+
+/****************************************************************************
+ * Name: nxsig_cancel_notification
+ *
+ * Description:
+ *   Cancel the notification if it doesn't send yet.
+ *
+ * Input Parameters:
+ *   work  - The work structure to cancel
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SIG_EVTHREAD
+void nxsig_cancel_notification(FAR struct sigwork_s *work);
+#else
+  #define nxsig_cancel_notification(work) (void)(work)
 #endif
 
 #endif /* __INCLUDE_NUTTX_SIGNAL_H */

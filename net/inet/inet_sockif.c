@@ -212,7 +212,7 @@ static int inet_udp_alloc(FAR struct socket *psock)
  *   protocol (see sys/socket.h)
  *
  * Returned Value:
- *   Zero (OK) is returned on success.  Otherwise, a negater errno value is
+ *   Zero (OK) is returned on success.  Otherwise, a negated errno value is
  *   returned.
  *
  ****************************************************************************/
@@ -1284,10 +1284,13 @@ static ssize_t inet_sendfile(FAR struct socket *psock,
                              size_t count)
 {
 #if defined(CONFIG_NET_TCP) && !defined(CONFIG_NET_TCP_NO_STACK)
-  return tcp_sendfile(psock, infile, offset, size_t count);
-#else
-  return -ENOSYS;
+  if (psock->s_type == SOCK_STREAM)
+    {
+      return tcp_sendfile(psock, infile, offset, count);
+    }
 #endif
+
+  return -ENOSYS;
 }
 #endif
 

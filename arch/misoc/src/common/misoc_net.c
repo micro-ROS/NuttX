@@ -180,9 +180,9 @@ static int misoc_net_ifdown(FAR struct net_driver_s *dev);
 static void misoc_net_txavail_work(FAR void *arg);
 static int misoc_net_txavail(FAR struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int misoc_net_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int misoc_net_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
 #ifdef CONFIG_NET_ICMPv6
@@ -612,6 +612,9 @@ static void misoc_net_interrupt_work(FAR void *arg)
 
   net_unlock();
 
+  ethmac_sram_reader_ev_enable_write(1);
+  ethmac_sram_writer_ev_enable_write(1);
+
   /* Re-enable Ethernet interrupts */
 
   up_enable_irq(ETHMAC_INTERRUPT);
@@ -642,6 +645,9 @@ static int misoc_net_interrupt(int irq, FAR void *context, FAR void *arg)
    * also disabled if the TX timeout event occurs, there can be no race
    * condition here.
    */
+
+  ethmac_sram_reader_ev_enable_write(0);
+  ethmac_sram_writer_ev_enable_write(0);
 
   /* TODO: Determine if a TX transfer just completed */
 
@@ -820,6 +826,7 @@ static void misoc_net_poll_expiry(int argc, wdparm_t arg, ...)
 
 static int misoc_net_ifup(FAR struct net_driver_s *dev)
 {
+  irqstate_t flags;
   FAR struct misoc_net_driver_s *priv = (FAR struct misoc_net_driver_s *)dev->d_private;
 
 #ifdef CONFIG_NET_IPv4
@@ -844,6 +851,8 @@ static int misoc_net_ifup(FAR struct net_driver_s *dev)
   misoc_net_ipv6multicast(priv);
 #endif
 
+  flags = enter_critical_section();
+
   /* Set and activate a timer process */
 
   (void)wd_start(priv->misoc_net_txpoll, MISOC_NET_WDDELAY, misoc_net_poll_expiry, 1,
@@ -855,6 +864,7 @@ static int misoc_net_ifup(FAR struct net_driver_s *dev)
   /* Enable the RX Event Handler */
 
   ethmac_sram_writer_ev_enable_write(1);
+  leave_critical_section(flags);
   return OK;
 }
 
@@ -883,6 +893,9 @@ static int misoc_net_ifdown(FAR struct net_driver_s *dev)
 
   flags = enter_critical_section();
   up_disable_irq(ETHMAC_INTERRUPT);
+
+  ethmac_sram_reader_ev_enable_write(0);
+  ethmac_sram_writer_ev_enable_write(0);
 
   /* Cancel the TX poll timer and TX timeout timers */
 
@@ -996,7 +1009,7 @@ static int misoc_net_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int misoc_net_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct misoc_net_driver_s *priv = (FAR struct misoc_net_driver_s *)dev->d_private;
@@ -1025,7 +1038,7 @@ static int misoc_net_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int misoc_net_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct misoc_net_driver_s *priv = (FAR struct misoc_net_driver_s *)dev->d_private;
@@ -1150,10 +1163,10 @@ int misoc_net_initialize(int intf)
       return -EAGAIN;
     }
 
-  /* clear pending int */
+  /* Clear pending int */
 
-  ethmac_sram_writer_ev_pending_write(1);
-  ethmac_sram_reader_ev_pending_write(1);
+  ethmac_sram_reader_ev_pending_write(ETHMAC_EV_SRAM_READER);
+  ethmac_sram_writer_ev_pending_write(ETHMAC_EV_SRAM_WRITER);
 
   /* Initialize the driver structure */
 
@@ -1169,7 +1182,7 @@ int misoc_net_initialize(int intf)
   priv->misoc_net_dev.d_ifup    = misoc_net_ifup;     /* I/F up (new IP address) callback */
   priv->misoc_net_dev.d_ifdown  = misoc_net_ifdown;   /* I/F down callback */
   priv->misoc_net_dev.d_txavail = misoc_net_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->misoc_net_dev.d_addmac  = misoc_net_addmac;   /* Add multicast MAC address */
   priv->misoc_net_dev.d_rmmac   = misoc_net_rmmac;    /* Remove multicast MAC address */
 #endif

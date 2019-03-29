@@ -51,8 +51,6 @@
 
 #include "socket/socket.h"
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -190,7 +188,7 @@ int sockfd_allocate(int minsd)
 }
 
 /****************************************************************************
- * Name: sock_release
+ * Name: psock_release
  *
  * Description:
  *   Free a socket.
@@ -203,7 +201,7 @@ int sockfd_allocate(int minsd)
  *
  ****************************************************************************/
 
-void sock_release(FAR struct socket *psock)
+void psock_release(FAR struct socket *psock)
 {
   if (psock != NULL)
     {
@@ -259,7 +257,7 @@ void sockfd_release(int sockfd)
 
   if (psock)
     {
-      sock_release(psock);
+      psock_release(psock);
     }
 }
 
@@ -295,4 +293,3 @@ FAR struct socket *sockfd_socket(int sockfd)
   return NULL;
 }
 
-#endif /* CONFIG_NSOCKET_DESCRIPTORS > 0 */

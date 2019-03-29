@@ -246,8 +246,9 @@ static int sixlowpan_tcp_header(FAR struct tcp_conn_s *conn,
   ipv6tcp->tcp.urgp[0]   = 0;                     /* No urgent data */
   ipv6tcp->tcp.urgp[1]   = 0;
 
-  /* Set the sequency number information */
-  /* REVISIT:  There is currently no wait for the data to be ACKed and,
+  /* Set the sequency number information.
+   *
+   * REVISIT:  There is currently no wait for the data to be ACKed and,
    * hence, no mechanism to retransmit the packet.
    */
 
@@ -813,7 +814,7 @@ ssize_t psock_6lowpan_tcp_send(FAR struct socket *psock, FAR const void *buf,
 
   /* Route outgoing message to the correct device */
 
-  dev = netdev_findby_ipv6addr(conn->u.ipv6.laddr, conn->u.ipv6.raddr);
+  dev = netdev_findby_ripv6addr(conn->u.ipv6.laddr, conn->u.ipv6.raddr);
   if (dev == NULL)
     {
       nwarn("WARNING: Not routable\n");

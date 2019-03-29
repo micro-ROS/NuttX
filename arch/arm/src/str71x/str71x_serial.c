@@ -49,8 +49,8 @@
 #include <debug.h>
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/serial/serial.h>
-#include <arch/serial.h>
 
 #include "chip.h"
 #include "up_arch.h"
@@ -78,14 +78,6 @@
 #  define HAVE_CONSOLE 1
 #else
 #  undef HAVE_CONSOLE
-#endif
-
-/* Did the user select a priority? */
-
-#ifndef CONFIG_UART_PRI
-#  define CONFIG_UART_PRI 1
-#elif CONFIG_UART_PRI <= 1 || CONFIG_UART_PRI > 15
-#  error "CONFIG_UART_PRI is out of range"
 #endif
 
 /* If we are not using the serial driver for the console, then we
@@ -626,12 +618,6 @@ static int up_attach(struct uart_dev_s *dev)
        */
 
       up_enable_irq(priv->irq);
-
-#ifdef CONFIG_ARCH_IRQPRIO
-      /* Set the uart interrupt priority (the default value is one) */
-
-      up_prioritize_irq(priv->irq, CONFIG_UART_PRI);
-#endif
     }
 
   return ret;

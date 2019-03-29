@@ -1,7 +1,7 @@
 /****************************************************************************
  * binfmt/libelf/libelf_bind.c
  *
- *   Copyright (C) 2012, 2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012, 2014, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,11 +41,12 @@
 
 #include <stdint.h>
 #include <string.h>
-#include <elf32.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
 
+#include <nuttx/elf.h>
+#include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/elf.h>
 #include <nuttx/binfmt/symtab.h>
 
@@ -63,10 +64,6 @@
 #  undef CONFIG_ELF_DUMPBUFFER
 #endif
 
-#ifndef CONFIG_ELF_BUFFERSIZE
-#  define CONFIG_ELF_BUFFERSIZE 128
-#endif
-
 #ifdef CONFIG_ELF_DUMPBUFFER
 # define elf_dumpbuffer(m,b,n) binfodumpbuffer(m,b,n)
 #else
@@ -77,6 +74,15 @@
  * Private Types
  ****************************************************************************/
 
+struct elf32_symcache_s
+{
+  dq_entry_t    entry;
+  Elf32_Sym     sym;
+  int           idx;
+};
+
+typedef struct elf32_symcache_s elf32_symcache_t;
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -86,18 +92,20 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: elf_readrel
+ * Name: elf_readrels
  *
  * Description:
- *   Read the ELF32_Rel structure into memory.
+ *   Read the (ELF32_Rel structure * buffer count) into memory.
  *
  ****************************************************************************/
 
-static inline int elf_readrel(FAR struct elf_loadinfo_s *loadinfo,
-                              FAR const Elf32_Shdr *relsec,
-                              int index, FAR Elf32_Rel *rel)
+static inline int elf_readrels(FAR struct elf_loadinfo_s *loadinfo,
+                               FAR const Elf32_Shdr *relsec,
+                               int index, FAR Elf32_Rel *rels,
+                               int count)
 {
   off_t offset;
+  int size;
 
   /* Verify that the symbol table index lies within symbol table */
 
@@ -109,11 +117,17 @@ static inline int elf_readrel(FAR struct elf_loadinfo_s *loadinfo,
 
   /* Get the file offset to the symbol table entry */
 
-  offset = relsec->sh_offset + sizeof(Elf32_Rel) * index;
+  offset = sizeof(Elf32_Rel) * index;
+  size   = sizeof(Elf32_Rel) * count;
+  if (offset + size > relsec->sh_size)
+    {
+      size = relsec->sh_size - offset;
+    }
 
   /* And, finally, read the symbol table entry into memory */
 
-  return elf_read(loadinfo, (FAR uint8_t *)rel, sizeof(Elf32_Rel), offset);
+  return elf_read(loadinfo, (FAR uint8_t *)rels, size,
+                  relsec->sh_offset + offset);
 }
 
 /****************************************************************************
@@ -132,102 +146,179 @@ static int elf_relocate(FAR struct elf_loadinfo_s *loadinfo, int relidx,
                         FAR const struct symtab_s *exports, int nexports)
 
 {
-  FAR Elf32_Shdr *relsec = &loadinfo->shdr[relidx];
-  FAR Elf32_Shdr *dstsec = &loadinfo->shdr[relsec->sh_info];
-  Elf32_Rel       rel;
-  Elf32_Sym       sym;
-  FAR Elf32_Sym  *psym;
-  uintptr_t       addr;
-  int             symidx;
-  int             ret;
-  int             i;
+  FAR Elf32_Shdr       *relsec = &loadinfo->shdr[relidx];
+  FAR Elf32_Shdr       *dstsec = &loadinfo->shdr[relsec->sh_info];
+  FAR Elf32_Rel        *rels;
+  FAR Elf32_Rel        *rel;
+  FAR elf32_symcache_t *cache;
+  FAR Elf32_Sym        *sym;
+  FAR dq_entry_t       *e;
+  dq_queue_t            q;
+  uintptr_t             addr;
+  int                   symidx;
+  int                   ret;
+  int                   i;
+  int                   j;
+
+  rels = kmm_malloc(CONFIG_ELF_RELOCATION_BUFFERCOUNT * sizeof(Elf32_Rel));
+  if (rels == NULL)
+    {
+      berr("Failed to allocate memory for elf relocation\n");
+      return -ENOMEM;
+    }
+
+  dq_init(&q);
 
   /* Examine each relocation in the section.  'relsec' is the section
    * containing the relations.  'dstsec' is the section containing the data
    * to be relocated.
    */
 
-  for (i = 0; i < relsec->sh_size / sizeof(Elf32_Rel); i++)
-    {
-      psym = &sym;
+  ret = OK;
 
+  for (i = j = 0; i < relsec->sh_size / sizeof(Elf32_Rel); i++)
+    {
       /* Read the relocation entry into memory */
 
-      ret = elf_readrel(loadinfo, relsec, i, &rel);
-      if (ret < 0)
+      rel = &rels[i % CONFIG_ELF_RELOCATION_BUFFERCOUNT];
+
+      if (!(i % CONFIG_ELF_RELOCATION_BUFFERCOUNT))
         {
-          berr("Section %d reloc %d: Failed to read relocation entry: %d\n",
-               relidx, i, ret);
-          return ret;
+          ret = elf_readrels(loadinfo, relsec, i, rels,
+                             CONFIG_ELF_RELOCATION_BUFFERCOUNT);
+          if (ret < 0)
+            {
+              berr("Section %d reloc %d: Failed to read relocation entry: %d\n",
+                    relidx, i, ret);
+              break;
+            }
         }
 
       /* Get the symbol table index for the relocation.  This is contained
        * in a bit-field within the r_info element.
        */
 
-      symidx = ELF32_R_SYM(rel.r_info);
+      symidx = ELF32_R_SYM(rel->r_info);
 
-      /* Read the symbol table entry into memory */
+      /* First try the cache */
 
-      ret = elf_readsym(loadinfo, symidx, &sym);
-      if (ret < 0)
+      sym = NULL;
+      for (e = dq_peek(&q); e; e = dq_next(e))
         {
-          berr("Section %d reloc %d: Failed to read symbol[%d]: %d\n",
-               relidx, i, symidx, ret);
-          return ret;
+          cache = (FAR elf32_symcache_t *)e;
+          if (cache->idx == symidx)
+            {
+              dq_rem(&cache->entry, &q);
+              dq_addfirst(&cache->entry, &q);
+              sym = &cache->sym;
+              break;
+            }
         }
 
-      /* Get the value of the symbol (in sym.st_value) */
+      /* If the symbol was not found in the cache, we will need to read the
+       * symbol from the file.
+       */
 
-      ret = elf_symvalue(loadinfo, &sym, exports, nexports);
-      if (ret < 0)
+      if (sym == NULL)
         {
-          /* The special error -ESRCH is returned only in one condition:  The
-           * symbol has no name.
-           *
-           * There are a few relocations for a few architectures that do
-           * no depend upon a named symbol.  We don't know if that is the
-           * case here, but we will use a NULL symbol pointer to indicate
-           * that case to up_relocate().  That function can then do what
-           * is best.
-           */
-
-          if (ret == -ESRCH)
+          if (j < CONFIG_ELF_SYMBOL_CACHECOUNT)
             {
-              berr("Section %d reloc %d: Undefined symbol[%d] has no name: %d\n",
-                  relidx, i, symidx, ret);
-              psym = NULL;
+              cache = kmm_malloc(sizeof(elf32_symcache_t));
+              if (!cache)
+                {
+                  berr("Failed to allocate memory for elf symbols\n");
+                  ret = -ENOMEM;
+                  break;
+                }
+
+              j++;
             }
           else
             {
-              berr("Section %d reloc %d: Failed to get value of symbol[%d]: %d\n",
-                  relidx, i, symidx, ret);
-              return ret;
+              cache = (FAR elf32_symcache_t *)dq_remlast(&q);
             }
+
+          sym = &cache->sym;
+
+          /* Read the symbol table entry into memory */
+
+          ret = elf_readsym(loadinfo, symidx, sym);
+          if (ret < 0)
+            {
+              berr("Section %d reloc %d: Failed to read symbol[%d]: %d\n",
+                   relidx, i, symidx, ret);
+              kmm_free(cache);
+              break;
+            }
+
+          /* Get the value of the symbol (in sym.st_value) */
+
+          ret = elf_symvalue(loadinfo, sym, exports, nexports);
+          if (ret < 0)
+            {
+              /* The special error -ESRCH is returned only in one condition:  The
+               * symbol has no name.
+               *
+               * There are a few relocations for a few architectures that do
+               * no depend upon a named symbol.  We don't know if that is the
+               * case here, but we will use a NULL symbol pointer to indicate
+               * that case to up_relocate().  That function can then do what
+               * is best.
+               */
+
+              if (ret == -ESRCH)
+                {
+                  berr("Section %d reloc %d: Undefined symbol[%d] has no name: %d\n",
+                      relidx, i, symidx, ret);
+                }
+              else
+                {
+                  berr("Section %d reloc %d: Failed to get value of symbol[%d]: %d\n",
+                       relidx, i, symidx, ret);
+                  kmm_free(cache);
+                  break;
+                }
+            }
+
+          cache->idx = symidx;
+          dq_addfirst(&cache->entry, &q);
+        }
+
+      if (sym->st_shndx == SHN_UNDEF && sym->st_name == 0)
+        {
+          sym = NULL;
         }
 
       /* Calculate the relocation address. */
 
-      if (rel.r_offset < 0 || rel.r_offset > dstsec->sh_size - sizeof(uint32_t))
+      if (rel->r_offset < 0 || rel->r_offset > dstsec->sh_size - sizeof(uint32_t))
         {
           berr("Section %d reloc %d: Relocation address out of range, offset %d size %d\n",
-               relidx, i, rel.r_offset, dstsec->sh_size);
-          return -EINVAL;
+               relidx, i, rel->r_offset, dstsec->sh_size);
+          ret = -EINVAL;
+          break;
         }
 
-      addr = dstsec->sh_addr + rel.r_offset;
+      addr = dstsec->sh_addr + rel->r_offset;
 
       /* Now perform the architecture-specific relocation */
 
-      ret = up_relocate(&rel, psym, addr);
+      ret = up_relocate(rel, sym, addr);
       if (ret < 0)
         {
           berr("ERROR: Section %d reloc %d: Relocation failed: %d\n", relidx, i, ret);
-          return ret;
+          break;
         }
     }
 
-  return OK;
+  kmm_free(rels);
+  while ((e = dq_peek(&q)))
+    {
+      dq_rem(e, &q);
+      kmm_free(e);
+    }
+
+  return ret;
 }
 
 static int elf_relocateadd(FAR struct elf_loadinfo_s *loadinfo, int relidx,
@@ -279,7 +370,7 @@ int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
   if (ret < 0)
     {
       berr("elf_allocbuffer failed: %d\n", ret);
-      return -ENOMEM;
+      return ret;
     }
 
 #ifdef CONFIG_ARCH_ADDRENV
@@ -359,7 +450,7 @@ int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
         }
     }
 
-#elif defined(CONFIG_ARCH_HAVE_COHERENT_DCACHE)
+#else
   /* Ensure that the I and D caches are coherent before starting the newly
    * loaded module by cleaning the D cache (i.e., flushing the D cache
    * contents to memory and invalidating the I cache).

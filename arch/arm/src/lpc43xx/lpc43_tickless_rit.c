@@ -528,9 +528,9 @@ static inline void lpc43_tl_alarm(uint32_t curr)
 #ifdef CONFIG_SCHED_TICKLESS_ALARM
   struct timespec ts;
   up_timer_gettime(&ts);
-  sched_alarm_expiration(&ts);
+  nxsched_alarm_expiration(&ts);
 #else
-  sched_timer_expiration();
+  nxsched_timer_expiration();
 #endif
 }
 

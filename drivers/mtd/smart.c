@@ -117,7 +117,7 @@
 #define SMART_FIRST_DIR_SECTOR      3       /* First root directory sector */
 #define SMART_FIRST_ALLOC_SECTOR    12      /* First logical sector number we will
                                              * use for assignment of requested Alloc
-                                             * sectors.  All enries below this are
+                                             * sectors.  All entries below this are
                                              * reserved (some for root dir entries,
                                              * other for our use, such as format
                                              * sector, etc. */
@@ -128,7 +128,7 @@
 #endif
 
 #ifndef CONFIG_MTD_SMART_SECTOR_SIZE
-#  define  CONFIG_MTD_SMART_SECTOR_SIZE 1024
+#  define CONFIG_MTD_SMART_SECTOR_SIZE 1024
 #endif
 
 #ifndef offsetof
@@ -136,7 +136,6 @@
 #endif
 
 #define SMART_MAX_ALLOCS        10
-//#define CONFIG_MTD_SMART_PACK_COUNTS
 
 #ifndef CONFIG_MTD_SMART_ALLOC_DEBUG
 #define smart_malloc(d, b, n)   kmm_malloc(b)
@@ -1379,7 +1378,7 @@ errout:
 /****************************************************************************
  * Name: smart_add_sector_to_cache
  *
- * Description: Adds a logical to physical sector maaping to the sector
+ * Description: Adds a logical to physical sector mapping to the sector
  *              map cache.  The cache is used to minimize RAM by eliminating
  *              a one-to-one mapping of all logical sectors and only keeping
  *              a fixed number of mappings per the
@@ -1741,8 +1740,8 @@ static void smart_find_wear_minmax(FAR struct smart_struct_s *dev)
  * Description: Sets the wear level of the specified block.  The wear level
  *              is a 4-bit field packed 2 entries per byte and is mapped to
  *              a bit field which minimizes the number of 0 to 1 transitions
- *              such that entries can be updated on a NOR flash withough the
- *              need to relocated the format sector (assuming CRC is not
+ *              such that entries can be updated on a NOR flash without the
+ *              need to relocate the format sector (assuming CRC is not
  *              enabled, in which case a relocated is needed for ANY change).
  *
  ****************************************************************************/
@@ -1855,6 +1854,11 @@ static int smart_scan(FAR struct smart_struct_s *dev)
   char      devname[22];
   FAR struct smart_multiroot_device_s *rootdirdev;
 #endif
+  static const short sizetbl[8] =
+  {
+    CONFIG_MTD_SMART_SECTOR_SIZE,
+    512, 1024, 4096, 2048, 8192, 16384, 32768
+  };
 
   finfo("Entry\n");
 
@@ -1886,11 +1890,16 @@ static int smart_scan(FAR struct smart_struct_s *dev)
 
           if (header.status != CONFIG_SMARTFS_ERASEDSTATE)
             {
-              sectorsize = (header.status & SMART_STATUS_SIZEBITS) << 7;
+              sectorsize = sizetbl[(header.status & SMART_STATUS_SIZEBITS) >> 2];
               break;
             }
 
           readaddress += offset;
+        }
+
+      if (sectorsize == 0xffff)
+        {
+          sectorsize = CONFIG_MTD_SMART_SECTOR_SIZE;
         }
 
       offset >>= 1;
@@ -2954,7 +2963,9 @@ static inline int smart_llformat(FAR struct smart_struct_s *dev, unsigned long a
 
   /* Set the sector size of this sector */
 
-  sectsize = (sectorsize >> 9) << 2;
+  sectsize = dev->sectorsize < 4096  ? (dev->sectorsize >> 9) :
+             dev->sectorsize == 4096 ? 3 : 5 + (dev->sectorsize >> 14);
+  sectsize <<= 2;
 
   /* Set the sector logical sector to zero and setup the header status */
 
@@ -4142,7 +4153,21 @@ static int smart_write_alloc_sector(FAR struct smart_struct_s *dev,
 #else
   header->seq = 0;
 #endif
-  sectsize = dev->sectorsize >> 7;
+
+  /* Calculate the 3-bit logical sector size in bits 2-4:
+   * 000b - 256 bytes
+   * 001b - 512 bytes
+   * 010b - 1024 bytes
+   * 100b - 2048 bytes
+   * 011b - 4096 bytes
+   * 101b - 8192 bytes
+   * 110b - 16384 bytes
+   * 110b - 32768 bytes
+   */
+
+  sectsize = dev->sectorsize < 4096  ? (dev->sectorsize >> 9) :
+             dev->sectorsize == 4096 ? 3 : 5 + (dev->sectorsize >> 14);
+  sectsize <<= 2;
 
 #if CONFIG_SMARTFS_ERASEDSTATE == 0xff
   header->status = ~(SMART_STATUS_COMMITTED | SMART_STATUS_SIZEBITS |
@@ -4382,7 +4407,7 @@ static int smart_writesector(FAR struct smart_struct_s *dev,
 #endif  /* CONFIG_MTD_SMART_ENABLE_CRC */
 
   /* If we are not using CRC and on a device that supports re-writing
-   * bits from 1 to 0 without neededing a block erase, such as NOR
+   * bits from 1 to 0 without needing a block erase, such as NOR
    * FLASH, then we can simply update the data in place and don't need
    * to relocate the sector.  Test if we need to relocate or not.
    */
@@ -4551,7 +4576,7 @@ static int smart_writesector(FAR struct smart_struct_s *dev,
           offsetof(struct smart_sect_header_s, status);
       ret = smart_bytewrite(dev, offset, 1, &byte);
 
-      /* Update releasecount for released sector and freecount for the
+      /* Update releasecount for the released sector and freecount for the
        * newly allocated physical sector.
        */
 
@@ -4989,7 +5014,7 @@ static inline int smart_allocsector(FAR struct smart_struct_s *dev,
       }
 
     /* Fill in the struct and add to the list.  We are protected by the
-     * smartfs layer's mutex, so no locking required.
+     * smartfs layer's mutex, so no locking is required.
      */
 
     allocsect->logical = logsector;

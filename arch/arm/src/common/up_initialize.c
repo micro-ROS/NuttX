@@ -130,6 +130,13 @@ void up_initialize(void)
 
   up_irqinitialize();
 
+  /* Initialize the system timer interrupt */
+
+#if !defined(CONFIG_SUPPRESS_INTERRUPTS) && !defined(CONFIG_SUPPRESS_TIMER_INTS) && \
+    !defined(CONFIG_SYSTEMTICK_EXTCLK)
+  arm_timer_initialize();
+#endif
+
 #ifdef CONFIG_PM
   /* Initialize the power management subsystem.  This MCU-specific function
    * must be called *very* early in the initialization sequence *before* any
@@ -141,23 +148,16 @@ void up_initialize(void)
 #endif
 
 #ifdef CONFIG_ARCH_DMA
-  /* Initialize the DMA subsystem if the weak function up_dmainitialize has been
+  /* Initialize the DMA subsystem if the weak function up_dma_initialize has been
    * brought into the build
    */
 
 #ifdef CONFIG_HAVE_WEAKFUNCTIONS
-  if (up_dmainitialize)
+  if (up_dma_initialize)
 #endif
     {
-      up_dmainitialize();
+      up_dma_initialize();
     }
-#endif
-
-  /* Initialize the system timer interrupt */
-
-#if !defined(CONFIG_SUPPRESS_INTERRUPTS) && !defined(CONFIG_SUPPRESS_TIMER_INTS) && \
-    !defined(CONFIG_SYSTEMTICK_EXTCLK)
-  arm_timer_initialize();
 #endif
 
 #ifdef CONFIG_MM_IOB
@@ -166,7 +166,6 @@ void up_initialize(void)
   iob_initialize();
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
   /* Register devices */
 
 #if defined(CONFIG_DEV_NULL)
@@ -188,7 +187,6 @@ void up_initialize(void)
 #if defined(CONFIG_DEV_LOOP)
   loop_register();      /* Standard /dev/loop */
 #endif
-#endif /* CONFIG_NFILE_DESCRIPTORS */
 
 #if defined(CONFIG_SCHED_INSTRUMENTATION_BUFFER) && \
     defined(CONFIG_DRIVER_NOTE)
@@ -213,7 +211,7 @@ void up_initialize(void)
   ramlog_consoleinit();
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_PSEUDOTERM_SUSV1)
+#ifdef CONFIG_PSEUDOTERM_SUSV1
   /* Register the master pseudo-terminal multiplexor device */
 
   (void)ptmx_register();
@@ -232,7 +230,7 @@ void up_initialize(void)
   up_cryptoinitialize();
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_CRYPTO_CRYPTODEV)
+#ifdef CONFIG_CRYPTO_CRYPTODEV
   devcrypto_register();
 #endif
 

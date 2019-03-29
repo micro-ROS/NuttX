@@ -119,7 +119,7 @@ ssize_t file_read(FAR struct file *filep, FAR void *buf, size_t nbytes)
  * Name: nx_read
  *
  * Description:
- *   nx_read() is an interanl OS interface.  It is functionally similar to
+ *   nx_read() is an internal OS interface.  It is functionally similar to
  *   the standard read() interface except:
  *
  *    - It does not modify the errno variable, and
@@ -138,15 +138,11 @@ ssize_t file_read(FAR struct file *filep, FAR void *buf, size_t nbytes)
 
 ssize_t nx_read(int fd, FAR void *buf, size_t nbytes)
 {
-  ssize_t ret;
-
   /* Did we get a valid file descriptor? */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
   if ((unsigned int)fd >= CONFIG_NFILE_DESCRIPTORS)
-#endif
     {
-#if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
+#ifdef CONFIG_NET
       /* No.. If networking is enabled, read() is the same as recv() with
        * the flags parameter set to zero.
        */
@@ -158,11 +154,10 @@ ssize_t nx_read(int fd, FAR void *buf, size_t nbytes)
       return -EBADF;
 #endif
     }
-
-#if CONFIG_NFILE_DESCRIPTORS > 0
   else
     {
       FAR struct file *filep;
+      ssize_t ret;
 
       /* The descriptor is in a valid range to file descriptor... do the
        * read.  First, get the file structure.  Note that on failure,
@@ -179,11 +174,6 @@ ssize_t nx_read(int fd, FAR void *buf, size_t nbytes)
 
       return file_read(filep, buf, nbytes);
     }
-#else
-  /* I don't think we can get here */
-
-  return -ENOSYS;
-#endif
 }
 
 /****************************************************************************

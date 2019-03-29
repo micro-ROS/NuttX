@@ -1089,31 +1089,11 @@ config PIC32MX_ETH_PRIORITY
 
 config PIC32MX_MULTICAST
 	bool "Multicast"
-	default y if NET_IGMP
+	default y if NET_MCASTGROUP
 	depends on PIC32MX_ETHERNET
 	---help---
 		Enable receipt of multicast (and unicast) frames. Automatically set if
-		NET_IGMP is selected.
-
-choice
-	prompt "Work queue"
-	default PIC32MX_ETHERNET_LPWORK if SCHED_LPWORK
-	default PIC32MX_ETHERNET_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
-	depends on SCHED_WORKQUEUE
-	---help---
-		Work queue support is required to use the Ethernet driver.  If the
-		low priority work queue is available, then it should be used by the
-		driver.
-
-config PIC32MX_ETHERNET_HPWORK
-	bool "High priority"
-	depends on SCHED_HPWORK
-
-config PIC32MX_ETHERNET_LPWORK
-	bool "Low priority"
-	depends on SCHED_LPWORK
-
-endchoice # Work queue
+		NET_MCASTGROUP is selected.
 
 config NET_REGDEBUG
 	bool "Register level debug"

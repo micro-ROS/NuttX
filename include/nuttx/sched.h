@@ -66,7 +66,6 @@
 /* Configuration ****************************************************************/
 /* Task groups currently only supported for retention of child status */
 
-#undef HAVE_TASK_GROUP
 #undef HAVE_GROUP_MEMBERS
 
 /* We need a group an group members if we are supporting the parent/child
@@ -74,41 +73,7 @@
  */
 
 #if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
-#  define HAVE_TASK_GROUP     1
 #  define HAVE_GROUP_MEMBERS  1
-
-/* We need a group (but not members) if any other resources are shared within
- * a task group.  NOTE: that we essentially always need a task group and that
- * managing this definition adds a lot of overhead just to handle a corner-
- * case very minimal system!
- */
-
-#else
-#  if !defined(CONFIG_DISABLE_PTHREAD) && defined(CONFIG_SCHED_HAVE_PARENT)
-#    define HAVE_TASK_GROUP   1          /* pthreads with parent*/
-#  elif !defined(CONFIG_DISABLE_ENVIRON)
-#    define HAVE_TASK_GROUP   1          /* Environment variables */
-#  elif !defined(CONFIG_DISABLE_SIGNALS)
-#    define HAVE_TASK_GROUP   1          /* Signals */
-#  elif defined(CONFIG_SCHED_ATEXIT)
-#    define HAVE_TASK_GROUP   1          /* Group atexit() function */
-#  elif defined(CONFIG_SCHED_ONEXIT)
-#    define HAVE_TASK_GROUP   1          /* Group on_exit() function */
-#  elif defined(CONFIG_SCHED_WAITPID)
-#    define HAVE_TASK_GROUP   1          /* Group waitpid() function */
-#  elif CONFIG_NFILE_DESCRIPTORS > 0
-#    define HAVE_TASK_GROUP   1          /* File descriptors */
-#  elif CONFIG_NFILE_STREAMS > 0
-#    define HAVE_TASK_GROUP   1          /* Standard C buffered I/O */
-#  elif CONFIG_NSOCKET_DESCRIPTORS > 0
-#    define HAVE_TASK_GROUP   1          /* Sockets */
-#  elif !defined(CONFIG_DISABLE_MQUEUE)
-#    define HAVE_TASK_GROUP   1          /* Message queues */
-#  elif defined(CONFIG_ARCH_ADDRENV)
-#    define HAVE_TASK_GROUP   1          /* Address environment */
-#  elif defined(CONFIG_MM_SHM)
-#    define HAVE_TASK_GROUP   1          /* Shared memory */
-#  endif
 #endif
 
 /* In any event, we don't need group members if support for pthreads is disabled */
@@ -150,8 +115,9 @@
 #  define TCB_FLAG_SCHED_SPORADIC  (2 << TCB_FLAG_POLICY_SHIFT) /* Sporadic scheding policy */
 #  define TCB_FLAG_SCHED_OTHER     (3 << TCB_FLAG_POLICY_SHIFT) /* Other scheding policy */
 #define TCB_FLAG_CPU_LOCKED        (1 << 7) /* Bit 7: Locked to this CPU */
-#define TCB_FLAG_EXIT_PROCESSING   (1 << 8) /* Bit 8: Exitting */
-                                            /* Bits 9-15: Available */
+#define TCB_FLAG_SIGNAL_ACTION     (1 << 8) /* Bit 8: In a signal handler */
+#define TCB_FLAG_EXIT_PROCESSING   (1 << 9) /* Bit 9: Exitting */
+                                            /* Bits 10-15: Available */
 
 /* Values for struct task_group tg_flags */
 
@@ -188,9 +154,14 @@
  * used both by the OS (libkc.a and libknx.a) or by the applications
  * (libuc.a and libunx.a).  The that case, the correct interface must be
  * used for the build context.
+ *
+ * REVISIT:  In the flat build, the same functions must be used both by
+ * the OS and by applications.  We have to use the normal user functions
+ * in this case or we will fail to set the errno or fail to create the
+ * cancellation point.
  */
 
-#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
+#if !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
 #  define _SCHED_GETPARAM(t,p)       nxsched_getparam(t,p)
 #  define _SCHED_SETPARAM(t,p)       nxsched_setparam(t,p)
 #  define _SCHED_GETSCHEDULER(t)     nxsched_getscheduler(t)
@@ -370,6 +341,21 @@ struct pthread_cleanup_s
 };
 #endif
 
+/* type pthread_keyset_t *********************************************************/
+/* Smallest addressable type that can hold the entire configured number of keys */
+
+#if defined(CONFIG_NPTHREAD_KEYS) && CONFIG_NPTHREAD_KEYS > 0
+#  if CONFIG_NPTHREAD_KEYS > 32
+#    error Too many pthread keys
+#  elif CONFIG_NPTHREAD_KEYS > 16
+     typedef uint32_t pthread_keyset_t;
+#  elif CONFIG_NPTHREAD_KEYS > 8
+     typedef uint16_t pthread_keyset_t;
+#  else
+     typedef uint8_t pthread_keyset_t;
+#  endif
+#endif
+
 /* struct dspace_s ***************************************************************/
 /* This structure describes a reference counted D-Space region.  This must be a
  * separately allocated "break-away" structure that can be owned by a task and
@@ -418,8 +404,6 @@ struct dspace_s
  * group.  When the reference count decrements to zero, the struct task_group_s
  * is free.
  */
-
-#ifdef HAVE_TASK_GROUP
 
 #ifndef CONFIG_DISABLE_PTHREAD
 struct join_s;                      /* Forward reference                        */
@@ -515,7 +499,7 @@ struct task_group_s
   FAR struct join_s *tg_jointail;   /*   Tail of a list of join data            */
 #endif
 #if CONFIG_NPTHREAD_KEYS > 0
-  uint8_t tg_nkeys;                 /* Number pthread keys allocated            */
+  pthread_keyset_t tg_keyset;       /* Set of pthread keys allocated            */
 #endif
 
 #ifndef CONFIG_DISABLE_SIGNALS
@@ -541,11 +525,9 @@ struct task_group_s
    * life of the PIC data is managed.
    */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
   /* File descriptors ***********************************************************/
 
   struct filelist tg_filelist;      /* Maps file descriptor to file             */
-#endif
 
 #if CONFIG_NFILE_STREAMS > 0
   /* FILE streams ***************************************************************/
@@ -562,7 +544,7 @@ struct task_group_s
 #endif
 #endif
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
+#ifdef CONFIG_NET
   /* Sockets ********************************************************************/
 
   struct socketlist tg_socketlist;  /* Maps socket descriptor to socket         */
@@ -586,7 +568,6 @@ struct task_group_s
   struct group_shm_s tg_shm;        /* Task shared memory logic                 */
 #endif
 };
-#endif
 
 /* struct tcb_s ******************************************************************/
 /* This is the common part of the task control block (TCB).  The TCB is the heart
@@ -605,9 +586,7 @@ struct tcb_s
 
   /* Task Group *****************************************************************/
 
-#ifdef HAVE_TASK_GROUP
   FAR struct task_group_s *group;        /* Pointer to shared task group data   */
-#endif
 
   /* Task Management Fields *****************************************************/
 
@@ -632,7 +611,7 @@ struct tcb_s
 #endif
   uint16_t flags;                        /* Misc. general status flags          */
   int16_t  lockcount;                    /* 0=preemptable (not-locked)          */
-#ifdef CONFIG_SMP
+#ifdef CONFIG_IRQCOUNT
   int16_t  irqcount;                     /* 0=Not in critical section           */
 #endif
 #ifdef CONFIG_CANCELLATION_POINTS
@@ -689,6 +668,15 @@ struct tcb_s
 
 #if CONFIG_NPTHREAD_KEYS > 0
   FAR void *pthread_data[CONFIG_NPTHREAD_KEYS];
+#endif
+
+  /* Pre-emption monitor support ************************************************/
+
+#ifdef CONFIG_SCHED_CRITMONITOR
+  uint32_t premp_start;                  /* Time when preemption disabled       */
+  uint32_t premp_max;                    /* Max time preemption disabled        */
+  uint32_t crit_start;                   /* Time critical section entered       */
+  uint32_t crit_max;                     /* Max time in critical section        */
 #endif
 
   /* Library related fields *****************************************************/
@@ -794,6 +782,18 @@ extern "C"
 #define EXTERN extern
 #endif
 
+#ifdef CONFIG_SCHED_CRITMONITOR
+/* Maximum time with pre-emption disabled or within critical section. */
+
+#ifdef CONFIG_SMP_NCPUS
+EXTERN uint32_t g_premp_max[CONFIG_SMP_NCPUS];
+EXTERN uint32_t g_crit_max[CONFIG_SMP_NCPUS];
+#else
+EXTERN uint32_t g_premp_max[1];
+EXTERN uint32_t g_crit_max[1];
+#endif
+#endif /* CONFIG_SCHED_CRITMONITOR */
+
 /********************************************************************************
  * Public Function Prototypes
  ********************************************************************************/
@@ -821,19 +821,17 @@ FAR struct tcb_s *sched_gettcb(pid_t pid);
  * currently executing task.
  */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
 FAR struct filelist *sched_getfiles(void);
 #if CONFIG_NFILE_STREAMS > 0
 FAR struct streamlist *sched_getstreams(void);
 #endif /* CONFIG_NFILE_STREAMS */
-#endif /* CONFIG_NFILE_DESCRIPTORS */
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
+#ifdef CONFIG_NET
 FAR struct socketlist *sched_getsockets(void);
-#endif /* CONFIG_NSOCKET_DESCRIPTORS */
+#endif
 
 /********************************************************************************
- * Name: task_starthook
+ * Name: nxtask_starthook
  *
  * Description:
  *   Configure a start hook... a function that will be called on the thread
@@ -852,8 +850,8 @@ FAR struct socketlist *sched_getsockets(void);
  ********************************************************************************/
 
 #ifdef CONFIG_SCHED_STARTHOOK
-void task_starthook(FAR struct task_tcb_s *tcb, starthook_t starthook,
-                    FAR void *arg);
+void nxtask_starthook(FAR struct task_tcb_s *tcb, starthook_t starthook,
+                      FAR void *arg);
 #endif
 
 /********************************************************************************
@@ -861,8 +859,8 @@ void task_starthook(FAR struct task_tcb_s *tcb, starthook_t starthook,
  *
  * 1) User code calls vfork().  vfork() is provided in architecture-specific
  *    code.
- * 2) vfork()and calls task_vforksetup().
- * 3) task_vforksetup() allocates and configures the child task's TCB.  This
+ * 2) vfork()and calls nxtask_vforksetup().
+ * 3) nxtask_vforksetup() allocates and configures the child task's TCB.  This
  *    consists of:
  *    - Allocation of the child task's TCB.
  *    - Initialization of file descriptors and streams
@@ -873,16 +871,16 @@ void task_starthook(FAR struct task_tcb_s *tcb, starthook_t starthook,
  *    - Allocate and initialize the stack
  *    - Initialize special values in any CPU registers that were not
  *      already configured by up_initial_state()
- * 5) vfork() then calls task_vforkstart()
- * 6) task_vforkstart() then executes the child thread.
+ * 5) vfork() then calls nxtask_vforkstart()
+ * 6) nxtask_vforkstart() then executes the child thread.
  *
- * task_vforkabort() may be called if an error occurs between steps 3 and 6.
+ * nxtask_vforkabort() may be called if an error occurs between steps 3 and 6.
  *
  ********************************************************************************/
 
-FAR struct task_tcb_s *task_vforksetup(start_t retaddr, size_t *argsize);
-pid_t task_vforkstart(FAR struct task_tcb_s *child);
-void task_vforkabort(FAR struct task_tcb_s *child, int errcode);
+FAR struct task_tcb_s *nxtask_vforksetup(start_t retaddr, size_t *argsize);
+pid_t nxtask_vforkstart(FAR struct task_tcb_s *child);
+void nxtask_vforkabort(FAR struct task_tcb_s *child, int errcode);
 
 /****************************************************************************
  * Name: group_exitinfo
@@ -925,8 +923,7 @@ int group_exitinfo(pid_t pid, FAR struct binary_s *bininfo);
  *
  ********************************************************************************/
 
-#if CONFIG_RR_INTERVAL > 0 || defined(CONFIG_SCHED_SPORADIC) || \
-    defined(CONFIG_SCHED_INSTRUMENTATION) || defined(CONFIG_SMP)
+#if CONFIG_RR_INTERVAL > 0 || defined(CONFIG_SCHED_RESUMESCHEDULER)
 void sched_resume_scheduler(FAR struct tcb_s *tcb);
 #else
 #  define sched_resume_scheduler(tcb)
@@ -948,7 +945,7 @@ void sched_resume_scheduler(FAR struct tcb_s *tcb);
  *
  ********************************************************************************/
 
-#if defined(CONFIG_SCHED_SPORADIC) || defined(CONFIG_SCHED_INSTRUMENTATION)
+#ifdef CONFIG_SCHED_SUSPENDSCHEDULER
 void sched_suspend_scheduler(FAR struct tcb_s *tcb);
 #else
 #  define sched_suspend_scheduler(tcb)

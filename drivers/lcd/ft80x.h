@@ -49,6 +49,7 @@
  *******************************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/signal.h>
 #include <nuttx/wqueue.h>
 
 /*******************************************************************************************
@@ -157,7 +158,8 @@ struct ft80x_i2cwrite_s
 
 struct ft80x_eventinfo_s
 {
-  uint8_t signo;                          /* Notify using this signal number */
+  struct sigevent event;                  /* Describe the way a task is to be notified */
+  struct sigwork_s work;                  /* Work for SIGEV_THREAD */
   bool enable;                            /* True: enable notification; false: disable */
   int16_t pid;                            /* Send the notification to this task */
 };

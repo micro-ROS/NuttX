@@ -54,6 +54,12 @@ CSRCS += kwork_inherit.c
 endif # CONFIG_PRIORITY_INHERITANCE
 endif # CONFIG_SCHED_LPWORK
 
+# Add work queue notifier support
+
+ifeq ($(CONFIG_WQUEUE_NOTIFIER),y)
+CSRCS += kwork_notifier.c
+endif
+
 # Include wqueue build support
 
 DEPPATH += --dep-path wqueue

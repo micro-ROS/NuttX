@@ -494,7 +494,6 @@ FAR struct mtd_dev_s *blockmtd_initialize(FAR const char *path, size_t offset,
   size_t nblocks;
   int mode;
   int ret;
-  int fd;
 
   /* Create an instance of the FILE MTD device state structure */
 
@@ -516,21 +515,10 @@ FAR struct mtd_dev_s *blockmtd_initialize(FAR const char *path, size_t offset,
    * driver proxy.
    */
 
-  fd = open(path, mode);
-  if (fd <0)
-    {
-      ferr("ERROR: Failed to open the FILE MTD file %s\n", path);
-      kmm_free(priv);
-      return NULL;
-    }
-
-  /* Detach the file descriptor from the open file */
-
-  ret = file_detach(fd, &priv->mtdfile);
+  ret = file_open(&priv->mtdfile, path, mode);
   if (ret < 0)
     {
-      ferr("ERROR: Failed to detail the FILE MTD file %s\n", path);
-      close(fd);
+      ferr("ERROR: Failed to open the FILE MTD file %s: %d\n", path, ret);
       kmm_free(priv);
       return NULL;
     }
@@ -563,7 +551,7 @@ FAR struct mtd_dev_s *blockmtd_initialize(FAR const char *path, size_t offset,
   if (nblocks < 3)
     {
       ferr("ERROR: Need to provide at least three full erase block\n");
-      file_close_detached(&priv->mtdfile);
+      file_close(&priv->mtdfile);
       kmm_free(priv);
       return NULL;
     }
@@ -580,14 +568,9 @@ FAR struct mtd_dev_s *blockmtd_initialize(FAR const char *path, size_t offset,
   priv->mtd.write  = file_bytewrite;
 #endif
   priv->mtd.ioctl  = filemtd_ioctl;
+  priv->mtd.name   = "filemtd";
   priv->offset     = offset;
   priv->nblocks    = nblocks;
-
-#ifdef CONFIG_MTD_REGISTRATION
-  /* Register the MTD with the procfs system if enabled */
-
-  mtd_register(&priv->mtd, "filemtd");
-#endif
 
   return &priv->mtd;
 }
@@ -610,7 +593,7 @@ void blockmtd_teardown(FAR struct mtd_dev_s *dev)
   /* Close the enclosed file */
 
   priv = (FAR struct file_dev_s *) dev;
-  file_close_detached(&priv->mtdfile);
+  file_close(&priv->mtdfile);
 
 #ifdef CONFIG_MTD_REGISTRATION
   /* Un-register the MTD with the procfs system if enabled */

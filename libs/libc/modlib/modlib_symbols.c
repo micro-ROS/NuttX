@@ -41,25 +41,16 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <elf32.h>
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/module.h>
 #include <nuttx/lib/modlib.h>
-#include <nuttx/binfmt/symtab.h>
 
 #include "modlib/modlib.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-/* Amount to reallocate buffer when buffer is full */
-
-#ifndef CONFIG_MODLIB_BUFFERINCR
-#  define CONFIG_MODLIB_BUFFERINCR 32
-#endif
 
 /* Return values search for exported modules */
 
@@ -271,7 +262,7 @@ int modlib_findsymtab(FAR struct mod_loadinfo_s *loadinfo)
  * Name: modlib_readsym
  *
  * Description:
- *   Read the ELFT symbol structure at the specfied index into memory.
+ *   Read the ELF symbol structure at the specified index into memory.
  *
  * Input Parameters:
  *   loadinfo - Load state information
@@ -337,6 +328,7 @@ int modlib_symvalue(FAR struct module_s *modp,
   FAR const struct symtab_s *symbol;
   struct mod_exportinfo_s exportinfo;
   uintptr_t secbase;
+  int nsymbols;
   int ret;
 
   switch (sym->st_shndx)
@@ -399,12 +391,13 @@ int modlib_symvalue(FAR struct module_s *modp,
 
         if (symbol == NULL)
           {
+            modlib_getsymtab(&symbol, &nsymbols);
 #ifdef CONFIG_SYMTAB_ORDEREDBYNAME
-            symbol = symtab_findorderedbyname(g_modlib_symtab, exportinfo.name,
-                                              g_modlib_nsymbols);
+            symbol = symtab_findorderedbyname(symbol, exportinfo.name,
+                                              nsymbols);
 #else
-            symbol = symtab_findbyname(g_modlib_symtab, exportinfo.name,
-                                       g_modlib_nsymbols);
+            symbol = symtab_findbyname(symbol, exportinfo.name,
+                                       nsymbols);
 #endif
           }
 
@@ -419,7 +412,7 @@ int modlib_symvalue(FAR struct module_s *modp,
 
         /* Yes... add the exported symbol value to the ELF symbol table entry */
 
-        binfo("SHN_ABS: name=%s %08x+%08x=%08x\n",
+        binfo("SHN_UNDEF: name=%s %08x+%08x=%08x\n",
               loadinfo->iobuffer, sym->st_value, symbol->sym_value,
               sym->st_value + symbol->sym_value);
 

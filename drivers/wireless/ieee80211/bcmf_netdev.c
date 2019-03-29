@@ -77,18 +77,18 @@
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error Work queue support is required in this configuration (CONFIG_SCHED_WORKQUEUE)
-#else
-
-    /* Use the selected work queue */
-
-#  if defined(CONFIG_IEEE80211_BROADCOM_HPWORK)
-#    define BCMFWORK HPWORK
-#  elif defined(CONFIG_IEEE80211_BROADCOM_LPWORK)
-#    define BCMFWORK LPWORK
-#  else
-#    error Neither CONFIG_IEEE80211_BROADCOM_HPWORK nor CONFIG_IEEE80211_BROADCOM_LPWORK defined
-#  endif
 #endif
+
+/* The low priority work queue is preferred.  If it is not enabled, LPWORK
+ * will be the same as HPWORK.
+ *
+ * NOTE:  However, the network should NEVER run on the high priority work
+ * queue!  That queue is intended only to service short back end interrupt
+ * processing that never suspends.  Suspending the high priority work queue
+ * may bring the system to its knees!
+ */
+
+#define BCMFWORK LPWORK
 
 /* CONFIG_IEEE80211_BROADCOM_NINTERFACES determines the number of physical interfaces
  * that will be supported.
@@ -135,10 +135,10 @@ static int  bcmf_ifdown(FAR struct net_driver_s *dev);
 static void bcmf_txavail_work(FAR void *arg);
 static int  bcmf_txavail(FAR struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int  bcmf_addmac(FAR struct net_driver_s *dev,
                         FAR const uint8_t *mac);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  bcmf_rmmac(FAR struct net_driver_s *dev,
                        FAR const uint8_t *mac);
 #endif
@@ -854,7 +854,7 @@ static int bcmf_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int bcmf_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)dev->d_private;
@@ -883,7 +883,7 @@ static int bcmf_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int bcmf_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)dev->d_private;
@@ -1113,7 +1113,7 @@ int bcmf_netdev_register(FAR struct bcmf_dev_s *priv)
   priv->bc_dev.d_ifup    = bcmf_ifup;     /* I/F up (new IP address) callback */
   priv->bc_dev.d_ifdown  = bcmf_ifdown;   /* I/F down callback */
   priv->bc_dev.d_txavail = bcmf_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->bc_dev.d_addmac  = bcmf_addmac;   /* Add multicast MAC address */
   priv->bc_dev.d_rmmac   = bcmf_rmmac;    /* Remove multicast MAC address */
 #endif

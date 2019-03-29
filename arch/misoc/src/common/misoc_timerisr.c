@@ -103,7 +103,7 @@ int misoc_timer_isr(int irq, void *context, void *arg)
 
   /* Process timer interrupt */
 
-  sched_process_timer();
+  nxsched_process_timer();
   return 0;
 }
 
@@ -130,8 +130,8 @@ void misoc_timer_initialize(void)
    * CLOCKS_PER_SEC.
    */
 
-  timer0_reload_write(SYSTICK_RELOAD);
-  timer0_load_write(SYSTICK_RELOAD);
+  timer0_reload_write(SYSTICK_RELOAD * 20);
+  timer0_load_write(SYSTICK_RELOAD * 20);
 
   /* Enable timer */
 

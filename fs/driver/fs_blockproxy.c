@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/driver/fs_blockproxy.c
  *
- *   Copyright (C) 2015-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,7 @@
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/drivers/drivers.h>
+#include <nuttx/fs/fs.h>
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && \
     !defined(CONFIG_DISABLE_PSEUDOFS_OPERATIONS)
@@ -120,7 +121,7 @@ static FAR char *unique_chardev(void)
       /* Construct the full device number */
 
       devno &= 0xffffff;
-      snprintf(devbuf, 16, "/dev/tmp%06lx", (unsigned long)devno);
+      snprintf(devbuf, 16, "/dev/tmpc%06lx", (unsigned long)devno);
 
       /* Make sure that file name is not in use */
 
@@ -202,10 +203,10 @@ int block_proxy(FAR const char *blkdev, int oflags)
   /* Open the newly created character driver */
 
   oflags &= ~(O_CREAT | O_EXCL | O_APPEND | O_TRUNC);
-  fd = open(chardev, oflags);
+  fd = nx_open(chardev, oflags);
   if (fd < 0)
     {
-      ret = -errno;
+      ret = fd;
       ferr("ERROR: Failed to open %s: %d\n", chardev, ret);
       goto errout_with_bchdev;
     }

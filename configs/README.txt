@@ -183,6 +183,9 @@ configs/avr32dev1
   Atmel website.  STATUS: This port is functional but very basic.  There
   are configurations for NSH and the OS test.
 
+configs/b-l072z-lrwan1
+  STMicro STM32L0 Discovery kit with LoRa/SigFox based on STM32L072CZ MCU.
+
 configs/bambino-200e
   Micromint Bambino board. This board is based on the LPC4330FBD144.
 
@@ -193,7 +196,16 @@ configs/c5471evm
   NuttX runs on the ARM core and is built with a GNU arm-nuttx-elf toolchain*.
   This port is complete and verified.
 
-config/clicker2-stm32
+configs launchxl_cc1310
+  Port to the TI SimpleLink CC1310 LaunchPad Evaluation Kit (LAUNCHXL-CC1310)
+  featuring the SimpleLinkCC1310 chip.  This board features the CC1310F128
+  part with 128Kb of FLASH and 20Kb of SRAM.
+
+configs launchxl_cc1312r1
+  Port to the TI SimpleLink CC1312R1 LaunchPad Evaluation Kit (LAUNCHXL-CC1312R1)
+  featuring the SimpleLinkCC1312R1 chip.
+
+configs/clicker2-stm32
   Mikroe Clicker2 STM32 board based on the STMicro STM32F407VGT6 MCU.
 
 configs/cloudctrl
@@ -357,6 +369,10 @@ configs/maple
   are based on the STM32F103RBT6 chip for the standard version and on the
   STM32F103CBT6 for the mini version (See http://leaflabs.com/docs/hardware/maple.html)
 
+configs/max32660-evsys
+  The configurations in this directory support the Maxim Integrated
+  MAX32660-EVSYS board.
+
 configs/mbed
   The configurations in this directory support the mbed board (http://mbed.org)
   that features the NXP LPC1768 microcontroller. This OS is also built
@@ -406,9 +422,10 @@ configs/ne64badge
   STATUS:  Under development.  The port is code-complete but has
   not yet been fully tested.
 
-configs/nrf52-pca10040
-  NuttX port to the NRF PCA10040 board from Nordic Semiconductor
-  featuring the NRF52832 MCU.
+configs/nrf52-generic
+  NuttX port to the a generic NRF52.  Support is in place for the NRF
+  PCA10040 board from Nordic Semiconductor or for the Adafruit NRF52
+  feather, both featuring the NRF52832 MCU.
 
 configs/ntosd-dm320
   This port uses the Neuros OSD v1.0 Dev Board with a GNU arm-nuttx-elf
@@ -449,6 +466,9 @@ configs/nucleo-f410rb
 
 configs/nucleo-f303re
   STMicro ST Nucleo F303RE board.  Contributed by Paul Alexander Patience.
+
+configs/nucleo-l073rz
+  STMicro STM32L0 Discovery kit with LoRa/SigFox based on STM32L072CZ MCU.
 
 configs/nutiny-nuc120
   This is the port of NuttX to the NuvoTon NuTiny-SDK-NUC120 board.  This
@@ -509,16 +529,11 @@ configs/olimex-strp711
   further information.  STATUS: Configurations for the basic OS test and NSH
   are complete and verified.
 
+configs/omnibusf4
+  Flight controllers compatible with the OMINBUSF4 Betaflight target
+
 configs/or1k
   Generic OpenRISC board.
-
-configs/pcblogic-pic32mx
-  This is the port of NuttX to the PIC32MX board from PCB Logic Design Co.
-  This board features the MicroChip PIC32MX460F512L.
-  The board is a very simple -- little more than a carrier for the PIC32
-  MCU plus voltage regulation, debug interface, and an OTG connector.
-  STATUS:  Code complete but testing has been stalled due to tool related problems
-  (PICkit 2 does not work with the PIC32).
 
 configs/pcduino-a10
   This directory contains the port of NuttX to the pcDuino v1 board
@@ -581,11 +596,6 @@ configs/pic32mz-starterkit
        PIC32MZ2048ECM144-I/PH w/Crypto Engine (DM320006-C)
 
   See www.microchip.com for further information.
-
-configs/pizero
-  This directory holds the port of NuttX to the Raspberry Pi Zero and
-  the similar Raspberry Pi Zero W with wireless suppoprt.  These boards
-  are based on the BCM2835 A1176 CPU.
 
 configs/qemu-i486
   Port of NuttX to QEMU in i486 mode.  This port will also run on real i486

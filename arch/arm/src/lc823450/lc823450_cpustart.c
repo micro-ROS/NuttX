@@ -60,6 +60,10 @@
 
 #include "lc823450_syscontrol.h"
 
+#if defined(CONFIG_BUILD_FLAT) && defined(CONFIG_ARM_MPU)
+#  include "lc823450_mpuinit2.h"
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -113,6 +117,13 @@ static void cpu1_boot(void)
     {
       putreg32((uint32_t)&_stext, NVIC_VECTAB); /* use CPU0 vectors */
 
+#if defined(CONFIG_BUILD_FLAT) && defined(CONFIG_ARM_MPU)
+      lc823450_mpuinitialize();
+
+      irq_attach(LC823450_IRQ_MEMFAULT, up_memfault, NULL);
+      up_enable_irq(LC823450_IRQ_MEMFAULT);
+#endif
+
       irq_attach(LC823450_IRQ_CTXM3_01, lc823450_pause_handler, NULL);
       up_enable_irq(LC823450_IRQ_CTXM3_01);
     }
@@ -127,7 +138,7 @@ static void cpu1_boot(void)
 
   /* Then transfer control to the IDLE task */
 
-  (void)os_idle_task(0, NULL);
+  (void)nx_idle_task(0, NULL);
 
 }
 

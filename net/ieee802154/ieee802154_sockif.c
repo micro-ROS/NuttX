@@ -170,7 +170,7 @@ static int ieee802154_sockif_alloc(FAR struct socket *psock)
  *   protocol (see sys/socket.h)
  *
  * Returned Value:
- *   Zero (OK) is returned on success.  Otherwise, a negater errno value is
+ *   Zero (OK) is returned on success.  Otherwise, a negated errno value is
  *   returned.
  *
  ****************************************************************************/
@@ -421,8 +421,9 @@ static int ieee802154_bind(FAR struct socket *psock,
 
   iaddr = (FAR const struct sockaddr_ieee802154_s *)addr;
 
-  /* Very that some address was provided */
-  /* REVISIT: Currently and explict address must be assigned.  Should we
+  /* Very that some address was provided.
+   *
+   * REVISIT: Currently and explict address must be assigned.  Should we
    * support some moral equivalent to INADDR_ANY?
    */
 
@@ -674,7 +675,7 @@ static ssize_t ieee802154_send(FAR struct socket *psock, FAR const void *buf,
     {
       /* send() may be used only if the socket has been connected. */
 
-      if (!_SS_ISCONNECTED( psock->s_flags) ||
+      if (!_SS_ISCONNECTED(psock->s_flags) ||
           conn->raddr.s_mode == IEEE802154_ADDRMODE_NONE)
         {
           ret = -ENOTCONN;

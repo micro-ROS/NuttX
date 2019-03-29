@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs/stm32f4discovery/src/stm32_boot.c
  *
- *   Copyright (C) 2011-2012, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012, 2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@
 #include <arch/board/board.h>
 
 #include "up_arch.h"
+#include "itm.h"
 
 #include "stm32.h"
 #include "stm32f4discovery.h"
@@ -66,6 +67,15 @@
 
 void stm32_boardinitialize(void)
 {
+#ifdef CONFIG_SCHED_CRITMONITOR
+  /* Make sure the high speed cycle counter is running.  It will be started
+   * automatically only if a debugger is connected.
+   */
+
+  putreg32(0xc5acce55, ITM_LAR);
+  modifyreg32(DWT_CTRL, 0, DWT_CTRL_CYCCNTENA_MASK);
+#endif
+
 #if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2) || defined(CONFIG_STM32_SPI3)
   /* Configure SPI chip selects if 1) SPI is not disabled, and 2) the weak
    * function stm32_spidev_initialize() has been brought into the link.
@@ -107,20 +117,20 @@ void stm32_boardinitialize(void)
 }
 
 /****************************************************************************
- * Name: board_initialize
+ * Name: board_late_initialize
  *
  * Description:
- *   If CONFIG_BOARD_INITIALIZE is selected, then an additional
+ *   If CONFIG_BOARD_LATE_INITIALIZE is selected, then an additional
  *   initialization call will be performed in the boot-up sequence to a
- *   function called board_initialize().  board_initialize() will be
+ *   function called board_late_initialize().  board_late_initialize() will be
  *   called immediately after up_initialize() is called and just before the
  *   initial application is started.  This additional initialization phase
  *   may be used, for example, to initialize board-specific device drivers.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_BOARD_INITIALIZE
-void board_initialize(void)
+#ifdef CONFIG_BOARD_LATE_INITIALIZE
+void board_late_initialize(void)
 {
   /* Perform board-specific initialization */
 

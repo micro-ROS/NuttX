@@ -54,7 +54,7 @@
 #define IMXRT_ROMCP_BASE          0x00200000  /* 96KB ROMCP */
                                /* 0x00218000     416KB ROMCP Reserved */
                                /* 0x00280000     1536KB Reserved */
-                               /* 0x00400000     128MB Reserved */
+                               /* 0x00400000     124MB Reserved */
 #define IMXRT_FLEXSPI_BASE        0x08000000  /* 128MB FlexSPI (Aliased) */
 #define IMXRT_SEMCA_BASE          0x10000000  /* 256MB SEMC (Aliased) */
 #define IMXRT_DTCM_BASE           0x20000000  /* 512KB DTCM */

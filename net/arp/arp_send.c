@@ -107,6 +107,16 @@ static uint16_t arp_send_eventhandler(FAR struct net_driver_s *dev,
 
   if (state)
     {
+      /* Is this the device that we need to route this request? */
+
+      if (strncmp((FAR const char *)dev->d_ifname,
+                  (FAR const char *)state->snd_ifname, IFNAMSIZ) != 0)
+        {
+          /* No... pass on this one and wait for the device that we want */
+
+          return flags;
+        }
+
       /* Check if the network is still up */
 
       if ((flags & NETDEV_DOWN) != 0)
@@ -134,8 +144,10 @@ static uint16_t arp_send_eventhandler(FAR struct net_driver_s *dev,
           return flags;
         }
 
-      /* It looks like we are good to send the data */
-      /* Copy the packet data into the device packet buffer and send it */
+      /* It looks like we are good to send the data.
+       *
+       * Copy the packet data into the device packet buffer and send it.
+       */
 
       arp_format(dev, state->snd_ipaddr);
 
@@ -223,7 +235,7 @@ int arp_send(in_addr_t ipaddr)
 
   /* Get the device that can route this request */
 
-  dev = netdev_findby_ipv4addr(INADDR_ANY, ipaddr);
+  dev = netdev_findby_ripv4addr(INADDR_ANY, ipaddr);
   if (!dev)
     {
       nerr("ERROR: Unreachable: %08lx\n", (unsigned long)ipaddr);
@@ -231,9 +243,9 @@ int arp_send(in_addr_t ipaddr)
       goto errout;
     }
 
-  /* ARP support is only built if the Ethernet data link is supported.
+  /* ARP support is only built if the Ethernet link layer is supported.
    * Continue and send the ARP request only if this device uses the
-   * Ethernet data link protocol.
+   * Ethernet link layer protocol.
    */
 
   if (dev->d_lltype != NET_LL_ETHERNET)
@@ -311,6 +323,11 @@ int arp_send(in_addr_t ipaddr)
    * sending the ARP request if it is not.
    */
 
+  /* The optimal delay would be the worst case round trip time. */
+
+  delay.tv_sec  = CONFIG_ARP_SEND_DELAYSEC;
+  delay.tv_nsec = CONFIG_ARP_SEND_DELAYNSEC;
+
   ret = -ETIMEDOUT; /* Assume a timeout failure */
 
   while (state.snd_retries < CONFIG_ARP_SEND_MAXTRIES)
@@ -342,16 +359,9 @@ int arp_send(in_addr_t ipaddr)
       state.snd_cb->priv  = (FAR void *)&state;
       state.snd_cb->event = arp_send_eventhandler;
 
-      /* Notify the device driver that new TX data is available.
-       * NOTES: This is in essence what netdev_ipv4_txnotify() does, which
-       * is not possible to call since it expects a in_addr_t as
-       * its single argument to lookup the network interface.
-       */
+      /* Notify the device driver that new TX data is available. */
 
-      if (dev->d_txavail)
-        {
-          dev->d_txavail(dev);
-        }
+      netdev_txnotify_dev(dev);
 
       /* Wait for the send to complete or an error to occur.
        * net_lockedwait will also terminate if a signal is received.
@@ -374,13 +384,7 @@ int arp_send(in_addr_t ipaddr)
           break;
         }
 
-      /* Now wait for response to the ARP response to be received.  The
-       * optimal delay would be the work case round trip time.
-       * NOTE: The network is locked.
-       */
-
-      delay.tv_sec  = CONFIG_ARP_SEND_DELAYSEC;
-      delay.tv_nsec = CONFIG_ARP_SEND_DELAYNSEC;
+      /* Now wait for response to the ARP response to be received. */
 
       ret = arp_wait(&notify, &delay);
 
@@ -395,9 +399,10 @@ int arp_send(in_addr_t ipaddr)
           break;
         }
 
-      /* Increment the retry count */
+      /* Increment the retry count and double the delay time */
 
       state.snd_retries++;
+      clock_timespec_add(&delay, &delay, &delay);
       nerr("ERROR: arp_wait failed: %d\n", ret);
     }
 

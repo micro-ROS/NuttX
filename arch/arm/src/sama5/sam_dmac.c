@@ -50,7 +50,6 @@
 #include <nuttx/arch.h>
 
 #include "up_arch.h"
-#include "cache.h"
 #include "up_internal.h"
 #include "sched/sched.h"
 
@@ -1449,8 +1448,8 @@ sam_allocdesc(struct sam_dmach_s *dmach, struct dma_linklist_s *prev,
                * that hardware will be accessing the descriptor via DMA.
                */
 
-              arch_clean_dcache((uintptr_t)desc,
-                                (uintptr_t)desc + sizeof(struct dma_linklist_s));
+              up_clean_dcache((uintptr_t)desc,
+                              (uintptr_t)desc + sizeof(struct dma_linklist_s));
               break;
             }
         }
@@ -1773,7 +1772,7 @@ static void sam_dmaterminate(struct sam_dmach_s *dmach, int result)
 
   if (dmach->rx)
     {
-      arch_invalidate_dcache(dmach->rxaddr, dmach->rxaddr + dmach->rxsize);
+      up_invalidate_dcache(dmach->rxaddr, dmach->rxaddr + dmach->rxsize);
     }
 
   /* Perform the DMA complete callback */
@@ -1898,7 +1897,7 @@ void sam_dmainitialize(struct sam_dmac_s *dmac)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_dmainitialize
+ * Name: up_dma_initialize
  *
  * Description:
  *   Initialize the DMA subsystem
@@ -1908,7 +1907,7 @@ void sam_dmainitialize(struct sam_dmac_s *dmac)
  *
  ****************************************************************************/
 
-void weak_function up_dmainitialize(void)
+void weak_function up_dma_initialize(void)
 {
 #ifdef CONFIG_SAMA5_DMAC0
   dmainfo("Initialize DMAC0\n");
@@ -2187,7 +2186,7 @@ int sam_dmatxsetup(DMA_HANDLE handle, uint32_t paddr, uint32_t maddr,
 
   /* Clean caches associated with the DMA memory */
 
-  arch_clean_dcache(maddr, maddr + nbytes);
+  up_clean_dcache(maddr, maddr + nbytes);
   return ret;
 }
 
@@ -2268,7 +2267,7 @@ int sam_dmarxsetup(DMA_HANDLE handle, uint32_t paddr, uint32_t maddr,
 
   /* Clean caches associated with the DMA memory */
 
-  arch_clean_dcache(maddr, maddr + nbytes);
+  up_clean_dcache(maddr, maddr + nbytes);
   return ret;
 }
 

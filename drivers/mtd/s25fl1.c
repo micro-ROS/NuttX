@@ -1265,11 +1265,11 @@ static ssize_t s25fl1_bread(FAR struct mtd_dev_s *dev, off_t startblock,
       nbytes >>= S25FL1_SECTOR512_SHIFT;
     }
 #else
-  nbytes = s25fl1_read(dev, startblock << priv->sectorshift,
-                       nblocks << priv->sectorshift, buffer);
+  nbytes = s25fl1_read(dev, startblock << priv->pageshift,
+                       nblocks << priv->pageshift, buffer);
   if (nbytes > 0)
     {
-      nbytes >>= priv->sectorshift;
+      nbytes >>= priv->pageshift;
     }
 #endif
 
@@ -1300,8 +1300,8 @@ static ssize_t s25fl1_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
     }
 
 #else
-  ret = s25fl1_write_page(priv, buffer, startblock << priv->sectorshift,
-                          nblocks << priv->sectorshift);
+  ret = s25fl1_write_page(priv, buffer, startblock << priv->pageshift,
+                          nblocks << priv->pageshift);
   if (ret < 0)
     {
       ferr("ERROR: s25fl1_write_page failed: %d\n", ret);
@@ -1375,7 +1375,7 @@ static int s25fl1_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
               geo->erasesize    = (1 << S25FL1_SECTOR512_SHIFT);
               geo->neraseblocks = priv->nsectors << (priv->sectorshift - S25FL1_SECTOR512_SHIFT);
 #else
-              geo->blocksize    = (1 << priv->sectorshift);
+              geo->blocksize    = (1 << priv->pageshift);
               geo->erasesize    = (1 << priv->sectorshift);
               geo->neraseblocks = priv->nsectors;
 #endif
@@ -1470,6 +1470,7 @@ FAR struct mtd_dev_s *s25fl1_initialize(FAR struct qspi_dev_s *qspi, bool unprot
       priv->mtd.bwrite = s25fl1_bwrite;
       priv->mtd.read   = s25fl1_read;
       priv->mtd.ioctl  = s25fl1_ioctl;
+      priv->mtd.name   = "s25fl1";
       priv->qspi       = qspi;
 
       /* Allocate a 4-byte buffer to support DMA command data */
@@ -1539,12 +1540,6 @@ FAR struct mtd_dev_s *s25fl1_initialize(FAR struct qspi_dev_s *qspi, bool unprot
         }
 #endif
     }
-
-#ifdef CONFIG_MTD_REGISTRATION
-  /* Register the MTD with the procfs system if enabled */
-
-  mtd_register(&priv->mtd, "s25fl1");
-#endif
 
   /* Return the implementation-specific state structure as the MTD device */
 

@@ -1,7 +1,7 @@
 ############################################################################
 # configs/stm32f4discovery/src/Makefile
 #
-#   Copyright (C) 2011-2013, 2015-2016, 2018 Gregory Nutt. All rights
+#   Copyright (C) 2011-2013, 2015-2016, 2018-2019 Gregory Nutt. All rights
 #     reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
@@ -45,6 +45,10 @@ else
 CSRCS += stm32_userleds.c
 endif
 
+ifeq ($(CONFIG_SCHED_CRITMONITOR),y)
+CSRCS += stm32_critmon.c
+endif
+
 ifeq ($(CONFIG_AUDIO_CS43L22),y)
 CSRCS += stm32_cs43l22.c
 endif
@@ -69,6 +73,10 @@ ifeq ($(CONFIG_SENSORS_BMP180),y)
 CSRCS += stm32_bmp180.c
 endif
 
+ifeq ($(CONFIG_SENSORS_MLX90614),y)
+  CSRCS += stm32_mlx90614.c
+endif
+
 ifeq ($(CONFIG_LCD_ST7567),y)
   CSRCS += stm32_st7567.c
 endif
@@ -91,6 +99,10 @@ endif
 
 ifeq ($(CONFIG_LCD_MAX7219),y)
   CSRCS += stm32_max7219.c
+endif
+
+ifeq ($(CONFIG_LCD_ST7032),y)
+  CSRCS += stm32_st7032.c
 endif
 
 ifeq ($(CONFIG_PCA9635PW),y)
@@ -127,6 +139,9 @@ endif
 
 ifeq ($(CONFIG_LIB_BOARDCTL),y)
 CSRCS += stm32_appinit.c
+ifeq ($(CONFIG_BOARDCTL_RESET),y)
+CSRCS += stm32_reset.c
+endif
 endif
 
 ifeq ($(CONFIG_ARCH_CUSTOM_PMINIT),y)
@@ -165,7 +180,7 @@ ifeq ($(CONFIG_LCD_UG2864HSWEG01),y)
 CSRCS += stm32_ug2864hsweg01.c
 endif
 
-ifeq ($(CONFIG_EXAMPLES_OSTEST),y)
+ifeq ($(CONFIG_TESTING_OSTEST),y)
 CSRCS += stm32_ostest.c
 endif
 

@@ -71,9 +71,9 @@
 #define ICMPv6_RESERVED_ERROR_MSG      127
 #define ICMPv6_ECHO_REQUEST            128
 #define ICMPv6_ECHO_REPLY              129
-#define ICMPV6_MCAST_LISTEN_QUERY      130   /* RFC 2710 */
-#define ICMPV6_MCAST_LISTEN_REPORT     131
-#define ICMPV6_MCAST_LISTEN_DONE       132
+#define ICMPV6_MCAST_LISTEN_QUERY      130   /* RFC 2710 and 3810 */
+#define ICMPV6_MCAST_LISTEN_REPORT_V1  131   /* RFC 2710 */
+#define ICMPV6_MCAST_LISTEN_DONE       132   /* RFC 2710 */
 #define ICMPV6_ROUTER_SOLICIT          133   /* RFC 4861 */
 #define ICMPV6_ROUTER_ADVERTISE        134
 #define ICMPv6_NEIGHBOR_SOLICIT        135
@@ -84,6 +84,7 @@
 #define ICMPV6_NODE_INFO_REPLY         140
 #define ICMPV6_INV_NEIGHBOR_DISCOVERY  141   /* RFC 3122 */
 #define ICMPV6_INV_NEIGHBOR_ADVERTISE  142
+#define ICMPV6_MCAST_LISTEN_REPORT_V2  143   /* RFC 3810 */
 #define ICMPV6_HOME_AGENT_DISCOVERY    144   /* RFC 3775 */
 #define ICMPV6_HOME_AGENT_REPLY        145
 #define ICMPV6_MOBILE_PREFIX_SOLICIT   146
@@ -127,8 +128,8 @@
  * layer address taking into account a header of the two-bytes.
  */
 
-#define ICMPv6_OPT_SIZE(a)    (((a) + 2 + 7) & ~7)
-#define ICMPv6_OPT_OCTECTS(a) (((a) + 2 + 7) >> 3)
+#define ICMPv6_OPT_SIZE(a)    ((a) > 0 ? ((a) + 2 + 7) & ~7 : 0)
+#define ICMPv6_OPT_OCTECTS(a) ((a) > 0 ? ((a) + 2 + 7) >> 3 : 0)
 
 /****************************************************************************
  * Public Type Definitions

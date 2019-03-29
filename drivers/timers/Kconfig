@@ -126,31 +126,8 @@ config RTC_ARCH
 config RTC_PERIODIC
 	bool "RTC Periodic Interrupts"
 	default n
-	depends on EXPERIMENTAL
 	---help---
 		Add interrupt controls for RTCs that support periodic interrupts.
-
-config RTC_ONESEC
-	bool "RTC Once-per-second interrupts"
-	default n
-	depends on EXPERIMENTAL
-	---help---
-		Add interrupt controls for RTCs that support once-per-second interrupts.
-
-config RTC_EPOCHYEAR
-	bool "RTC epoch year"
-	default n
-	depends on EXPERIMENTAL
-	---help---
-		Add controls for RTCs that support epoch year settings.
-
-		Many RTCs encode the year in an 8-bit register which is either interpreted
-		as an 8-bit binary number or as a BCD number. In both cases, the number is
-		interpreted relative to this RTC's Epoch. The RTC's Epoch is initialized to
-		1900 on most systems but on Alpha and MIPS it might also be initialized to
-		1952, 1980, or 2000, depending on the value of an RTC register for the year.
-		With some RTCs, these operations can be used to read or to set the RTC's
-		Epoch, respectively.
 
 config RTC_IOCTL
 	bool "RTC IOCTLs"
@@ -234,7 +211,7 @@ config RTC_PCF85263
 	select RTC_DATETIME
 	depends on RTC_EXTERNAL
 	---help---
-		Enables support for the Maxim Integrated DS3231 I2C RTC timer.
+		Enables support for the NXP PCF85263 I2C RTC timer.
 
 if RTC_PCF85263
 
@@ -244,6 +221,24 @@ config PCF85263_I2C_FREQUENCY
 	range 1 400000
 
 endif # RTC_PCF85263
+
+config RTC_MCP794XX
+	bool "MCP794XX RTC Driver"
+	default n
+	select I2C
+	select RTC_DATETIME
+	depends on RTC_EXTERNAL
+	---help---
+		Enables support for the Microchip MCP794XX I2C RTC timer.
+
+if RTC_MCP794XX
+
+config MCP794XX_I2C_FREQUENCY
+	int "MCP794XX I2C frequency"
+	default 400000
+	range 1 400000
+
+endif # RTC_MCP794XX
 endif # RTC
 
 menuconfig WATCHDOG
@@ -259,6 +254,40 @@ if WATCHDOG
 config WATCHDOG_DEVPATH
 	string "Watchdog Device Path"
 	default "/dev/watchdog0"
+
+config WATCHDOG_AUTOMONITOR
+	bool "Auto-monitor"
+	---help---
+		The auto-monitor provides an OS-internal mechanism for automatically
+		start and repeatly reset the counting after the watchdog is register.
+
+if WATCHDOG_AUTOMONITOR
+
+config WATCHDOG_AUTOMONITOR_TIMEOUT
+	int "Auto-monitor reset timeout(second)"
+	default 60
+
+choice
+	prompt "Auto-monitor keepalive by"
+	default WATCHDOG_AUTOMONITOR_BY_TIMER
+
+config WATCHDOG_AUTOMONITOR_BY_CAPTURE
+	bool "Capture callback"
+
+config WATCHDOG_AUTOMONITOR_BY_TIMER
+	bool "Timer callback"
+
+config WATCHDOG_AUTOMONITOR_BY_WORKER
+	bool "Worker callback"
+	depends on SCHED_WORKQUEUE
+
+config WATCHDOG_AUTOMONITOR_BY_IDLE
+	bool "Idle callback"
+	depends on PM
+
+endchoice
+
+endif # WATCHDOG_AUTOMONITOR
 
 endif # WATCHDOG
 

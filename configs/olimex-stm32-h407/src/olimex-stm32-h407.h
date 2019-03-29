@@ -47,6 +47,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
 
 #define HAVE_USBDEV     1
@@ -103,7 +104,6 @@
 #define SDIO_SLOTNO 0  /* Only one slot */
 
 #ifdef HAVE_SDIO
-
 #  if defined(CONFIG_NSH_MMCSDSLOTNO) && CONFIG_NSH_MMCSDSLOTNO != 0
 #    warning Only one MMC/SD slot, slot 0
 #    define CONFIG_NSH_MMCSDSLOTNO SDIO_SLOTNO
@@ -113,19 +113,6 @@
 #    define SDIO_MINOR CONFIG_NSH_MMCSDMINOR
 #  else
 #    define SDIO_MINOR 0
-#  endif
-
-  /* SD card bringup does not work if performed on the IDLE thread because it
-   * will cause waiting.  Use either:
-   *
-   *  CONFIG_LIB_BOARDCTL=y, OR
-   *  CONFIG_BOARD_INITIALIZE=y && CONFIG_BOARD_INITTHREAD=y
-   */
-
-#  if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_LIB_BOARDCTL) && \
-     !defined(CONFIG_BOARD_INITTHREAD)
-#    warning SDIO initialization cannot be perfomed on the IDLE thread
-#    undef HAVE_SDIO
 #  endif
 #endif
 
@@ -220,8 +207,8 @@
  *       Called from the NSH library (or other application)
  *     Otherse, assumed to be called from some other application.
  *
- *   Otherwise CONFIG_BOARD_INITIALIZE=y:
- *     Called from board_initialize().
+ *   Otherwise CONFIG_BOARD_LATE_INITIALIZE=y:
+ *     Called from board_late_initialize().
  *
  *   Otherise, bad news:  Never called
  *

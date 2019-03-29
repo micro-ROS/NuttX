@@ -58,8 +58,6 @@
 
 #include "syslog.h"
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -325,7 +323,6 @@ static int syslog_dev_outputready(void)
 
 int syslog_dev_initialize(FAR const char *devpath, int oflags, int mode)
 {
-  int fd;
   int ret;
 
   /* At this point, the only expected states are SYSLOG_UNINITIALIZED or
@@ -366,12 +363,9 @@ int syslog_dev_initialize(FAR const char *devpath, int oflags, int mode)
 
   /* Open the device driver. */
 
-  fd = open(devpath, oflags, mode);
-  if (fd < 0)
+  ret = file_open(&g_syslog_dev.sl_file, devpath, oflags, mode);
+  if (ret < 0)
     {
-       int errcode = get_errno();
-       DEBUGASSERT(errcode > 0);
-
       /* We failed to open the file. Perhaps it does exist?  Perhaps it
        * exists, but is not ready because it depends on insertion of a
        * removable device?
@@ -383,23 +377,6 @@ int syslog_dev_initialize(FAR const char *devpath, int oflags, int mode)
        */
 
       g_syslog_dev.sl_state = SYSLOG_REOPEN;
-      return -errcode;
-    }
-
-  /* Detach the file descriptor from the file structure.  The file
-   * descriptor is a task-specific concept.  Detaching the file
-   * descriptor allows us to use the device on all threads in all tasks.
-   */
-
-  ret = file_detach(fd, &g_syslog_dev.sl_file);
-  if (ret < 0)
-    {
-      /* This should not happen and means that something very bad has
-       * occurred.
-       */
-
-      g_syslog_dev.sl_state = SYSLOG_FAILURE;
-      close(fd);
       return ret;
     }
 
@@ -441,7 +418,7 @@ int syslog_dev_uninitialize(void)
 
   /* Close the detached file instance */
 
-  (void)file_close_detached(&g_syslog_dev.sl_file);
+  (void)file_close(&g_syslog_dev.sl_file);
 
   /* Free the device path */
 
@@ -719,4 +696,3 @@ int syslog_dev_flush(void)
   return OK;
 }
 
-#endif /* CONFIG_NFILE_DESCRIPTORS > 0 */

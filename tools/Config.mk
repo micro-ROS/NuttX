@@ -38,6 +38,10 @@
 #
 ############################################################################
 
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+export SHELL=cmd
+endif
+
 # These are configuration variables that are quoted by configuration tool
 # but which must be unquoated when used in the build system.
 
@@ -268,6 +272,18 @@ define MOVEFILE
 endef
 endif
 
+# COPYFILE - Copy one file
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+define COPYFILE
+	$(Q) if exist $1 (copy /y /b $1 $2)
+endef
+else
+define COPYFILE
+	$(Q) cp -f $1 $2
+endef
+endif
+
 # CATFILE - Cat and append a list of files
 #
 # USAGE: $(call CATFILE,dest,src1,src2,src3,...)
@@ -292,7 +308,7 @@ endif
 # FILELIST = ${shell find <dir> -name <wildcard-file>}
 
 define RWILDCARD
-  $(foreach d,$(wildcard $1/*),$(call RWILDCARD,$d/)$(filter $(subst *,%,$2),$d))
+  $(foreach d,$(wildcard $1/*),$(call RWILDCARD,$d,$2)$(filter $(subst *,%,$2),$d))
 endef
 
 # CLEAN - Default clean target

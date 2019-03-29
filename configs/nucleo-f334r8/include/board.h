@@ -34,8 +34,8 @@
  *
  ****************************************************************************/
 
-#ifndef __CONFIG_STM32F3DISCOVERY_INCLUDE_BOARD_H
-#define __CONFIG_STM32F3DISCOVERY_INCLUDE_BOARD_H
+#ifndef __CONFIG_NUCLEO_F334R8_INCLUDE_BOARD_H
+#define __CONFIG_NUCLEO_F334R8_INCLUDE_BOARD_H
 
 /****************************************************************************
  * Included Files
@@ -87,7 +87,7 @@
 /* AHB clock (HCLK) is SYSCLK (72MHz) */
 
 #define STM32_RCC_CFGR_HPRE     RCC_CFGR_HPRE_SYSCLK
-#define STM32_HCLK_FREQUENCY    STM32_PLL_FREQUENCY
+#define STM32_HCLK_FREQUENCY    STM32_SYSCLK_FREQUENCY
 #define STM32_BOARD_HCLK        STM32_HCLK_FREQUENCY
 
 /* APB2 clock (PCLK2) is HCLK (72MHz) */
@@ -233,11 +233,11 @@
 
 /* By default the USART2 is connected to STLINK Virtual COM Port:
  * USART2_RX - PA3
- * USART2_TX - PA4
+ * USART2_TX - PA2
  */
 
 #define GPIO_USART2_RX GPIO_USART2_RX_1 /* PA3 */
-#define GPIO_USART2_TX GPIO_USART2_TX_1 /* PA4 */
+#define GPIO_USART2_TX GPIO_USART2_TX_1 /* PA2 */
 
 #define GPIO_USART1_RX GPIO_USART1_RX_1 /* PA10 */
 #define GPIO_USART1_TX GPIO_USART1_TX_1 /* PA9 */
@@ -250,24 +250,101 @@
 #define OPAMP2_VPSEL OPAMP2_VPSEL_PB14
 
 /* Configuration specific to high priority interrupts example:
- *   - HRTIM Timer A trigger for ADC if DMA transfer
+ *   - HRTIM Timer A trigger for ADC if DMA transfer and HRTIM
+ *   - TIM1 CC1 trigger for ADC if DMA transfer and TIM1 PWM
  *   - ADC DMA transfer on DMA1_CH1
  */
 
 #ifdef CONFIG_NUCLEOF334R8_HIGHPRI
 
-/* HRTIM */
+#if defined(CONFIG_STM32_HRTIM1) && defined(CONFIG_STM32_ADC1_DMA)
+
+/* HRTIM - ADC trigger */
 
 #define HRTIM_TIMA_PRESCALER HRTIM_PRESCALER_128
 #define HRTIM_TIMA_MODE      HRTIM_MODE_CONT
+#define HRTIM_TIMA_UPDATE    0
+#define HRTIM_TIMA_RESET     0
 
 #define HRTIM_ADC_TRG1       HRTIM_ADCTRG13_APER
+
+#endif  /* CONFIG_STM32_HRTIM1 && CONFIG_STM32_ADC1_DMA*/
+
+#if defined(CONFIG_STM32_TIM1_PWM) && defined(CONFIG_STM32_ADC1_DMA)
+
+/* TIM1 - ADC trigger */
+
+#define ADC1_EXTSEL_VALUE ADC1_EXTSEL_T1CC1
+
+#endif  /* CONFIG_STM32_TIM1_PWM && CONFIG_STM32_ADC1_DMA */
+#endif  /* CONFIG_NUCLEOF334R8_HIGHPRI */
+
+#ifdef CONFIG_NUCLEOF334R8_SPWM
+#  ifdef CONFIG_NUCLEOF334R8_SPWM_USE_TIM1
+
+/* TIM1 PWM configuration ***************************************************/
+
+#    define PWM_TIM1_NCHANNELS 4
+
+#    define GPIO_TIM1_CH1OUT   GPIO_TIM1_CH1OUT_1 /* TIM1 CH1  - PA8 */
+#    define GPIO_TIM1_CH1NOUT  GPIO_TIM1_CH1N_3   /* TIM1 CH1N - PA7 */
+                                                  /* TIM1 CH2  - PA9 */
+#    define GPIO_TIM1_CH2NOUT  GPIO_TIM1_CH2N_2   /* TIM1 CH2N - PB0 */
+#    define GPIO_TIM1_CH3OUT   GPIO_TIM1_CH3OUT_1 /* TIM1 CH3  - PA10 */
+#    define GPIO_TIM1_CH3NOUT  GPIO_TIM1_CH3N_2   /* TIM1 CH3N - PB1 */
+#    define GPIO_TIM1_CH4OUT   GPIO_TIM1_CH4OUT_1 /* TIM1 CH4  - PA11 */
+#  endif
+
+#  ifdef CONFIG_NUCLEOF334R8_SPWM_USE_HRTIM1
+
+/* HRTIM configuration ******************************************************/
+
+#    define HRTIM_MASTER_PRESCALER HRTIM_PRESCALER_128
+#    define HRTIM_MASTER_MODE      HRTIM_MODE_CONT
+
+#    define HRTIM_TIMA_PRESCALER HRTIM_PRESCALER_128
+#    define HRTIM_TIMA_MODE      (HRTIM_MODE_CONT | HRTIM_MODE_PRELOAD)
+#    define HRTIM_TIMA_CH1_SET   HRTIM_OUT_SET_PER
+#    define HRTIM_TIMA_CH1_RST   HRTIM_OUT_RST_CMP1
+#    define HRTIM_TIMA_UPDATE    HRTIM_UPDATE_MSTU
+#    define HRTIM_TIMA_RESET     0
+
+#    define HRTIM_TIMB_PRESCALER HRTIM_PRESCALER_128
+#    define HRTIM_TIMB_MODE      (HRTIM_MODE_CONT | HRTIM_MODE_PRELOAD)
+#    define HRTIM_TIMB_CH1_SET   HRTIM_OUT_SET_PER
+#    define HRTIM_TIMB_CH1_RST   HRTIM_OUT_RST_CMP1
+#    define HRTIM_TIMB_UPDATE    HRTIM_UPDATE_MSTU
+#    define HRTIM_TIMB_RESET     0
+
+#    define HRTIM_TIMC_PRESCALER HRTIM_PRESCALER_128
+#    define HRTIM_TIMC_MODE      (HRTIM_MODE_CONT | HRTIM_MODE_PRELOAD)
+#    define HRTIM_TIMC_CH1_SET   HRTIM_OUT_SET_PER
+#    define HRTIM_TIMC_CH1_RST   HRTIM_OUT_RST_CMP1
+#    define HRTIM_TIMC_UPDATE    HRTIM_UPDATE_MSTU
+#    define HRTIM_TIMC_RESET     0
+
+#    define HRTIM_TIMD_PRESCALER HRTIM_PRESCALER_128
+#    define HRTIM_TIMD_MODE      (HRTIM_MODE_CONT | HRTIM_MODE_PRELOAD)
+#    define HRTIM_TIMD_CH1_SET   HRTIM_OUT_SET_PER
+#    define HRTIM_TIMD_CH1_RST   HRTIM_OUT_RST_CMP1
+#    define HRTIM_TIMD_UPDATE    HRTIM_UPDATE_MSTU
+#    define HRTIM_TIMD_RESET     0
+
+#    define HRTIM_TIME_PRESCALER HRTIM_PRESCALER_128
+#    define HRTIM_TIME_MODE      (HRTIM_MODE_CONT | HRTIM_MODE_PRELOAD)
+#    define HRTIM_TIME_CH1_SET   HRTIM_OUT_SET_PER
+#    define HRTIM_TIME_CH1_RST   HRTIM_OUT_RST_CMP1
+#    define HRTIM_TIME_UPDATE    HRTIM_UPDATE_MSTU
+#    define HRTIM_TIME_RESET     0
+
+#    define HRTIM_MASTER_IRQ     HRTIM_IRQ_MCMP1
+#  endif
+
+#endif  /* CONFIG_NUCLEOF334R8_SPWM */
 
 /* DMA channels *************************************************************/
 /* ADC */
 
 #define ADC1_DMA_CHAN DMACHAN_ADC1     /* DMA1_CH1 */
-
-#endif  /* CONFIG_NUCLEOF334R8_HIGHPRI */
 
 #endif /* __CONFIG_NUCLEO_F334R8_INCLUDE_BOARD_H */

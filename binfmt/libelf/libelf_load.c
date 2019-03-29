@@ -45,12 +45,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <elf32.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/addrenv.h>
+#include <nuttx/mm/mm.h>
 #include <nuttx/binfmt/elf.h>
 
 #include "libelf.h"
@@ -245,7 +246,7 @@ static inline int elf_loadfile(FAR struct elf_loadinfo_s *loadinfo)
 int elf_load(FAR struct elf_loadinfo_s *loadinfo)
 {
   size_t heapsize;
-#ifdef CONFIG_UCLIBCXX_EXCEPTION
+#ifdef CONFIG_CXX_EXCEPTION
   int exidx;
 #endif
   int ret;
@@ -278,7 +279,7 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
 #elif defined(CONFIG_ARCH_STACK_DYNAMIC)
   heapsize = ARCH_HEAP_SIZE;
 #else
-  heapsize = MIN(ARCH_HEAP_SIZE, CONFIG_ELF_STACKSIZE);
+  heapsize = MAX(ARCH_HEAP_SIZE, CONFIG_ELF_STACKSIZE);
 #endif
 
   /* Allocate (and zero) memory for the ELF file. */
@@ -302,6 +303,13 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
       berr("ERROR: elf_addrenv_select() failed: %d\n", ret);
       goto errout_with_buffers;
     }
+
+#ifdef CONFIG_BUILD_KERNEL
+  /* Initialize the user heap */
+
+  umm_initialize((FAR void *)CONFIG_ARCH_HEAP_VBASE,
+                 up_addrenv_heapsize(&loadinfo->addrenv));
+#endif
 #endif
 
   /* Load ELF section data into memory */
@@ -331,7 +339,7 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
     }
 #endif
 
-#ifdef CONFIG_UCLIBCXX_EXCEPTION
+#ifdef CONFIG_CXX_EXCEPTION
   exidx = elf_findsection(loadinfo, CONFIG_ELF_EXIDX_SECTNAME);
   if (exidx < 0)
     {

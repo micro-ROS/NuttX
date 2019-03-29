@@ -586,12 +586,6 @@ static int stm32_tim_setisr(FAR struct stm32_tim_dev_s *dev,
   irq_attach(vectorno, handler, arg);
   up_enable_irq(vectorno);
 
-#ifdef CONFIG_ARCH_IRQPRIO
-  /* Set the interrupt priority */
-
-  up_prioritize_irq(vectorno, NVIC_SYSH_PRIORITY_DEFAULT);
-#endif
-
   return OK;
 }
 
@@ -717,6 +711,11 @@ static int stm32_tim_setchannel(FAR struct stm32_tim_dev_s *dev, uint8_t channel
         ccmr_val  =  (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC1M_SHIFT) + ATIM_CCMR1_OC1PE;
         ccer_val |= ATIM_CCER_CC1E << (channel << 2);
         break;
+
+      case STM32_TIM_CH_OUTTOGGLE:
+          ccmr_val  =  (ATIM_CCMR_MODE_OCREFTOG << ATIM_CCMR1_OC1M_SHIFT) + ATIM_CCMR1_OC1PE;
+          ccer_val |= ATIM_CCER_CC1E << (channel << 2);
+          break;
 
       default:
         return -EINVAL;

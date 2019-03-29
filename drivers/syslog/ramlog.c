@@ -127,9 +127,6 @@ static int     ramlog_poll(FAR struct file *filep, FAR struct pollfd *fds,
 #ifdef CONFIG_RAMLOG_SYSLOG
 static const struct syslog_channel_s g_ramlog_syslog_channel =
 {
-#ifdef CONFIG_SYSLOG_WRITE
-  syslog_default_write,
-#endif
   ramlog_putc,
   ramlog_putc,
   ramlog_flush
@@ -236,7 +233,7 @@ static void ramlog_pollnotify(FAR struct ramlog_dev_s *priv,
  * Name: ramlog_addchar
  ****************************************************************************/
 
-static int ramlog_addchar(FAR struct ramlog_dev_s *priv, char ch)
+static ssize_t ramlog_addchar(FAR struct ramlog_dev_s *priv, char ch)
 {
   irqstate_t flags;
   size_t nexthead;

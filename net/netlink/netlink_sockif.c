@@ -128,7 +128,7 @@ const struct sock_intf_s g_netlink_sockif =
  *   protocol (see sys/socket.h)
  *
  * Returned Value:
- *   Zero (OK) is returned on success.  Otherwise, a negater errno value is
+ *   Zero (OK) is returned on success.  Otherwise, a negated errno value is
  *   returned.
  *
  ****************************************************************************/
@@ -298,8 +298,7 @@ static int netlink_getpeername(FAR struct socket *psock,
                                FAR socklen_t *addrlen)
 {
 #warning Missing logic for NETLINK getsockname
-  return -EOPNOTSUPP;
-//return -EAFNOSUPPORT;
+  return -EOPNOTSUPP;  /* Or maybe return -EAFNOSUPPORT; */
 }
 
 /****************************************************************************

@@ -69,7 +69,7 @@
 
 /* These change on 32-bit and 64-bit platforms */
 
-#if defined(CONFIG_ARCH_32IM) || defined(CONFIG_ARCH_32I)
+#if defined(CONFIG_ARCH_RV32IM) || defined(CONFIG_ARCH_RV32I)
 
 #define LONG_MIN    (-LONG_MAX - 1)
 #define LONG_MAX    2147483647L

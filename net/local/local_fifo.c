@@ -82,16 +82,16 @@ static inline void local_cs_name(FAR struct local_conn_s *conn,
 {
   if (conn->lc_instance_id < 0)
     {
-      (void)snprintf(path, LOCAL_FULLPATH_LEN-1, "%s" LOCAL_CS_SUFFIX,
+      (void)snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_CS_SUFFIX,
                      conn->lc_path);
     }
   else
     {
-      (void)snprintf(path, LOCAL_FULLPATH_LEN-1, "%s" LOCAL_CS_SUFFIX "%x",
+      (void)snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_CS_SUFFIX "%x",
                      conn->lc_path, conn->lc_instance_id);
     }
 
-  path[LOCAL_FULLPATH_LEN-1] = '\0';
+  path[LOCAL_FULLPATH_LEN - 1] = '\0';
 }
 #endif /* CONFIG_NET_LOCAL_STREAM */
 
@@ -109,16 +109,16 @@ static inline void local_sc_name(FAR struct local_conn_s *conn,
 {
   if (conn->lc_instance_id < 0)
     {
-      (void)snprintf(path, LOCAL_FULLPATH_LEN-1, "%s" LOCAL_SC_SUFFIX,
+      (void)snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_SC_SUFFIX,
                      conn->lc_path);
     }
   else
     {
-      (void)snprintf(path, LOCAL_FULLPATH_LEN-1, "%s" LOCAL_SC_SUFFIX "%x",
+      (void)snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_SC_SUFFIX "%x",
                      conn->lc_path, conn->lc_instance_id);
     }
 
-  path[LOCAL_FULLPATH_LEN-1] = '\0';
+  path[LOCAL_FULLPATH_LEN - 1] = '\0';
 }
 #endif /* CONFIG_NET_LOCAL_STREAM */
 
@@ -133,8 +133,9 @@ static inline void local_sc_name(FAR struct local_conn_s *conn,
 #ifdef CONFIG_NET_LOCAL_DGRAM
 static inline void local_hd_name(FAR const char *inpath, FAR char *outpath)
 {
-  (void)snprintf(outpath, LOCAL_FULLPATH_LEN-1, "%s" LOCAL_HD_SUFFIX, inpath);
-  outpath[LOCAL_FULLPATH_LEN-1] = '\0';
+  (void)snprintf(outpath, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_HD_SUFFIX,
+                 inpath);
+  outpath[LOCAL_FULLPATH_LEN - 1] = '\0';
 }
 #endif /* CONFIG_NET_LOCAL_DGRAM */
 
@@ -254,35 +255,22 @@ static int local_rx_open(FAR struct local_conn_s *conn, FAR const char *path,
 {
   int oflags = nonblock ? O_RDONLY | O_NONBLOCK : O_RDONLY;
   int ret;
-  int fd;
 
-  fd = open(path, oflags);
-  if (fd < 0)
+  ret = file_open(&conn->lc_infile, path, oflags);
+  if (ret < 0)
     {
-      int errcode = get_errno();
-      DEBUGASSERT(errcode > 0);
-
       nerr("ERROR: Failed on open %s for reading: %d\n",
-           path, errcode);
+           path, ret);
 
-      /* Map the errcode to something consistent with the return
+      /* Map the error code to something consistent with the return
        * error codes from connect():
        *
-       * If errcode is ENOENT, meaning that the FIFO does exist,
+       * If error is ENOENT, meaning that the FIFO does exist,
        * return EFAULT meaning that the socket structure address is
        * outside the user's address space.
        */
 
-      return errcode == ENOENT ? -EFAULT : -errcode;
-    }
-
-  /* Detach the file descriptor from the open file instance */
-
-  ret = file_detach(fd, &conn->lc_infile);
-  if (ret < 0)
-    {
-      close(fd);
-      return ret;
+      return ret == -ENOENT ? -EFAULT : ret;
     }
 
   return OK;
@@ -301,35 +289,22 @@ static int local_tx_open(FAR struct local_conn_s *conn, FAR const char *path,
 {
   int oflags = nonblock ? O_WRONLY | O_NONBLOCK : O_WRONLY;
   int ret;
-  int fd;
 
-  fd = open(path, oflags);
-  if (fd < 0)
+  ret = file_open(&conn->lc_outfile, path, oflags);
+  if (ret < 0)
     {
-      int errcode = get_errno();
-      DEBUGASSERT(errcode > 0);
-
       nerr("ERROR: Failed on open %s for writing: %d\n",
-           path, errcode);
+           path, ret);
 
-      /* Map the errcode to something consistent with the return
+      /* Map the error code to something consistent with the return
        * error codes from connect():
        *
-       * If errcode is ENOENT, meaning that the FIFO does exist,
+       * If error is ENOENT, meaning that the FIFO does exist,
        * return EFAULT meaning that the socket structure address is
        * outside the user's address space.
        */
 
-      return errcode == ENOENT ? -EFAULT : -errcode;
-    }
-
-  /* Detach the file descriptor from the open file instance */
-
-  ret = file_detach(fd, &conn->lc_outfile);
-  if (ret < 0)
-    {
-      close(fd);
-      return ret;
+      return ret == -ENOENT ? -EFAULT : ret;
     }
 
   return OK;

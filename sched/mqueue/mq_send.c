@@ -82,7 +82,8 @@
  *
  ****************************************************************************/
 
-int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen, int prio)
+int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen,
+              unsigned int prio)
 {
   FAR struct mqueue_inode_s  *msgq;
   FAR struct mqueue_msg_s *mqmsg = NULL;
@@ -121,8 +122,8 @@ int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen, int prio)
 
       if (msgq->nmsgs >= msgq->maxmsgs) /* Message queue not-FULL? */
         {
-         /* Yes.. the message queue is full.  Wait for space to become
-          * available in the message queue.
+          /* Yes.. the message queue is full.  Wait for space to become
+           * available in the message queue.
            */
 
           ret = nxmq_wait_send(mqdes);
@@ -138,7 +139,7 @@ int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen, int prio)
 
       mqmsg = nxmq_alloc_msg();
 
-      /* Check if the message was sucessfully allocated */
+      /* Check if the message was successfully allocated */
 
       ret = (mqmsg == NULL) ? -ENOMEM : OK;
     }
@@ -207,7 +208,7 @@ int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen, int prio)
  *
  ****************************************************************************/
 
-int mq_send(mqd_t mqdes, FAR const char *msg, size_t msglen, int prio)
+int mq_send(mqd_t mqdes, FAR const char *msg, size_t msglen, unsigned int prio)
 {
   int ret;
 

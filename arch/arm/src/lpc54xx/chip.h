@@ -50,9 +50,9 @@
 #include <arch/lpc54xx/chip.h>
 #include "chip/lpc54_memorymap.h"
 
-/* If the common ARMv7-M vector handling logic is used, then it expects the
- * following definition in this file that provides the number of supported external
- * interrupts which, for this architecture, is provided in the arch/lpc54xx/chip.h
+/* The common ARMv7-M vector handling logic expects the following definition in this
+ * file.  ARMV7M_PERIPHERAL_INTERRUPTS provides the number of supported external
+ * interrupts which, for this architecture, is provided in the arch/lpc54xx/irq.h
  * header file.
  */
 

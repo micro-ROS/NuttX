@@ -70,10 +70,6 @@
 #  define DMA_NCHANNELS  DMA1_NCHANNELS
 #endif
 
-#ifndef CONFIG_DMA_PRI
-#  define CONFIG_DMA_PRI NVIC_SYSH_PRIORITY_DEFAULT
-#endif
-
 /* Convert the DMA channel base address to the DMA register block address */
 
 #define DMA_BASE(ch)     (ch & 0xfffffc00)
@@ -342,7 +338,7 @@ static int stm32l4_dmainterrupt(int irq, void *context, FAR void *arg)
  *
  ****************************************************************************/
 
-void weak_function up_dmainitialize(void)
+void weak_function up_dma_initialize(void)
 {
   struct stm32l4_dma_s *dmach;
   int chndx;
@@ -365,12 +361,6 @@ void weak_function up_dmainitialize(void)
       /* Enable the IRQ at the NVIC (still disabled at the DMA controller) */
 
       up_enable_irq(dmach->irq);
-
-#ifdef CONFIG_ARCH_IRQPRIO
-      /* Set the interrupt priority */
-
-      up_prioritize_irq(dmach->irq, CONFIG_DMA_PRI);
-#endif
     }
 }
 

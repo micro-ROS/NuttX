@@ -45,6 +45,8 @@
 #include <nuttx/board.h>
 #include <nuttx/mm/iob.h>
 #include <nuttx/serial/pty.h>
+#include <nuttx/syslog/syslog.h>
+#include <nuttx/drivers/drivers.h>
 
 #include <arch/board/board.h>
 
@@ -129,7 +131,6 @@ void up_initialize(void)
   iob_initialize();
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
   /* Register devices */
 
 #if defined(CONFIG_DEV_NULL)
@@ -139,8 +140,6 @@ void up_initialize(void)
 #if defined(CONFIG_DEV_ZERO)
   devzero_register();   /* Standard /dev/zero */
 #endif
-
-#endif /* CONFIG_NFILE_DESCRIPTORS */
 
   /* Initialize the serial device driver */
 
@@ -154,13 +153,13 @@ void up_initialize(void)
 
 #if defined(CONFIG_DEV_LOWCONSOLE)
   lowconsole_init();
-#elif defined(CONFIG_SYSLOG_CONSOLE)
+#elif defined(CONFIG_CONSOLE_SYSLOG)
   syslog_console_init();
 #elif defined(CONFIG_RAMLOG_CONSOLE)
   ramlog_consoleinit();
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_PSEUDOTERM_SUSV1)
+#ifdef CONFIG_PSEUDOTERM_SUSV1
   /* Register the master pseudo-terminal multiplexor device */
 
   (void)ptmx_register();

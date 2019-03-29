@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/mips/src/pic32mz/pic32mz-head.S
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
 
 #ifdef CONFIG_PIC32MZ_MVEC
@@ -126,7 +127,7 @@
 
 	/* Imported symbols */
 
-	.global os_start
+	.global nx_start
 	.global	pic32mz_exception
 	.global pic32mz_decodeirq
 #ifdef CONFIG_PIC32MZ_NMIHANDLER
@@ -328,9 +329,9 @@ _int_exception:
  *
  * Description:
  *   This is the KSEG0 startup code.  It receives control from the reset
- *   entry point.  This lgic This prepares the processor to execute
+ *   entry point.  This logic prepares the processor to execute
  *   C code, performs some very low-level initialization, then starts NuttX
- *   (via __start_nuttx
+ *   (via __start_nuttx)
  *
  * Input Parameters:
  *   None
@@ -377,21 +378,28 @@ __start:
 
 	la		gp, _gp
 
-	/* Initialize Global Pointer in Shadow Set.  The SRSCtl PSS field must
+	/* Initialize Global Pointer in Shadow Sets. The SRSCtl PSS field must
 	 * be set to the shadow set in which to initialize the global pointer.
-	 * Since we only have a single shadow set, we will initialize
-	 * SRSCtl PSS to SRSCtl HSS.  We then write the global pointer to the
+	 * We initialize PSS to the number of register sets and work down to
+	 * set zero. We then write the global pointer to the
 	 * previous shadow set to ensure that on interrupt, the global pointer
 	 * has been initialized.
 	 */
 
 	mfc0	t1, PIC32MZ_CP0_SRSCTL	/* Read SRSCtl register */
 	add		t3, t1, zero			/* Save off current SRSCtl */
-	ext		t2, t1, 26, 4			/* to obtain HSS field */
+	ext 	t2, t1, 26, 4			/* Extract the HSS field */
+
+.Lsrsloop:
 	ins		t1, t2, 6, 4			/* Put HSS field */
 	mtc0	t1, PIC32MZ_CP0_SRSCTL	/* into SRSCtl PSS  */
+	ehb 							/* Clear hazard before using new SRSCTL */
 	wrpgpr	gp, gp					/* Set global pointer in PSS */
+	addiu	t2, t2, -1				/* Move to the next shadow set */
+	bne 	t2, $0, .Lsrsloop
+
 	mtc0	t3, PIC32MZ_CP0_SRSCTL	/* Restore SRSCtl */
+	ehb
 
 	/* Clear uninitialized data sections */
 
@@ -531,6 +539,16 @@ __start:
 	and		t0, t0, ~CP0_STATUS_BEV	/* Clear BEV */
 	mtc0	t0, PIC32MZ_CP0_STATUS
 
+#ifdef CONFIG_MIPS_MICROMIPS
+	/* Exception handlers are also being compiled for microMIPS, so enable
+	 * config3ISAOnExc now that exception vectors have been [re]located.
+	 */
+
+	mfc0	t0, MICROAPTIV_CP0_CONFIG3		/* Load CONFIG3 register */
+	or		t0, t0, CP0_CONFIG3_ISAONEXC	/* Specify microMIPS mode on exceptions */
+	mtc0	t0, MICROAPTIV_CP0_CONFIG3		/* Update CONFIG3 register */
+#endif
+
 	/* Start NuttX. We do this via a thunk in the text section so that
 	 * a normal jump and link can be used, enabling the startup code
 	 * to work properly whether main is written in MIPS16 or MIPS32
@@ -658,9 +676,9 @@ __start_nuttx:
 	jalr    ra, t0
 	nop
 
-	/* Call os_start */
+	/* Call nx_start */
 
-	la		t0, os_start
+	la		t0, nx_start
 	jalr	ra, t0
 	nop
 

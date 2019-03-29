@@ -5,6 +5,7 @@
  *   Copyright (C) 2015 Omni Hoverboards Inc. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            Paul Alexander Patience <paul-a.patience@polymtl.ca>
+ *            Mateusz Szafoni <raiden00@railab.me>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +50,8 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
+
+#include <nuttx/drivers/pwm.h>
 
 #include "chip.h"
 
@@ -115,56 +118,33 @@
 
 /* Check if PWM support for any channel is enabled. */
 
-#if defined(CONFIG_STM32_TIM1_PWM)  || defined(CONFIG_STM32_TIM2_PWM)  || \
-    defined(CONFIG_STM32_TIM3_PWM)  || defined(CONFIG_STM32_TIM4_PWM)  || \
-    defined(CONFIG_STM32_TIM5_PWM)  || defined(CONFIG_STM32_TIM8_PWM)  || \
-    defined(CONFIG_STM32_TIM9_PWM)  || defined(CONFIG_STM32_TIM10_PWM) || \
-    defined(CONFIG_STM32_TIM11_PWM) || defined(CONFIG_STM32_TIM12_PWM) || \
-    defined(CONFIG_STM32_TIM13_PWM) || defined(CONFIG_STM32_TIM14_PWM) || \
-    defined(CONFIG_STM32_TIM15_PWM) || defined(CONFIG_STM32_TIM16_PWM) || \
-    defined(CONFIG_STM32_TIM17_PWM)
+#ifdef CONFIG_STM32_PWM
 
 #include <arch/board/board.h>
 #include "chip/stm32_tim.h"
 
+/* Configuration needed by upper-half PWM driver */
+
+#ifdef CONFIG_PWM
+
 #ifdef CONFIG_PWM_MULTICHAN
 
 #ifdef CONFIG_STM32_TIM1_CHANNEL1
-#  ifdef CONFIG_STM32_TIM1_CH1OUT
-#    define PWM_TIM1_CH1CFG GPIO_TIM1_CH1OUT
-#  else
-#    define PWM_TIM1_CH1CFG 0
-#  endif
 #  define PWM_TIM1_CHANNEL1 1
 #else
 #  define PWM_TIM1_CHANNEL1 0
 #endif
 #ifdef CONFIG_STM32_TIM1_CHANNEL2
-#  ifdef CONFIG_STM32_TIM1_CH2OUT
-#    define PWM_TIM1_CH2CFG GPIO_TIM1_CH2OUT
-#  else
-#    define PWM_TIM1_CH2CFG 0
-#  endif
 #  define PWM_TIM1_CHANNEL2 1
 #else
 #  define PWM_TIM1_CHANNEL2 0
 #endif
 #ifdef CONFIG_STM32_TIM1_CHANNEL3
-#  ifdef CONFIG_STM32_TIM1_CH3OUT
-#    define PWM_TIM1_CH3CFG GPIO_TIM1_CH3OUT
-#  else
-#    define PWM_TIM1_CH3CFG 0
-#  endif
 #  define PWM_TIM1_CHANNEL3 1
 #else
 #  define PWM_TIM1_CHANNEL3 0
 #endif
 #ifdef CONFIG_STM32_TIM1_CHANNEL4
-#  ifdef CONFIG_STM32_TIM1_CH4OUT
-#    define PWM_TIM1_CH4CFG GPIO_TIM1_CH4OUT
-#  else
-#    define PWM_TIM1_CH4CFG 0
-#  endif
 #  define PWM_TIM1_CHANNEL4 1
 #else
 #  define PWM_TIM1_CHANNEL4 0
@@ -173,41 +153,21 @@
                             PWM_TIM1_CHANNEL3 + PWM_TIM1_CHANNEL4)
 
 #ifdef CONFIG_STM32_TIM2_CHANNEL1
-#  ifdef CONFIG_STM32_TIM2_CH1OUT
-#    define PWM_TIM2_CH1CFG GPIO_TIM2_CH1OUT_1
-#  else
-#    define PWM_TIM2_CH1CFG 0
-#  endif
 #  define PWM_TIM2_CHANNEL1 1
 #else
 #  define PWM_TIM2_CHANNEL1 0
 #endif
 #ifdef CONFIG_STM32_TIM2_CHANNEL2
-#  ifdef CONFIG_STM32_TIM2_CH2OUT
-#    define PWM_TIM2_CH2CFG GPIO_TIM2_CH2OUT
-#  else
-#    define PWM_TIM2_CH2CFG 0
-#  endif
 #  define PWM_TIM2_CHANNEL2 1
 #else
 #  define PWM_TIM2_CHANNEL2 0
 #endif
 #ifdef CONFIG_STM32_TIM2_CHANNEL3
-#  ifdef CONFIG_STM32_TIM2_CH3OUT
-#    define PWM_TIM2_CH3CFG GPIO_TIM2_CH3OUT
-#  else
-#    define PWM_TIM2_CH3CFG 0
-#  endif
 #  define PWM_TIM2_CHANNEL3 1
 #else
 #  define PWM_TIM2_CHANNEL3 0
 #endif
 #ifdef CONFIG_STM32_TIM2_CHANNEL4
-#  ifdef CONFIG_STM32_TIM2_CH4OUT
-#    define PWM_TIM2_CH4CFG GPIO_TIM2_CH4OUT
-#  else
-#    define PWM_TIM2_CH4CFG 0
-#  endif
 #  define PWM_TIM2_CHANNEL4 1
 #else
 #  define PWM_TIM2_CHANNEL4 0
@@ -216,41 +176,21 @@
                             PWM_TIM2_CHANNEL3 + PWM_TIM2_CHANNEL4)
 
 #ifdef CONFIG_STM32_TIM3_CHANNEL1
-#  ifdef CONFIG_STM32_TIM3_CH1OUT
-#    define PWM_TIM3_CH1CFG GPIO_TIM3_CH1OUT
-#  else
-#    define PWM_TIM3_CH1CFG 0
-#  endif
 #  define PWM_TIM3_CHANNEL1 1
 #else
 #  define PWM_TIM3_CHANNEL1 0
 #endif
 #ifdef CONFIG_STM32_TIM3_CHANNEL2
-#  ifdef CONFIG_STM32_TIM3_CH2OUT
-#    define PWM_TIM3_CH2CFG GPIO_TIM3_CH2OUT
-#  else
-#    define PWM_TIM3_CH2CFG 0
-#  endif
 #  define PWM_TIM3_CHANNEL2 1
 #else
 #  define PWM_TIM3_CHANNEL2 0
 #endif
 #ifdef CONFIG_STM32_TIM3_CHANNEL3
-#  ifdef CONFIG_STM32_TIM3_CH3OUT
-#    define PWM_TIM3_CH3CFG GPIO_TIM3_CH3OUT
-#  else
-#    define PWM_TIM3_CH3CFG 0
-#  endif
 #  define PWM_TIM3_CHANNEL3 1
 #else
 #  define PWM_TIM3_CHANNEL3 0
 #endif
 #ifdef CONFIG_STM32_TIM3_CHANNEL4
-#  ifdef CONFIG_STM32_TIM3_CH4OUT
-#    define PWM_TIM3_CH4CFG GPIO_TIM3_CH4OUT
-#  else
-#    define PWM_TIM3_CH4CFG 0
-#  endif
 #  define PWM_TIM3_CHANNEL4 1
 #else
 #  define PWM_TIM3_CHANNEL4 0
@@ -259,41 +199,21 @@
                             PWM_TIM3_CHANNEL3 + PWM_TIM3_CHANNEL4)
 
 #ifdef CONFIG_STM32_TIM4_CHANNEL1
-#  ifdef CONFIG_STM32_TIM4_CH1OUT
-#    define PWM_TIM4_CH1CFG GPIO_TIM4_CH1OUT
-#  else
-#    define PWM_TIM4_CH1CFG 0
-#  endif
 #  define PWM_TIM4_CHANNEL1 1
 #else
 #  define PWM_TIM4_CHANNEL1 0
 #endif
 #ifdef CONFIG_STM32_TIM4_CHANNEL2
-#  ifdef CONFIG_STM32_TIM4_CH2OUT
-#    define PWM_TIM4_CH2CFG GPIO_TIM4_CH2OUT
-#  else
-#    define PWM_TIM4_CH2CFG 0
-#  endif
 #  define PWM_TIM4_CHANNEL2 1
 #else
 #  define PWM_TIM4_CHANNEL2 0
 #endif
 #ifdef CONFIG_STM32_TIM4_CHANNEL3
-#  ifdef CONFIG_STM32_TIM4_CH3OUT
-#    define PWM_TIM4_CH3CFG GPIO_TIM4_CH3OUT
-#  else
-#    define PWM_TIM4_CH3CFG 0
-#  endif
 #  define PWM_TIM4_CHANNEL3 1
 #else
 #  define PWM_TIM4_CHANNEL3 0
 #endif
 #ifdef CONFIG_STM32_TIM4_CHANNEL4
-#  ifdef CONFIG_STM32_TIM4_CH4OUT
-#    define PWM_TIM4_CH4CFG GPIO_TIM4_CH4OUT
-#  else
-#    define PWM_TIM4_CH4CFG 0
-#  endif
 #  define PWM_TIM4_CHANNEL4 1
 #else
 #  define PWM_TIM4_CHANNEL4 0
@@ -302,41 +222,21 @@
                             PWM_TIM4_CHANNEL3 + PWM_TIM4_CHANNEL4)
 
 #ifdef CONFIG_STM32_TIM5_CHANNEL1
-#  ifdef CONFIG_STM32_TIM5_CH1OUT
-#    define PWM_TIM5_CH1CFG GPIO_TIM5_CH1OUT
-#  else
-#    define PWM_TIM5_CH1CFG 0
-#  endif
 #  define PWM_TIM5_CHANNEL1 1
 #else
 #  define PWM_TIM5_CHANNEL1 0
 #endif
 #ifdef CONFIG_STM32_TIM5_CHANNEL2
-#  ifdef CONFIG_STM32_TIM5_CH2OUT
-#    define PWM_TIM5_CH2CFG GPIO_TIM5_CH2OUT
-#  else
-#    define PWM_TIM5_CH2CFG 0
-#  endif
 #  define PWM_TIM5_CHANNEL2 1
 #else
 #  define PWM_TIM5_CHANNEL2 0
 #endif
 #ifdef CONFIG_STM32_TIM5_CHANNEL3
-#  ifdef CONFIG_STM32_TIM5_CH3OUT
-#    define PWM_TIM5_CH3CFG GPIO_TIM5_CH3OUT
-#  else
-#    define PWM_TIM5_CH3CFG 0
-#  endif
 #  define PWM_TIM5_CHANNEL3 1
 #else
 #  define PWM_TIM5_CHANNEL3 0
 #endif
 #ifdef CONFIG_STM32_TIM5_CHANNEL4
-#  ifdef CONFIG_STM32_TIM5_CH4OUT
-#    define PWM_TIM5_CH4CFG GPIO_TIM5_CH4OUT
-#  else
-#    define PWM_TIM5_CH4CFG 0
-#  endif
 #  define PWM_TIM5_CHANNEL4 1
 #else
 #  define PWM_TIM5_CHANNEL4 0
@@ -345,41 +245,21 @@
                             PWM_TIM5_CHANNEL3 + PWM_TIM5_CHANNEL4)
 
 #ifdef CONFIG_STM32_TIM8_CHANNEL1
-#  ifdef CONFIG_STM32_TIM8_CH1OUT
-#    define PWM_TIM8_CH1CFG GPIO_TIM8_CH1OUT
-#  else
-#    define PWM_TIM8_CH1CFG 0
-#  endif
 #  define PWM_TIM8_CHANNEL1 1
 #else
 #  define PWM_TIM8_CHANNEL1 0
 #endif
 #ifdef CONFIG_STM32_TIM8_CHANNEL2
-#  ifdef CONFIG_STM32_TIM8_CH2OUT
-#    define PWM_TIM8_CH2CFG GPIO_TIM8_CH2OUT
-#  else
-#    define PWM_TIM8_CH2CFG 0
-#  endif
 #  define PWM_TIM8_CHANNEL2 1
 #else
 #  define PWM_TIM8_CHANNEL2 0
 #endif
 #ifdef CONFIG_STM32_TIM8_CHANNEL3
-#  ifdef CONFIG_STM32_TIM8_CH3OUT
-#    define PWM_TIM8_CH3CFG GPIO_TIM8_CH3OUT
-#  else
-#    define PWM_TIM8_CH3CFG 0
-#  endif
 #  define PWM_TIM8_CHANNEL3 1
 #else
 #  define PWM_TIM8_CHANNEL3 0
 #endif
 #ifdef CONFIG_STM32_TIM8_CHANNEL4
-#  ifdef CONFIG_STM32_TIM8_CH4OUT
-#    define PWM_TIM8_CH4CFG GPIO_TIM8_CH4OUT
-#  else
-#    define PWM_TIM8_CH4CFG 0
-#  endif
 #  define PWM_TIM8_CHANNEL4 1
 #else
 #  define PWM_TIM8_CHANNEL4 0
@@ -388,279 +268,63 @@
                             PWM_TIM8_CHANNEL3 + PWM_TIM8_CHANNEL4)
 
 #ifdef CONFIG_STM32_TIM9_CHANNEL1
-#  ifdef CONFIG_STM32_TIM9_CH1OUT
-#    define PWM_TIM9_CH1CFG GPIO_TIM9_CH1OUT
-#  else
-#    define PWM_TIM9_CH1CFG 0
-#  endif
 #  define PWM_TIM9_CHANNEL1 1
 #else
 #  define PWM_TIM9_CHANNEL1 0
 #endif
 #ifdef CONFIG_STM32_TIM9_CHANNEL2
-#  ifdef CONFIG_STM32_TIM9_CH2OUT
-#    define PWM_TIM9_CH2CFG GPIO_TIM9_CH2OUT
-#  else
-#    define PWM_TIM9_CH2CFG 0
-#  endif
 #  define PWM_TIM9_CHANNEL2 1
 #else
 #  define PWM_TIM9_CHANNEL2 0
 #endif
-#ifdef CONFIG_STM32_TIM9_CHANNEL3
-#  ifdef CONFIG_STM32_TIM9_CH3OUT
-#    define PWM_TIM9_CH3CFG GPIO_TIM9_CH3OUT
-#  else
-#    define PWM_TIM9_CH3CFG 0
-#  endif
-#  define PWM_TIM9_CHANNEL3 1
-#else
-#  define PWM_TIM9_CHANNEL3 0
-#endif
-#ifdef CONFIG_STM32_TIM9_CHANNEL4
-#  ifdef CONFIG_STM32_TIM9_CH4OUT
-#    define PWM_TIM9_CH4CFG GPIO_TIM9_CH4OUT
-#  else
-#    define PWM_TIM9_CH4CFG 0
-#  endif
-#  define PWM_TIM9_CHANNEL4 1
-#else
-#  define PWM_TIM9_CHANNEL4 0
-#endif
-#define PWM_TIM9_NCHANNELS (PWM_TIM9_CHANNEL1 + PWM_TIM9_CHANNEL2 + \
-                            PWM_TIM9_CHANNEL3 + PWM_TIM9_CHANNEL4)
+#define PWM_TIM9_NCHANNELS (PWM_TIM9_CHANNEL1 + PWM_TIM9_CHANNEL2)
 
 #ifdef CONFIG_STM32_TIM10_CHANNEL1
-#  ifdef CONFIG_STM32_TIM10_CH1OUT
-#    define PWM_TIM10_CH1CFG GPIO_TIM10_CH1OUT
-#  else
-#    define PWM_TIM10_CH1CFG 0
-#  endif
 #  define PWM_TIM10_CHANNEL1 1
 #else
 #  define PWM_TIM10_CHANNEL1 0
 #endif
-#ifdef CONFIG_STM32_TIM10_CHANNEL2
-#  ifdef CONFIG_STM32_TIM10_CH2OUT
-#    define PWM_TIM10_CH2CFG GPIO_TIM10_CH2OUT
-#  else
-#    define PWM_TIM10_CH2CFG 0
-#  endif
-#  define PWM_TIM10_CHANNEL2 1
-#else
-#  define PWM_TIM10_CHANNEL2 0
-#endif
-#ifdef CONFIG_STM32_TIM10_CHANNEL3
-#  ifdef CONFIG_STM32_TIM10_CH3OUT
-#    define PWM_TIM10_CH3CFG GPIO_TIM10_CH3OUT
-#  else
-#    define PWM_TIM10_CH3CFG 0
-#  endif
-#  define PWM_TIM10_CHANNEL3 1
-#else
-#  define PWM_TIM10_CHANNEL3 0
-#endif
-#ifdef CONFIG_STM32_TIM10_CHANNEL4
-#  ifdef CONFIG_STM32_TIM10_CH4OUT
-#    define PWM_TIM10_CH4CFG GPIO_TIM10_CH4OUT
-#  else
-#    define PWM_TIM10_CH4CFG 0
-#  endif
-#  define PWM_TIM10_CHANNEL4 1
-#else
-#  define PWM_TIM10_CHANNEL4 0
-#endif
-#define PWM_TIM10_NCHANNELS (PWM_TIM10_CHANNEL1 + PWM_TIM10_CHANNEL2 + \
-                             PWM_TIM10_CHANNEL3 + PWM_TIM10_CHANNEL4)
+#define PWM_TIM10_NCHANNELS (PWM_TIM10_CHANNEL1)
 
 #ifdef CONFIG_STM32_TIM11_CHANNEL1
-#  ifdef CONFIG_STM32_TIM11_CH1OUT
-#    define PWM_TIM11_CH1CFG GPIO_TIM11_CH1OUT
-#  else
-#    define PWM_TIM11_CH1CFG 0
-#  endif
 #  define PWM_TIM11_CHANNEL1 1
 #else
 #  define PWM_TIM11_CHANNEL1 0
 #endif
-#ifdef CONFIG_STM32_TIM11_CHANNEL2
-#  ifdef CONFIG_STM32_TIM11_CH2OUT
-#    define PWM_TIM11_CH2CFG GPIO_TIM11_CH2OUT
-#  else
-#    define PWM_TIM11_CH2CFG 0
-#  endif
-#  define PWM_TIM11_CHANNEL2 1
-#else
-#  define PWM_TIM11_CHANNEL2 0
-#endif
-#ifdef CONFIG_STM32_TIM11_CHANNEL3
-#  ifdef CONFIG_STM32_TIM11_CH3OUT
-#    define PWM_TIM11_CH3CFG GPIO_TIM11_CH3OUT
-#  else
-#    define PWM_TIM11_CH3CFG 0
-#  endif
-#  define PWM_TIM11_CHANNEL3 1
-#else
-#  define PWM_TIM11_CHANNEL3 0
-#endif
-#ifdef CONFIG_STM32_TIM11_CHANNEL4
-#  ifdef CONFIG_STM32_TIM11_CH4OUT
-#    define PWM_TIM11_CH4CFG GPIO_TIM11_CH4OUT
-#  else
-#    define PWM_TIM11_CH4CFG 0
-#  endif
-#  define PWM_TIM11_CHANNEL4 1
-#else
-#  define PWM_TIM11_CHANNEL4 0
-#endif
-#define PWM_TIM11_NCHANNELS (PWM_TIM11_CHANNEL1 + PWM_TIM11_CHANNEL2 + \
-                             PWM_TIM11_CHANNEL3 + PWM_TIM11_CHANNEL4)
+#define PWM_TIM11_NCHANNELS (PWM_TIM11_CHANNEL1)
 
 #ifdef CONFIG_STM32_TIM12_CHANNEL1
-#  ifdef CONFIG_STM32_TIM12_CH1OUT
-#    define PWM_TIM12_CH1CFG GPIO_TIM12_CH1OUT
-#  else
-#    define PWM_TIM12_CH1CFG 0
-#  endif
 #  define PWM_TIM12_CHANNEL1 1
 #else
 #  define PWM_TIM12_CHANNEL1 0
 #endif
 #ifdef CONFIG_STM32_TIM12_CHANNEL2
-#  ifdef CONFIG_STM32_TIM12_CH2OUT
-#    define PWM_TIM12_CH2CFG GPIO_TIM12_CH2OUT
-#  else
-#    define PWM_TIM12_CH2CFG 0
-#  endif
 #  define PWM_TIM12_CHANNEL2 1
 #else
 #  define PWM_TIM12_CHANNEL2 0
 #endif
-#ifdef CONFIG_STM32_TIM12_CHANNEL3
-#  ifdef CONFIG_STM32_TIM12_CH3OUT
-#    define PWM_TIM12_CH3CFG GPIO_TIM12_CH3OUT
-#  else
-#    define PWM_TIM12_CH3CFG 0
-#  endif
-#  define PWM_TIM12_CHANNEL3 1
-#else
-#  define PWM_TIM12_CHANNEL3 0
-#endif
-#ifdef CONFIG_STM32_TIM12_CHANNEL4
-#  ifdef CONFIG_STM32_TIM12_CH4OUT
-#    define PWM_TIM12_CH4CFG GPIO_TIM12_CH4OUT
-#  else
-#    define PWM_TIM12_CH4CFG 0
-#  endif
-#  define PWM_TIM12_CHANNEL4 1
-#else
-#  define PWM_TIM12_CHANNEL4 0
-#endif
-#define PWM_TIM12_NCHANNELS (PWM_TIM12_CHANNEL1 + PWM_TIM12_CHANNEL2 + \
-                             PWM_TIM12_CHANNEL3 + PWM_TIM12_CHANNEL4)
+#define PWM_TIM12_NCHANNELS (PWM_TIM12_CHANNEL1 + PWM_TIM12_CHANNEL2)
 
 #ifdef CONFIG_STM32_TIM13_CHANNEL1
-#  ifdef CONFIG_STM32_TIM13_CH1OUT
-#    define PWM_TIM13_CH1CFG GPIO_TIM13_CH1OUT
-#  else
-#    define PWM_TIM13_CH1CFG 0
-#  endif
 #  define PWM_TIM13_CHANNEL1 1
 #else
 #  define PWM_TIM13_CHANNEL1 0
 #endif
-#ifdef CONFIG_STM32_TIM13_CHANNEL2
-#  ifdef CONFIG_STM32_TIM13_CH2OUT
-#    define PWM_TIM13_CH2CFG GPIO_TIM13_CH2OUT
-#  else
-#    define PWM_TIM13_CH2CFG 0
-#  endif
-#  define PWM_TIM13_CHANNEL2 1
-#else
-#  define PWM_TIM13_CHANNEL2 0
-#endif
-#ifdef CONFIG_STM32_TIM13_CHANNEL3
-#  ifdef CONFIG_STM32_TIM13_CH3OUT
-#    define PWM_TIM13_CH3CFG GPIO_TIM13_CH3OUT
-#  else
-#    define PWM_TIM13_CH3CFG 0
-#  endif
-#  define PWM_TIM13_CHANNEL3 1
-#else
-#  define PWM_TIM13_CHANNEL3 0
-#endif
-#ifdef CONFIG_STM32_TIM13_CHANNEL4
-#  ifdef CONFIG_STM32_TIM13_CH4OUT
-#    define PWM_TIM13_CH4CFG GPIO_TIM13_CH4OUT
-#  else
-#    define PWM_TIM13_CH4CFG 0
-#  endif
-#  define PWM_TIM13_CHANNEL4 1
-#else
-#  define PWM_TIM13_CHANNEL4 0
-#endif
-#define PWM_TIM13_NCHANNELS (PWM_TIM13_CHANNEL1 + PWM_TIM13_CHANNEL2 + \
-                             PWM_TIM13_CHANNEL3 + PWM_TIM13_CHANNEL4)
+#define PWM_TIM13_NCHANNELS (PWM_TIM13_CHANNEL1)
 
 #ifdef CONFIG_STM32_TIM14_CHANNEL1
-#  ifdef CONFIG_STM32_TIM14_CH1OUT
-#    define PWM_TIM14_CH1CFG GPIO_TIM14_CH1OUT
-#  else
-#    define PWM_TIM14_CH1CFG 0
-#  endif
 #  define PWM_TIM14_CHANNEL1 1
 #else
 #  define PWM_TIM14_CHANNEL1 0
 #endif
-#ifdef CONFIG_STM32_TIM14_CHANNEL2
-#  ifdef CONFIG_STM32_TIM14_CH2OUT
-#    define PWM_TIM14_CH2CFG GPIO_TIM14_CH2OUT
-#  else
-#    define PWM_TIM14_CH2CFG 0
-#  endif
-#  define PWM_TIM14_CHANNEL2 1
-#else
-#  define PWM_TIM14_CHANNEL2 0
-#endif
-#ifdef CONFIG_STM32_TIM14_CHANNEL3
-#  ifdef CONFIG_STM32_TIM14_CH3OUT
-#    define PWM_TIM14_CH3CFG GPIO_TIM14_CH3OUT
-#  else
-#    define PWM_TIM14_CH3CFG 0
-#  endif
-#  define PWM_TIM14_CHANNEL3 1
-#else
-#  define PWM_TIM14_CHANNEL3 0
-#endif
-#ifdef CONFIG_STM32_TIM14_CHANNEL4
-#  ifdef CONFIG_STM32_TIM14_CH4OUT
-#    define PWM_TIM14_CH4CFG GPIO_TIM14_CH4OUT
-#  else
-#    define PWM_TIM14_CH4CFG 0
-#  endif
-#  define PWM_TIM14_CHANNEL4 1
-#else
-#  define PWM_TIM14_CHANNEL4 0
-#endif
-#define PWM_TIM14_NCHANNELS (PWM_TIM14_CHANNEL1 + PWM_TIM14_CHANNEL2 + \
-                             PWM_TIM14_CHANNEL3 + PWM_TIM14_CHANNEL4)
+#define PWM_TIM14_NCHANNELS (PWM_TIM14_CHANNEL1)
 
 #ifdef CONFIG_STM32_TIM15_CHANNEL1
-#  ifdef CONFIG_STM32_TIM15_CH1OUT
-#    define PWM_TIM15_CH1CFG GPIO_TIM15_CH1OUT
-#  else
-#    define PWM_TIM15_CH1CFG 0
-#  endif
 #  define PWM_TIM15_CHANNEL1 1
 #else
 #  define PWM_TIM15_CHANNEL1 0
 #endif
 #ifdef CONFIG_STM32_TIM15_CHANNEL2
-#  ifdef CONFIG_STM32_TIM15_CH2OUT
-#    define PWM_TIM15_CH2CFG GPIO_TIM15_CH2OUT
-#  else
-#    define PWM_TIM15_CH2CFG 0
-#  endif
 #  define PWM_TIM15_CHANNEL2 1
 #else
 #  define PWM_TIM15_CHANNEL2 0
@@ -668,11 +332,6 @@
 #define PWM_TIM15_NCHANNELS (PWM_TIM15_CHANNEL1 + PWM_TIM15_CHANNEL2)
 
 #ifdef CONFIG_STM32_TIM16_CHANNEL1
-#  ifdef CONFIG_STM32_TIM16_CH1OUT
-#    define PWM_TIM16_CH1CFG GPIO_TIM16_CH1OUT
-#  else
-#    define PWM_TIM16_CH1CFG 0
-#  endif
 #  define PWM_TIM16_CHANNEL1 1
 #else
 #  define PWM_TIM16_CHANNEL1 0
@@ -680,36 +339,13 @@
 #define PWM_TIM16_NCHANNELS PWM_TIM16_CHANNEL1
 
 #ifdef CONFIG_STM32_TIM17_CHANNEL1
-#  ifdef CONFIG_STM32_TIM17_CH1OUT
-#    define PWM_TIM17_CH1CFG GPIO_TIM17_CH1OUT
-#  else
-#    define PWM_TIM17_CH1CFG 0
-#  endif
 #  define PWM_TIM17_CHANNEL1 1
 #else
 #  define PWM_TIM17_CHANNEL1 0
 #endif
 #define PWM_TIM17_NCHANNELS PWM_TIM17_CHANNEL1
 
-#define PWM_MAX(a, b) ((a) > (b) ? (a) : (b))
-
-#define PWM_NCHANNELS PWM_MAX(PWM_TIM1_NCHANNELS, \
-                      PWM_MAX(PWM_TIM2_NCHANNELS, \
-                      PWM_MAX(PWM_TIM3_NCHANNELS, \
-                      PWM_MAX(PWM_TIM4_NCHANNELS, \
-                      PWM_MAX(PWM_TIM5_NCHANNELS, \
-                      PWM_MAX(PWM_TIM8_NCHANNELS, \
-                      PWM_MAX(PWM_TIM9_NCHANNELS, \
-                      PWM_MAX(PWM_TIM10_NCHANNELS, \
-                      PWM_MAX(PWM_TIM11_NCHANNELS, \
-                      PWM_MAX(PWM_TIM12_NCHANNELS, \
-                      PWM_MAX(PWM_TIM13_NCHANNELS, \
-                      PWM_MAX(PWM_TIM14_NCHANNELS, \
-                      PWM_MAX(PWM_TIM15_NCHANNELS, \
-                      PWM_MAX(PWM_TIM16_NCHANNELS, \
-                              PWM_TIM17_NCHANNELS))))))))))))))
-
-#else
+#else  /* !CONFIG_PWM_MULTICHAN */
 
 /* For each timer that is enabled for PWM usage, we need the following additional
  * configuration settings:
@@ -730,22 +366,19 @@
 #  elif CONFIG_STM32_TIM1_CHANNEL == 1
 #    define CONFIG_STM32_TIM1_CHANNEL1 1
 #    define CONFIG_STM32_TIM1_CH1MODE  CONFIG_STM32_TIM1_CHMODE
-#    define PWM_TIM1_CH1CFG            GPIO_TIM1_CH1OUT
 #  elif CONFIG_STM32_TIM1_CHANNEL == 2
 #    define CONFIG_STM32_TIM1_CHANNEL2 1
 #    define CONFIG_STM32_TIM1_CH2MODE  CONFIG_STM32_TIM1_CHMODE
-#    define PWM_TIM1_CH2CFG            GPIO_TIM1_CH2OUT
 #  elif CONFIG_STM32_TIM1_CHANNEL == 3
 #    define CONFIG_STM32_TIM1_CHANNEL3 1
 #    define CONFIG_STM32_TIM1_CH3MODE  CONFIG_STM32_TIM1_CHMODE
-#    define PWM_TIM1_CH3CFG            GPIO_TIM1_CH3OUT
 #  elif CONFIG_STM32_TIM1_CHANNEL == 4
 #    define CONFIG_STM32_TIM1_CHANNEL4 1
 #    define CONFIG_STM32_TIM1_CH4MODE  CONFIG_STM32_TIM1_CHMODE
-#    define PWM_TIM1_CH4CFG            GPIO_TIM1_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM1_CHANNEL"
 #  endif
+#  define PWM_TIM1_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM2_PWM
@@ -754,22 +387,19 @@
 #  elif CONFIG_STM32_TIM2_CHANNEL == 1
 #    define CONFIG_STM32_TIM2_CHANNEL1 1
 #    define CONFIG_STM32_TIM2_CH1MODE  CONFIG_STM32_TIM2_CHMODE
-#    define PWM_TIM2_CH1CFG            GPIO_TIM2_CH1OUT_1
 #  elif CONFIG_STM32_TIM2_CHANNEL == 2
 #    define CONFIG_STM32_TIM2_CHANNEL2 1
 #    define CONFIG_STM32_TIM2_CH2MODE  CONFIG_STM32_TIM2_CHMODE
-#    define PWM_TIM2_CH2CFG            GPIO_TIM2_CH2OUT
 #  elif CONFIG_STM32_TIM2_CHANNEL == 3
 #    define CONFIG_STM32_TIM2_CHANNEL3 1
 #    define CONFIG_STM32_TIM2_CH3MODE  CONFIG_STM32_TIM2_CHMODE
-#    define PWM_TIM2_CH3CFG            GPIO_TIM2_CH3OUT
 #  elif CONFIG_STM32_TIM2_CHANNEL == 4
 #    define CONFIG_STM32_TIM2_CHANNEL4 1
 #    define CONFIG_STM32_TIM2_CH4MODE  CONFIG_STM32_TIM2_CHMODE
-#    define PWM_TIM2_CH4CFG            GPIO_TIM2_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM2_CHANNEL"
 #  endif
+#  define PWM_TIM2_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM3_PWM
@@ -778,22 +408,19 @@
 #  elif CONFIG_STM32_TIM3_CHANNEL == 1
 #    define CONFIG_STM32_TIM3_CHANNEL1 1
 #    define CONFIG_STM32_TIM3_CH1MODE  CONFIG_STM32_TIM3_CHMODE
-#    define PWM_TIM3_CH1CFG            GPIO_TIM3_CH1OUT
 #  elif CONFIG_STM32_TIM3_CHANNEL == 2
 #    define CONFIG_STM32_TIM3_CHANNEL2 1
 #    define CONFIG_STM32_TIM3_CH2MODE  CONFIG_STM32_TIM3_CHMODE
-#    define PWM_TIM3_CH2CFG            GPIO_TIM3_CH2OUT
 #  elif CONFIG_STM32_TIM3_CHANNEL == 3
 #    define CONFIG_STM32_TIM3_CHANNEL3 1
 #    define CONFIG_STM32_TIM3_CH3MODE  CONFIG_STM32_TIM3_CHMODE
-#    define PWM_TIM3_CH3CFG            GPIO_TIM3_CH3OUT
 #  elif CONFIG_STM32_TIM3_CHANNEL == 4
 #    define CONFIG_STM32_TIM3_CHANNEL4 1
 #    define CONFIG_STM32_TIM3_CH4MODE  CONFIG_STM32_TIM3_CHMODE
-#    define PWM_TIM3_CH4CFG            GPIO_TIM3_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM3_CHANNEL"
 #  endif
+#  define PWM_TIM3_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM4_PWM
@@ -802,22 +429,19 @@
 #  elif CONFIG_STM32_TIM4_CHANNEL == 1
 #    define CONFIG_STM32_TIM4_CHANNEL1 1
 #    define CONFIG_STM32_TIM4_CH1MODE  CONFIG_STM32_TIM4_CHMODE
-#    define PWM_TIM4_CH1CFG            GPIO_TIM4_CH1OUT
 #  elif CONFIG_STM32_TIM4_CHANNEL == 2
 #    define CONFIG_STM32_TIM4_CHANNEL2 1
 #    define CONFIG_STM32_TIM4_CH2MODE  CONFIG_STM32_TIM4_CHMODE
-#    define PWM_TIM4_CH2CFG            GPIO_TIM4_CH2OUT
 #  elif CONFIG_STM32_TIM4_CHANNEL == 3
 #    define CONFIG_STM32_TIM4_CHANNEL3 1
 #    define CONFIG_STM32_TIM4_CH3MODE  CONFIG_STM32_TIM4_CHMODE
-#    define PWM_TIM4_CH3CFG            GPIO_TIM4_CH3OUT
 #  elif CONFIG_STM32_TIM4_CHANNEL == 4
 #    define CONFIG_STM32_TIM4_CHANNEL4 1
 #    define CONFIG_STM32_TIM4_CH4MODE  CONFIG_STM32_TIM4_CHMODE
-#    define PWM_TIM4_CH4CFG            GPIO_TIM4_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM4_CHANNEL"
 #  endif
+#  define PWM_TIM4_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM5_PWM
@@ -826,22 +450,19 @@
 #  elif CONFIG_STM32_TIM5_CHANNEL == 1
 #    define CONFIG_STM32_TIM5_CHANNEL1 1
 #    define CONFIG_STM32_TIM5_CH1MODE  CONFIG_STM32_TIM5_CHMODE
-#    define PWM_TIM5_CH1CFG            GPIO_TIM5_CH1OUT
 #  elif CONFIG_STM32_TIM5_CHANNEL == 2
 #    define CONFIG_STM32_TIM5_CHANNEL2 1
 #    define CONFIG_STM32_TIM5_CH2MODE  CONFIG_STM32_TIM5_CHMODE
-#    define PWM_TIM5_CH2CFG            GPIO_TIM5_CH2OUT
 #  elif CONFIG_STM32_TIM5_CHANNEL == 3
 #    define CONFIG_STM32_TIM5_CHANNEL3 1
 #    define CONFIG_STM32_TIM5_CH3MODE  CONFIG_STM32_TIM5_CHMODE
-#    define PWM_TIM5_CH3CFG            GPIO_TIM5_CH3OUT
 #  elif CONFIG_STM32_TIM5_CHANNEL == 4
 #    define CONFIG_STM32_TIM5_CHANNEL4 1
 #    define CONFIG_STM32_TIM5_CH4MODE  CONFIG_STM32_TIM5_CHMODE
-#    define PWM_TIM5_CH4CFG            GPIO_TIM5_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM5_CHANNEL"
 #  endif
+#  define PWM_TIM5_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM8_PWM
@@ -850,22 +471,19 @@
 #  elif CONFIG_STM32_TIM8_CHANNEL == 1
 #    define CONFIG_STM32_TIM8_CHANNEL1 1
 #    define CONFIG_STM32_TIM8_CH1MODE  CONFIG_STM32_TIM8_CHMODE
-#    define PWM_TIM8_CH1CFG            GPIO_TIM8_CH1OUT
 #  elif CONFIG_STM32_TIM8_CHANNEL == 2
 #    define CONFIG_STM32_TIM8_CHANNEL2 1
 #    define CONFIG_STM32_TIM8_CH2MODE  CONFIG_STM32_TIM8_CHMODE
-#    define PWM_TIM8_CH2CFG            GPIO_TIM8_CH2OUT
 #  elif CONFIG_STM32_TIM8_CHANNEL == 3
 #    define CONFIG_STM32_TIM8_CHANNEL3 1
 #    define CONFIG_STM32_TIM8_CH3MODE  CONFIG_STM32_TIM8_CHMODE
-#    define PWM_TIM8_CH3CFG            GPIO_TIM8_CH3OUT
 #  elif CONFIG_STM32_TIM8_CHANNEL == 4
 #    define CONFIG_STM32_TIM8_CHANNEL4 1
 #    define CONFIG_STM32_TIM8_CH4MODE  CONFIG_STM32_TIM8_CHMODE
-#    define PWM_TIM8_CH4CFG            GPIO_TIM8_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM8_CHANNEL"
 #  endif
+#  define PWM_TIM8_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM9_PWM
@@ -874,22 +492,13 @@
 #  elif CONFIG_STM32_TIM9_CHANNEL == 1
 #    define CONFIG_STM32_TIM9_CHANNEL1 1
 #    define CONFIG_STM32_TIM9_CH1MODE  CONFIG_STM32_TIM9_CHMODE
-#    define PWM_TIM9_CH1CFG            GPIO_TIM9_CH1OUT
 #  elif CONFIG_STM32_TIM9_CHANNEL == 2
 #    define CONFIG_STM32_TIM9_CHANNEL2 1
 #    define CONFIG_STM32_TIM9_CH2MODE  CONFIG_STM32_TIM9_CHMODE
-#    define PWM_TIM9_CH2CFG            GPIO_TIM9_CH2OUT
-#  elif CONFIG_STM32_TIM9_CHANNEL == 3
-#    define CONFIG_STM32_TIM9_CHANNEL3 1
-#    define CONFIG_STM32_TIM9_CH3MODE  CONFIG_STM32_TIM9_CHMODE
-#    define PWM_TIM9_CH3CFG            GPIO_TIM9_CH3OUT
-#  elif CONFIG_STM32_TIM9_CHANNEL == 4
-#    define CONFIG_STM32_TIM9_CHANNEL4 1
-#    define CONFIG_STM32_TIM9_CH4MODE  CONFIG_STM32_TIM9_CHMODE
-#    define PWM_TIM9_CH4CFG            GPIO_TIM9_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM9_CHANNEL"
 #  endif
+#  define PWM_TIM9_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM10_PWM
@@ -898,22 +507,10 @@
 #  elif CONFIG_STM32_TIM10_CHANNEL == 1
 #    define CONFIG_STM32_TIM10_CHANNEL1 1
 #    define CONFIG_STM32_TIM10_CH1MODE  CONFIG_STM32_TIM10_CHMODE
-#    define PWM_TIM10_CH1CFG            GPIO_TIM10_CH1OUT
-#  elif CONFIG_STM32_TIM10_CHANNEL == 2
-#    define CONFIG_STM32_TIM10_CHANNEL2 1
-#    define CONFIG_STM32_TIM10_CH2MODE  CONFIG_STM32_TIM10_CHMODE
-#    define PWM_TIM10_CH2CFG            GPIO_TIM10_CH2OUT
-#  elif CONFIG_STM32_TIM10_CHANNEL == 3
-#    define CONFIG_STM32_TIM10_CHANNEL3 1
-#    define CONFIG_STM32_TIM10_CH3MODE  CONFIG_STM32_TIM10_CHMODE
-#    define PWM_TIM10_CH3CFG            GPIO_TIM10_CH3OUT
-#  elif CONFIG_STM32_TIM10_CHANNEL == 4
-#    define CONFIG_STM32_TIM10_CHANNEL4 1
-#    define CONFIG_STM32_TIM10_CH4MODE  CONFIG_STM32_TIM10_CHMODE
-#    define PWM_TIM10_CH4CFG            GPIO_TIM10_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM10_CHANNEL"
 #  endif
+#  define PWM_TIM10_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM11_PWM
@@ -922,22 +519,10 @@
 #  elif CONFIG_STM32_TIM11_CHANNEL == 1
 #    define CONFIG_STM32_TIM11_CHANNEL1 1
 #    define CONFIG_STM32_TIM11_CH1MODE  CONFIG_STM32_TIM11_CHMODE
-#    define PWM_TIM11_CH1CFG            GPIO_TIM11_CH1OUT
-#  elif CONFIG_STM32_TIM11_CHANNEL == 2
-#    define CONFIG_STM32_TIM11_CHANNEL2 1
-#    define CONFIG_STM32_TIM11_CH2MODE  CONFIG_STM32_TIM11_CHMODE
-#    define PWM_TIM11_CH2CFG            GPIO_TIM11_CH2OUT
-#  elif CONFIG_STM32_TIM11_CHANNEL == 3
-#    define CONFIG_STM32_TIM11_CHANNEL3 1
-#    define CONFIG_STM32_TIM11_CH3MODE  CONFIG_STM32_TIM11_CHMODE
-#    define PWM_TIM11_CH3CFG            GPIO_TIM11_CH3OUT
-#  elif CONFIG_STM32_TIM11_CHANNEL == 4
-#    define CONFIG_STM32_TIM11_CHANNEL4 1
-#    define CONFIG_STM32_TIM11_CH4MODE  CONFIG_STM32_TIM11_CHMODE
-#    define PWM_TIM11_CH4CFG            GPIO_TIM11_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM11_CHANNEL"
 #  endif
+#  define PWM_TIM11_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM12_PWM
@@ -946,22 +531,13 @@
 #  elif CONFIG_STM32_TIM12_CHANNEL == 1
 #    define CONFIG_STM32_TIM12_CHANNEL1 1
 #    define CONFIG_STM32_TIM12_CH1MODE  CONFIG_STM32_TIM12_CHMODE
-#    define PWM_TIM12_CH1CFG            GPIO_TIM12_CH1OUT
 #  elif CONFIG_STM32_TIM12_CHANNEL == 2
 #    define CONFIG_STM32_TIM12_CHANNEL2 1
 #    define CONFIG_STM32_TIM12_CH2MODE  CONFIG_STM32_TIM12_CHMODE
-#    define PWM_TIM12_CH2CFG            GPIO_TIM12_CH2OUT
-#  elif CONFIG_STM32_TIM12_CHANNEL == 3
-#    define CONFIG_STM32_TIM12_CHANNEL3 1
-#    define CONFIG_STM32_TIM12_CH3MODE  CONFIG_STM32_TIM12_CHMODE
-#    define PWM_TIM12_CH3CFG            GPIO_TIM12_CH3OUT
-#  elif CONFIG_STM32_TIM12_CHANNEL == 4
-#    define CONFIG_STM32_TIM12_CHANNEL4 1
-#    define CONFIG_STM32_TIM12_CH4MODE  CONFIG_STM32_TIM12_CHMODE
-#    define PWM_TIM12_CH4CFG            GPIO_TIM12_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM12_CHANNEL"
 #  endif
+#  define PWM_TIM12_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM13_PWM
@@ -970,22 +546,10 @@
 #  elif CONFIG_STM32_TIM13_CHANNEL == 1
 #    define CONFIG_STM32_TIM13_CHANNEL1 1
 #    define CONFIG_STM32_TIM13_CH1MODE  CONFIG_STM32_TIM13_CHMODE
-#    define PWM_TIM13_CH1CFG            GPIO_TIM13_CH1OUT
-#  elif CONFIG_STM32_TIM13_CHANNEL == 2
-#    define CONFIG_STM32_TIM13_CHANNEL2 1
-#    define CONFIG_STM32_TIM13_CH2MODE  CONFIG_STM32_TIM13_CHMODE
-#    define PWM_TIM13_CH2CFG            GPIO_TIM13_CH2OUT
-#  elif CONFIG_STM32_TIM13_CHANNEL == 3
-#    define CONFIG_STM32_TIM13_CHANNEL3 1
-#    define CONFIG_STM32_TIM13_CH3MODE  CONFIG_STM32_TIM13_CHMODE
-#    define PWM_TIM13_CH3CFG            GPIO_TIM13_CH3OUT
-#  elif CONFIG_STM32_TIM13_CHANNEL == 4
-#    define CONFIG_STM32_TIM13_CHANNEL4 1
-#    define CONFIG_STM32_TIM13_CH4MODE  CONFIG_STM32_TIM13_CHMODE
-#    define PWM_TIM13_CH4CFG            GPIO_TIM13_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM13_CHANNEL"
 #  endif
+#  define PWM_TIM13_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM14_PWM
@@ -994,22 +558,10 @@
 #  elif CONFIG_STM32_TIM14_CHANNEL == 1
 #    define CONFIG_STM32_TIM14_CHANNEL1 1
 #    define CONFIG_STM32_TIM14_CH1MODE  CONFIG_STM32_TIM14_CHMODE
-#    define PWM_TIM14_CH1CFG            GPIO_TIM14_CH1OUT
-#  elif CONFIG_STM32_TIM14_CHANNEL == 2
-#    define CONFIG_STM32_TIM14_CHANNEL2 1
-#    define CONFIG_STM32_TIM14_CH2MODE  CONFIG_STM32_TIM14_CHMODE
-#    define PWM_TIM14_CH2CFG            GPIO_TIM14_CH2OUT
-#  elif CONFIG_STM32_TIM14_CHANNEL == 3
-#    define CONFIG_STM32_TIM14_CHANNEL3 1
-#    define CONFIG_STM32_TIM14_CH3MODE  CONFIG_STM32_TIM14_CHMODE
-#    define PWM_TIM14_CH3CFG            GPIO_TIM14_CH3OUT
-#  elif CONFIG_STM32_TIM14_CHANNEL == 4
-#    define CONFIG_STM32_TIM14_CHANNEL4 1
-#    define CONFIG_STM32_TIM14_CH4MODE  CONFIG_STM32_TIM14_CHMODE
-#    define PWM_TIM14_CH4CFG            GPIO_TIM14_CH4OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM14_CHANNEL"
 #  endif
+#  define PWM_TIM14_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM15_PWM
@@ -1018,14 +570,13 @@
 #  elif CONFIG_STM32_TIM15_CHANNEL == 1
 #    define CONFIG_STM32_TIM15_CHANNEL1 1
 #    define CONFIG_STM32_TIM15_CH1MODE  CONFIG_STM32_TIM15_CHMODE
-#    define PWM_TIM15_CH1CFG            GPIO_TIM15_CH1OUT
 #  elif CONFIG_STM32_TIM15_CHANNEL == 2
 #    define CONFIG_STM32_TIM15_CHANNEL2 1
 #    define CONFIG_STM32_TIM15_CH2MODE  CONFIG_STM32_TIM15_CHMODE
-#    define PWM_TIM15_CH2CFG            GPIO_TIM15_CH2OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM15_CHANNEL"
 #  endif
+#  define PWM_TIM15_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM16_PWM
@@ -1034,10 +585,10 @@
 #  elif CONFIG_STM32_TIM16_CHANNEL == 1
 #    define CONFIG_STM32_TIM16_CHANNEL1 1
 #    define CONFIG_STM32_TIM16_CH1MODE  CONFIG_STM32_TIM16_CHMODE
-#    define PWM_TIM16_CH1CFG            GPIO_TIM16_CH1OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM16_CHANNEL"
 #  endif
+#  define PWM_TIM16_NCHANNELS 1
 #endif
 
 #ifdef CONFIG_STM32_TIM17_PWM
@@ -1046,19 +597,469 @@
 #  elif CONFIG_STM32_TIM17_CHANNEL == 1
 #    define CONFIG_STM32_TIM17_CHANNEL1 1
 #    define CONFIG_STM32_TIM17_CH1MODE  CONFIG_STM32_TIM17_CHMODE
-#    define PWM_TIM17_CH1CFG            GPIO_TIM17_CH1OUT
 #  else
 #    error "Unsupported value of CONFIG_STM32_TIM17_CHANNEL"
 #  endif
+#  define PWM_TIM17_NCHANNELS 1
 #endif
 
-#define PWM_NCHANNELS 1
+#endif /* CONFIG_PWM_MULTICHAN */
 
+#endif /* CONFIG_PWM */
+
+#ifdef CONFIG_STM32_TIM1_CH1OUT
+#  define PWM_TIM1_CH1CFG GPIO_TIM1_CH1OUT
+#else
+#  define PWM_TIM1_CH1CFG 0
 #endif
+#ifdef CONFIG_STM32_TIM1_CH1NOUT
+#  define PWM_TIM1_CH1NCFG GPIO_TIM1_CH1NOUT
+#else
+#  define PWM_TIM1_CH1NCFG 0
+#endif
+#ifdef CONFIG_STM32_TIM1_CH2OUT
+#  define PWM_TIM1_CH2CFG GPIO_TIM1_CH2OUT
+#else
+#  define PWM_TIM1_CH2CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM1_CH2NOUT
+#  define PWM_TIM1_CH2NCFG GPIO_TIM1_CH2NOUT
+#else
+#  define PWM_TIM1_CH2NCFG 0
+#endif
+#ifdef CONFIG_STM32_TIM1_CH3OUT
+#  define PWM_TIM1_CH3CFG GPIO_TIM1_CH3OUT
+#else
+#  define PWM_TIM1_CH3CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM1_CH3NOUT
+#  define PWM_TIM1_CH3NCFG GPIO_TIM1_CH3NOUT
+#else
+#  define PWM_TIM1_CH3NCFG 0
+#endif
+#ifdef CONFIG_STM32_TIM1_CH4OUT
+#  define PWM_TIM1_CH4CFG GPIO_TIM1_CH4OUT
+#else
+#  define PWM_TIM1_CH4CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM2_CH1OUT
+#  define PWM_TIM2_CH1CFG GPIO_TIM2_CH1OUT
+#else
+#  define PWM_TIM2_CH1CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM2_CH2OUT
+#  define PWM_TIM2_CH2CFG GPIO_TIM2_CH2OUT
+#else
+#  define PWM_TIM2_CH2CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM2_CH3OUT
+#  define PWM_TIM2_CH3CFG GPIO_TIM2_CH3OUT
+#else
+#  define PWM_TIM2_CH3CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM2_CH4OUT
+#  define PWM_TIM2_CH4CFG GPIO_TIM2_CH4OUT
+#else
+#  define PWM_TIM2_CH4CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM3_CH1OUT
+#  define PWM_TIM3_CH1CFG GPIO_TIM3_CH1OUT
+#else
+#  define PWM_TIM3_CH1CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM3_CH2OUT
+#  define PWM_TIM3_CH2CFG GPIO_TIM3_CH2OUT
+#else
+#  define PWM_TIM3_CH2CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM3_CH3OUT
+#  define PWM_TIM3_CH3CFG GPIO_TIM3_CH3OUT
+#else
+#  define PWM_TIM3_CH3CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM3_CH4OUT
+#  define PWM_TIM3_CH4CFG GPIO_TIM3_CH4OUT
+#else
+#  define PWM_TIM3_CH4CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM4_CH1OUT
+#  define PWM_TIM4_CH1CFG GPIO_TIM4_CH1OUT
+#else
+#  define PWM_TIM4_CH1CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM4_CH2OUT
+#  define PWM_TIM4_CH2CFG GPIO_TIM4_CH2OUT
+#else
+#  define PWM_TIM4_CH2CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM4_CH3OUT
+#  define PWM_TIM4_CH3CFG GPIO_TIM4_CH3OUT
+#else
+#  define PWM_TIM4_CH3CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM4_CH4OUT
+#  define PWM_TIM4_CH4CFG GPIO_TIM4_CH4OUT
+#else
+#  define PWM_TIM4_CH4CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM5_CH1OUT
+#  define PWM_TIM5_CH1CFG GPIO_TIM5_CH1OUT
+#else
+#  define PWM_TIM5_CH1CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM5_CH2OUT
+#  define PWM_TIM5_CH2CFG GPIO_TIM5_CH2OUT
+#else
+#  define PWM_TIM5_CH2CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM5_CH3OUT
+#  define PWM_TIM5_CH3CFG GPIO_TIM5_CH3OUT
+#else
+#  define PWM_TIM5_CH3CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM5_CH4OUT
+#  define PWM_TIM5_CH4CFG GPIO_TIM5_CH4OUT
+#else
+#  define PWM_TIM5_CH4CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM8_CH1OUT
+#  define PWM_TIM8_CH1CFG GPIO_TIM8_CH1OUT
+#else
+#  define PWM_TIM8_CH1CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM8_CH1NOUT
+#  define PWM_TIM8_CH1NCFG GPIO_TIM8_CH1NOUT
+#else
+#  define PWM_TIM8_CH1NCFG 0
+#endif
+#ifdef CONFIG_STM32_TIM8_CH2OUT
+#  define PWM_TIM8_CH2CFG GPIO_TIM8_CH2OUT
+#else
+#  define PWM_TIM8_CH2CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM8_CH2NOUT
+#  define PWM_TIM8_CH2NCFG GPIO_TIM8_CH2NOUT
+#else
+#  define PWM_TIM8_CH2NCFG 0
+#endif
+#ifdef CONFIG_STM32_TIM8_CH3OUT
+#  define PWM_TIM8_CH3CFG GPIO_TIM8_CH3OUT
+#else
+#  define PWM_TIM8_CH3CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM8_CH3NOUT
+#  define PWM_TIM8_CH3NCFG GPIO_TIM8_CH3NOUT
+#else
+#  define PWM_TIM8_CH3NCFG 0
+#endif
+#ifdef CONFIG_STM32_TIM8_CH4OUT
+#  define PWM_TIM8_CH4CFG GPIO_TIM8_CH4OUT
+#else
+#  define PWM_TIM8_CH4CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM9_CH1OUT
+#  define PWM_TIM9_CH1CFG GPIO_TIM9_CH1OUT
+#else
+#  define PWM_TIM9_CH1CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM9_CH2OUT
+#  define PWM_TIM9_CH2CFG GPIO_TIM9_CH2OUT
+#else
+#  define PWM_TIM9_CH2CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM10_CH1OUT
+#  define PWM_TIM10_CH1CFG GPIO_TIM10_CH1OUT
+#else
+#  define PWM_TIM10_CH1CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM11_CH1OUT
+#  define PWM_TIM11_CH1CFG GPIO_TIM11_CH1OUT
+#else
+#  define PWM_TIM11_CH1CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM12_CH1OUT
+#  define PWM_TIM12_CH1CFG GPIO_TIM12_CH1OUT
+#else
+#  define PWM_TIM12_CH1CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM12_CH2OUT
+#  define PWM_TIM12_CH2CFG GPIO_TIM12_CH2OUT
+#else
+#  define PWM_TIM12_CH2CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM13_CH1OUT
+#  define PWM_TIM13_CH1CFG GPIO_TIM13_CH1OUT
+#else
+#  define PWM_TIM13_CH1CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM14_CH1OUT
+#  define PWM_TIM14_CH1CFG GPIO_TIM14_CH1OUT
+#else
+#  define PWM_TIM14_CH1CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM15_CH1OUT
+#  define PWM_TIM15_CH1CFG GPIO_TIM15_CH1OUT
+#else
+#  define PWM_TIM15_CH1CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM15_CH1NOUT
+#  define PWM_TIM15_CH1NCFG GPIO_TIM15_CH1NOUT
+#else
+#  define PWM_TIM15_CH1NCFG 0
+#endif
+#ifdef CONFIG_STM32_TIM15_CH2OUT
+#  define PWM_TIM15_CH2CFG GPIO_TIM15_CH2OUT
+#else
+#  define PWM_TIM15_CH2CFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM16_CH1OUT
+#  define PWM_TIM16_CH1CFG GPIO_TIM16_CH1OUT
+#else
+#  define PWM_TIM16_CH1CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM16_CH1NOUT
+#  define PWM_TIM16_CH1NCFG GPIO_TIM16_CH1NOUT
+#else
+#  define PWM_TIM16_CH1NCFG 0
+#endif
+
+#ifdef CONFIG_STM32_TIM17_CH1OUT
+#  define PWM_TIM17_CH1CFG GPIO_TIM17_CH1OUT
+#else
+#  define PWM_TIM17_CH1CFG 0
+#endif
+#ifdef CONFIG_STM32_TIM17_CH1NOUT
+#  define PWM_TIM17_CH1NCFG GPIO_TIM17_CH1NOUT
+#else
+#  define PWM_TIM17_CH1NCFG 0
+#endif
+
+/* Complementary outputs support */
+
+#if defined(CONFIG_STM32_TIM1_CH1NOUT) || defined(CONFIG_STM32_TIM1_CH2NOUT) || \
+    defined(CONFIG_STM32_TIM1_CH3NOUT)
+#  define HAVE_TIM1_COMPLEMENTARY
+#endif
+#if defined(CONFIG_STM32_TIM8_CH1NOUT) || defined(CONFIG_STM32_TIM8_CH2NOUT) || \
+    defined(CONFIG_STM32_TIM8_CH3NOUT)
+#  define HAVE_TIM8_COMPLEMENTARY
+#endif
+#if defined(CONFIG_STM32_TIM15_CH1NOUT)
+#  define HAVE_TIM15_COMPLEMENTARY
+#endif
+#if defined(CONFIG_STM32_TIM16_CH1NOUT)
+#  define HAVE_TIM16_COMPLEMENTARY
+#endif
+#if defined(CONFIG_STM32_TIM17_CH1NOUT)
+#  define HAVE_TIM17_COMPLEMENTARY
+#endif
+#if defined(HAVE_TIM1_COMPLEMENTARY) || defined(HAVE_TIM8_COMPLEMENTARY) ||   \
+    defined(HAVE_TIM15_COMPLEMENTARY) || defined(HAVE_TIM16_COMPLEMENTARY) || \
+    defined(HAVE_TIM17_COMPLEMENTARY)
+#  define HAVE_PWM_COMPLEMENTARY
+#endif
+
+/* Low-level ops helpers ************************************************************/
+
+/* NOTE: low-level ops accept pwm_lowerhalf_s as first argument, but llops access
+ *       can be found in stm32_pwm_dev_s
+ */
+
+#define PWM_SETUP(dev)                                                             \
+        (dev)->ops->setup((FAR struct pwm_lowerhalf_s *)dev)
+#define PWM_SHUTDOWN(dev)                                                          \
+        (dev)->ops->shutdown((FAR struct pwm_lowerhalf_s *)dev)
+#define PWM_CCR_UPDATE(dev, index, ccr)                                            \
+        (dev)->llops->ccr_update((FAR struct pwm_lowerhalf_s *)dev, index, ccr)
+#define PWM_CCR_GET(dev, index)                                                    \
+        (dev)->llops->ccr_get((FAR struct pwm_lowerhalf_s *)dev, index)
+#define PWM_ARR_UPDATE(dev, arr)                                                   \
+        (dev)->llops->arr_update((FAR struct pwm_lowerhalf_s *)dev, arr)
+#define PWM_ARR_GET(dev)                                                           \
+        (dev)->llops->arr_get((FAR struct pwm_lowerhalf_s *)dev)
+#define PWM_OUTPUTS_ENABLE(dev, out, state)                                        \
+        (dev)->llops->outputs_enable((FAR struct pwm_lowerhalf_s *)dev, out, state)
+#define PWM_SOFT_UPDATE(dev)                                                       \
+        (dev)->llops->soft_update((FAR struct pwm_lowerhalf_s *)dev)
+#define PWM_CONFIGURE(dev)                                                         \
+        (dev)->llops->configure((FAR struct pwm_lowerhalf_s *)dev)
+#define PWM_SOFT_BREAK(dev, state)                                                 \
+        (dev)->llops->soft_break((FAR struct pwm_lowerhalf_s *)dev, state)
+#define PWM_FREQ_UPDATE(dev, freq)                                                 \
+        (dev)->llops->freq_update((FAR struct pwm_lowerhalf_s *)dev, freq)
+#define PWM_TIM_ENABLE(dev, state)                                                 \
+        (dev)->llops->tim_enable((FAR struct pwm_lowerhalf_s *)dev, state)
+#ifdef CONFIG_DEBUG_PWM_INFO
+#  define PWM_DUMP_REGS(dev)                                                       \
+        (dev)->llops->dump_regs((FAR struct pwm_lowerhalf_s *)dev)
+#else
+#  define PWM_DUMP_REGS(dev)
+#endif
+#define PWM_DT_UPDATE(dev, dt)                                                     \
+        (dev)->llops->dt_update((FAR struct pwm_lowerhalf_s *)dev, dt)
 
 /************************************************************************************
  * Public Types
  ************************************************************************************/
+
+/* Timer mode */
+
+enum stm32_pwm_tim_mode_e
+{
+  STM32_TIMMODE_COUNTUP   = 0,
+  STM32_TIMMODE_COUNTDOWN = 1,
+  STM32_TIMMODE_CENTER1   = 2,
+  STM32_TIMMODE_CENTER2   = 3,
+  STM32_TIMMODE_CENTER3   = 4,
+};
+
+/* Timer output polarity */
+
+enum stm32_pwm_pol_e
+{
+  STM32_POL_POS  = 0,
+  STM32_POL_NEG  = 1,
+};
+
+/* Timer output IDLE state */
+
+enum stm32_pwm_idle_e
+{
+  STM32_IDLE_INACTIVE = 0,
+  STM32_IDLE_ACTIVE   = 1
+};
+
+/* PWM channel mode */
+
+enum stm32_chan_mode_e
+{
+  STM32_CHANMODE_PWM1        = 0,
+  STM32_CHANMODE_PWM2        = 1,
+#ifdef HAVE_IP_TIMERS_V2
+  STM32_CHANMODE_COMBINED1   = 2,
+  STM32_CHANMODE_COMBINED2   = 3,
+  STM32_CHANMODE_ASYMMETRIC1 = 4,
+  STM32_CHANMODE_ASYMMETRIC2 = 5
+#endif
+};
+
+/* Timer channel */
+
+enum stm32_chan_e
+{
+  STM32_CHAN1  = (1 << 0),
+  STM32_CHAN1N = (1 << 1),
+  STM32_CHAN2  = (1 << 2),
+  STM32_CHAN2N = (1 << 3),
+  STM32_CHAN3  = (1 << 4),
+  STM32_CHAN3N = (1 << 5),
+  STM32_CHAN4  = (1 << 6),
+  /* No complementary output for CH4 */
+#ifdef HAVE_IP_TIMERS_V2
+  /* Only available inside micro */
+
+  STM32_CHAN5  = (1 << 7),
+  /* 1<<8 reserved */
+  STM32_CHAN6  = (1 << 9),
+  /* 1<<10 reserved */
+#endif
+};
+
+#ifdef CONFIG_STM32_PWM_LL_OPS
+
+/* This structure provides the publicly visable representation of the
+ * "lower-half" PWM driver structure.
+ */
+
+struct stm32_pwm_dev_s
+{
+  /* The first field of this state structure must be a pointer to the PWM
+   * callback structure to be consistent with upper-half PWM driver.
+   */
+
+  FAR const struct pwm_ops_s *ops;
+
+  /* Publicly visible portion of the "lower-half" PWM driver structure */
+
+  FAR const struct stm32_pwm_ops_s *llops;
+
+  /* Require cast-compatibility with private "lower-half" PWM strucutre */
+};
+
+/* Low-level operations for PWM */
+
+struct pwm_lowerhalf_s;
+struct stm32_pwm_ops_s
+{
+  /* Update CCR register */
+
+  int (*ccr_update)(FAR struct pwm_lowerhalf_s *dev, uint8_t index, uint32_t ccr);
+
+  /* Get CCR register */
+
+  uint32_t (*ccr_get)(FAR struct pwm_lowerhalf_s *dev, uint8_t index);
+
+  /* Update ARR register */
+
+  int (*arr_update)(FAR struct pwm_lowerhalf_s *dev, uint32_t arr);
+
+  /* Get ARR register */
+
+  uint32_t (*arr_get)(FAR struct pwm_lowerhalf_s *dev);
+
+  /* Enable outputs */
+
+  int (*outputs_enable)(FAR struct pwm_lowerhalf_s *dev, uint16_t outputs, bool state);
+
+  /* Software update */
+
+  int (*soft_update)(FAR struct pwm_lowerhalf_s *dev);
+
+  /* PWM configure */
+
+  int (*configure)(FAR struct pwm_lowerhalf_s *dev);
+
+  /* Software break */
+
+  int (*soft_break)(FAR struct pwm_lowerhalf_s *dev, bool state);
+
+  /* Update frequency */
+
+  int (*freq_update)(FAR struct pwm_lowerhalf_s *dev, uint32_t frequency);
+
+  /* Enable timer counter */
+
+  int (*tim_enable)(FAR struct pwm_lowerhalf_s *dev, bool state);
+
+#ifdef CONFIG_DEBUG_PWM_INFO
+  /* Dump timer registers */
+
+  int (*dump_regs)(FAR struct pwm_lowerhalf_s *dev);
+#endif
+
+#ifdef HAVE_PWM_COMPLEMENTARY
+  /* Deadtime update */
+
+  int (*dt_update)(FAR struct pwm_lowerhalf_s *dev, uint8_t dt);
+#endif
+};
+
+#endif  /* CONFIG_STM32_PWM_LL_OPS */
 
 /************************************************************************************
  * Public Data
@@ -1104,5 +1105,5 @@ FAR struct pwm_lowerhalf_s *stm32_pwminitialize(int timer);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* CONFIG_STM32_TIMx_PWM */
+#endif /* CONFIG_STM32_PWM */
 #endif /* __ARCH_ARM_SRC_STM32_STM32_PWM_H */

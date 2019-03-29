@@ -1,7 +1,8 @@
 /****************************************************************************
  * graphics/nxbe/nxbe_fill.c
  *
- *   Copyright (C) 2008-2009, 2011, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2011, 2016, 2019 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +40,8 @@
 
 #include <nuttx/config.h>
 
+#include <assert.h>
+
 #include <nuttx/nx/nxglib.h>
 #include <nuttx/nx/nx.h>
 
@@ -62,8 +65,8 @@ struct nxbe_fill_s
  * Name: nxbe_clipfill
  *
  * Description:
- *  Called from nxbe_clipper() to performed the fill operation on visible portions
- *  of the rectangle.
+ *  Called from nxbe_clipper() to performed the fill operation on visible
+ *  portions of the rectangle.
  *
  ****************************************************************************/
 
@@ -73,9 +76,9 @@ static void nxbe_clipfill(FAR struct nxbe_clipops_s *cops,
 {
   struct nxbe_fill_s *fillinfo = (struct nxbe_fill_s *)cops;
 
-  /* Draw the rectangle */
+  /* Draw the rectangle to the graphics device. */
 
-  plane->fillrectangle(&plane->pinfo, rect, fillinfo->color);
+  plane->dev.fillrectangle(&plane->pinfo, rect, fillinfo->color);
 
 #ifdef CONFIG_NX_UPDATE
   /* Notify external logic that the display has been updated */
@@ -83,6 +86,87 @@ static void nxbe_clipfill(FAR struct nxbe_clipops_s *cops,
   nx_notify_rectangle(&plane->pinfo, rect);
 #endif
 }
+
+/****************************************************************************
+ * Name: nxbe_fill_dev
+ *
+ * Description:
+ *  Fill the specified rectangle in the window in device memory with the
+ *  specified color, performing clipping as needed.
+ *
+ * Input Parameters:
+ *   wnd  - The window structure reference
+ *   rect - The location to be filled
+ *   col  - The color to use in the fill
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static inline void nxbe_fill_dev(FAR struct nxbe_window_s *wnd,
+                                 FAR const struct nxgl_rect_s *rect,
+                                 nxgl_mxpixel_t color[CONFIG_NX_NPLANES])
+{
+  struct nxbe_fill_s info;
+  int i;
+
+#if CONFIG_NX_NPLANES > 1
+  for (i = 0; i < wnd->be->vinfo.nplanes; i++)
+#else
+  i = 0;
+#endif
+    {
+      DEBUGASSERT(wnd->be->plane[i].dev.fillrectangle != NULL);
+
+      info.cops.visible  = nxbe_clipfill;
+      info.cops.obscured = nxbe_clipnull;
+      info.color         = color[i];
+
+      nxbe_clipper(wnd->above, rect, NX_CLIPORDER_DEFAULT,
+                   &info.cops, &wnd->be->plane[i]);
+    }
+}
+
+/****************************************************************************
+ * Name: nxbe_fill_pwfb
+ *
+ * Description:
+ *  Fill the specified rectangle in the per-window frame buffer with no
+ *  clipping.
+ *
+ * Input Parameters:
+ *   wnd  - The window structure reference
+ *   rect - The location to be filled
+ *   col  - The color to use in the fill
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NX_RAMBACKED
+static inline void nxbe_fill_pwfb(FAR struct nxbe_window_s *wnd,
+                                  FAR const struct nxgl_rect_s *rect,
+                                  nxgl_mxpixel_t color[CONFIG_NX_NPLANES])
+{
+  struct nxgl_rect_s relrect;
+
+  DEBUGASSERT(wnd->be->plane[0].pwfb.fillrectangle != NULL);
+
+  /* The rectangle that we receive here is in abolute device coordinates.  We
+   * need to restore this to windows relative coordinates.
+   */
+
+  nxgl_rectoffset(&relrect, rect, -wnd->bounds.pt1.x, -wnd->bounds.pt1.y);
+
+  /* Copy the rectangular region to the framebuffer (no clipping).
+   * REVISIT:  Assumes a single color plane.
+   */
+
+  wnd->be->plane[0].pwfb.fillrectangle(wnd, &relrect, color[0]);
+}
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -108,16 +192,10 @@ void nxbe_fill(FAR struct nxbe_window_s *wnd,
                FAR const struct nxgl_rect_s *rect,
                nxgl_mxpixel_t color[CONFIG_NX_NPLANES])
 {
-  struct nxbe_fill_s info;
   struct nxgl_rect_s remaining;
-  int i;
 
-#ifdef CONFIG_DEBUG_FEATURES
-  if (!wnd || !rect)
-    {
-      return;
-    }
-#endif
+  DEBUGASSERT(wnd != NULL && rect != NULL && color != NULL);
+  DEBUGASSERT(wnd->be != NULL && wnd->be->plane != NULL);
 
   /* Offset the rectangle by the window origin to convert it into a
    * bounding box
@@ -132,24 +210,21 @@ void nxbe_fill(FAR struct nxbe_window_s *wnd,
   nxgl_rectintersect(&remaining, &remaining, &wnd->bounds);
   nxgl_rectintersect(&remaining, &remaining, &wnd->be->bkgd.bounds);
 
-  /* Then clip the bounding box due to other windows above this one.
-   * Render the portions of the trapezoid exposed in visible regions.
-   */
-
   if (!nxgl_nullrect(&remaining))
     {
-#if CONFIG_NX_NPLANES > 1
-      for (i = 0; i < wnd->be->vinfo.nplanes; i++)
-#else
-      i = 0;
-#endif
-        {
-          info.cops.visible  = nxbe_clipfill;
-          info.cops.obscured = nxbe_clipnull;
-          info.color         = color[i];
+#ifdef CONFIG_NX_RAMBACKED
+      /* If this window supports a pre-window frame buffer then shadow the
+       * full, unclipped bitmap in that framebuffer.
+       */
 
-          nxbe_clipper(wnd->above, &remaining, NX_CLIPORDER_DEFAULT,
-                       &info.cops, &wnd->be->plane[i]);
+      if (NXBE_ISRAMBACKED(wnd))
+        {
+          nxbe_fill_pwfb(wnd, &remaining, color);
         }
+#endif
+
+      /* Rend the bitmap directly to the graphics device in any case */
+
+      nxbe_fill_dev(wnd, &remaining, color);
     }
 }

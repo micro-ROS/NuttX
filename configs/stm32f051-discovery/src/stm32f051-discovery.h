@@ -45,7 +45,7 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include "stm32f0_gpio.h"
+#include "stm32_gpio.h"
 
 /****************************************************************************************************
  * Pre-processor Definitions
@@ -54,15 +54,15 @@
 /* Configuration ************************************************************************************/
 /* How many SPI modules does this chip support? */
 
-#if STM32F0_NSPI < 1
-#  undef CONFIG_STM32F0_SPI1
-#  undef CONFIG_STM32F0_SPI2
-#  undef CONFIG_STM32F0_SPI3
-#elif STM32F0_NSPI < 2
-#  undef CONFIG_STM32F0_SPI2
-#  undef CONFIG_STM32F0_SPI3
-#elif STM32F0_NSPI < 3
-#  undef CONFIG_STM32F0_SPI3
+#if STM32_NSPI < 1
+#  undef CONFIG_STM32F0L0_SPI1
+#  undef CONFIG_STM32F0L0_SPI2
+#  undef CONFIG_STM32F0L0_SPI3
+#elif STM32_NSPI < 2
+#  undef CONFIG_STM32F0L0_SPI2
+#  undef CONFIG_STM32F0L0_SPI3
+#elif STM32_NSPI < 3
+#  undef CONFIG_STM32F0L0_SPI3
 #endif
 
 /* STM32F0Discovery GPIOs ***************************************************************************/
@@ -81,9 +81,9 @@
  * The other side of the LED connects to ground so high value will illuminate the LED.
  */
 
-#define GPIO_LED1       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_10MHz | \
+#define GPIO_LED1       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_MEDIUM | \
                          GPIO_OUTPUT_CLEAR | GPIO_PORTC | GPIO_PIN9)
-#define GPIO_LED2       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_10MHz | \
+#define GPIO_LED2       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_MEDIUM | \
                          GPIO_OUTPUT_CLEAR | GPIO_PORTC | GPIO_PIN8)
 
 /* Button definitions *******************************************************************************/
@@ -121,10 +121,10 @@
  * Description:
  *   Perform architecture-specific initialization
  *
- *   CONFIG_BOARD_INITIALIZE=y :
- *     Called from board_initialize().
+ *   CONFIG_BOARD_LATE_INITIALIZE=y :
+ *     Called from board_late_initialize().
  *
- *   CONFIG_BOARD_INITIALIZE=n && CONFIG_LIB_BOARDCTL=y :
+ *   CONFIG_BOARD_LATE_INITIALIZE=n && CONFIG_LIB_BOARDCTL=y :
  *     Called from the NSH library
  *
  ****************************************************************************/

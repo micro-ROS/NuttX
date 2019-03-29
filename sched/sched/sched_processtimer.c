@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/sched/sched_processtimer.c
  *
- *   Copyright (C) 2007, 2009, 2014-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2014-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,10 @@
 #  include <nuttx/arch.h>
 #endif
 
+#ifdef CONFIG_SYSTEMTICK_HOOK
+#  include <nuttx/board.h>
+#endif
+
 #include "sched/sched.h"
 #include "wdog/wdog.h"
 #include "clock/clock.h"
@@ -55,7 +59,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name:  sched_cpu_scheduler
+ * Name:  nxsched_cpu_scheduler
  *
  * Description:
  *   Check for operations specific to scheduling policy of the currently
@@ -70,7 +74,7 @@
  ****************************************************************************/
 
 #if CONFIG_RR_INTERVAL > 0 || defined(CONFIG_SCHED_SPORADIC)
-static inline void sched_cpu_scheduler(int cpu)
+static inline void nxsched_cpu_scheduler(int cpu)
 {
   FAR struct tcb_s *rtcb = current_task(cpu);
 
@@ -103,7 +107,7 @@ static inline void sched_cpu_scheduler(int cpu)
 #endif
 
 /****************************************************************************
- * Name:  sched_process_scheduler
+ * Name:  nxsched_process_scheduler
  *
  * Description:
  *   Check for operations specific to scheduling policy of the currently
@@ -118,7 +122,7 @@ static inline void sched_cpu_scheduler(int cpu)
  ****************************************************************************/
 
 #if CONFIG_RR_INTERVAL > 0 || defined(CONFIG_SCHED_SPORADIC)
-static inline void sched_process_scheduler(void)
+static inline void nxsched_process_scheduler(void)
 {
 #ifdef CONFIG_SMP
   irqstate_t flags;
@@ -138,7 +142,7 @@ static inline void sched_process_scheduler(void)
 
   for (i = 0; i < CONFIG_SMP_NCPUS; i++)
     {
-      sched_cpu_scheduler(i);
+      nxsched_cpu_scheduler(i);
     }
 
   leave_critical_section(flags);
@@ -146,11 +150,11 @@ static inline void sched_process_scheduler(void)
 #else
   /* Perform scheduler operations on the single CPUs */
 
-  sched_cpu_scheduler(0);
+  nxsched_cpu_scheduler(0);
 #endif
 }
 #else
-#  define sched_process_scheduler()
+#  define nxsched_process_scheduler()
 #endif
 
 /****************************************************************************
@@ -166,7 +170,7 @@ static inline void sched_process_scheduler(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name:  sched_process_timer
+ * Name:  nxsched_process_timer
  *
  * Description:
  *   This function handles system timer events.
@@ -183,7 +187,7 @@ static inline void sched_process_scheduler(void)
  *
  ****************************************************************************/
 
-void sched_process_timer(void)
+void nxsched_process_timer(void)
 {
 #ifdef CONFIG_CLOCK_TIMEKEEPING
   /* Process wall time */
@@ -206,10 +210,10 @@ void sched_process_timer(void)
    */
 
 #ifdef CONFIG_HAVE_WEAKFUNCTIONS
-  if (sched_process_cpuload != NULL)
+  if (nxsched_process_cpuload != NULL)
 #endif
     {
-      sched_process_cpuload();
+      nxsched_process_cpuload();
     }
 #endif
 
@@ -217,9 +221,17 @@ void sched_process_timer(void)
    * timeslice.
    */
 
-  sched_process_scheduler();
+  nxsched_process_scheduler();
 
   /* Process watchdogs */
 
   wd_timer();
+
+#ifdef CONFIG_SYSTEMTICK_HOOK
+  /* Call out to a user-provided function in order to perform board-specific,
+   * custom timer operations.
+   */
+
+  board_timerhook();
+#endif
 }

@@ -82,10 +82,14 @@ static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_con
   FAR struct iob_s *iob;
   int ret;
 #ifdef CONFIG_NET_IPv6
-  FAR struct sockaddr_in6 src_addr6;
+  FAR struct sockaddr_in6 src_addr6 =
+  {
+  };
 #endif
 #ifdef CONFIG_NET_IPv4
-  FAR struct sockaddr_in src_addr4;
+  FAR struct sockaddr_in src_addr4 =
+  {
+  };
 #endif
   FAR void  *src_addr;
   uint8_t src_addr_size;
@@ -223,6 +227,14 @@ static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_con
       (void)iob_free_chain(iob);
       return 0;
     }
+
+#ifdef CONFIG_UDP_READAHEAD_NOTIFIER
+  /* Provided notification(s) that additional UDP read-ahead data is
+   * available.
+   */
+
+  udp_notifier_signal(conn);
+#endif
 
   ninfo("Buffered %d bytes\n", buflen);
   return buflen;

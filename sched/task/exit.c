@@ -1,7 +1,8 @@
 /****************************************************************************
  * sched/exit.c
  *
- *   Copyright (C) 2007-2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2008, 2011-2012, 2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +48,7 @@
 #include <nuttx/fs/fs.h>
 
 #include "task/task.h"
+#include "group/group.h"
 #include "sched/sched.h"
 
 /****************************************************************************
@@ -75,13 +77,22 @@ void exit(int status)
 
   status &= 0xff;
 
+#ifdef CONFIG_SCHED_EXIT_KILL_CHILDREN
+  /* Kill all of the children of the group, preserving only this thread.
+   * exit() is normally called from the main thread of the task.  pthreads
+   * exit through a different mechanism.
+   */
+
+  group_killchildren((FAR struct task_tcb_s *)tcb);
+#endif
+
   /* Perform common task termination logic.  This will get called again later
    * through logic kicked off by _exit().  However, we need to call it before
    * calling _exit() in order to handle atexit() and on_exit() callbacks and
    * so that we can flush buffered I/O (both of which may required suspending).
    */
 
-  task_exithook(tcb, status, false);
+  nxtask_exithook(tcb, status, false);
 
   /* Then "really" exit.  Only the lower 8 bits of the exit status are used. */
 

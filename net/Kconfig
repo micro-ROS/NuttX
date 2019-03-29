@@ -19,6 +19,10 @@ config NET_READAHEAD
 	bool
 	default n
 
+config NET_MCASTGROUP
+	bool
+	default n
+
 config NET
 	bool "Networking support"
 	default n
@@ -124,9 +128,9 @@ menuconfig NET_SLIP
 		at least one IP protocol selected.
 
 		SLIP supports point-to-point IP communications over a serial port.
-		The default data link layer for network layer is Ethernet. If
-		NET_SLIP is defined in the NuttX configuration file, then SLIP will
-		be supported.  The basic differences between the SLIP and Ethernet
+		The default link layer for network layer is Ethernet. If NET_SLIP
+		is defined in the NuttX configuration file, then SLIP will be
+		supported.  The basic differences between the SLIP and Ethernet
 		configurations is that when SLIP is selected:
 
 			* The link level header (that comes before the IP header) is omitted.
@@ -189,25 +193,6 @@ config NET_TUN_PKTSIZE
 		the MSS (Maximum Segment Size).  TUN has no link layer header so for
 		TUN the MTU is the same as the PKTSIZE.
 
-choice
-	prompt "Work queue"
-	default TUN_LPWORK if SCHED_LPWORK
-	default TUN_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
-	depends on SCHED_WORKQUEUE
-	---help---
-		Work queue support is required to use the TUN driver.  If the
-		low priority work queue is available, then it should be used by the
-		TUN driver.
-
-config TUN_HPWORK
-	bool "High priority"
-	depends on SCHED_HPWORK
-
-config TUN_LPWORK
-	bool "Low priority"
-	depends on SCHED_LPWORK
-
-endchoice # Work queue
 endif # NET_TUN
 
 config NET_USRSOCK
@@ -227,7 +212,36 @@ config NET_USRSOCK
 		can access standard socket API, with socket descriptors that
 		can be used with NuttX system calls.
 
-endmenu # Data link support
+config NETDEV_LATEINIT
+	bool "Late driver initialization"
+	default n
+	---help---
+		Normally, networking initialization occur in the later phase of the
+		boot process in the function up_initialize() when it calls the
+		driver initialization function, up_netintialize().  This
+		initialization occurs after a sufficient about of the OS has been
+		initialized so that driver registration can be performed, but
+		before the completion of OS initialization and before the first
+		application is started.
+
+		In a few situations, however, you may want to suppress this early
+		network driver initialization.  As examples:
+
+			- If you are using SLIP or PPPD, then there will be no network
+			  driver to be initialized,
+			- Certain multi-network configurations where a simple call to
+			  up_netinitialize() may be insufficient, and
+			- Situations where there are other board-level hardware
+			  dependencies so that the hardware is not in an appropriate
+			  state for up_netinitialize() to be called.
+
+		Examples of this latter situation includes such things as network
+		drivers that required some setup via an I2C I/O expander, or network
+		drivers that depend on USB, SPI, I2C, PCI, serial, or other
+		interfaces that may not be ready when up_netiniailize() is normally
+		called.
+
+endmenu # Link layer support
 
 source "net/netdev/Kconfig"
 
@@ -306,6 +320,7 @@ source "net/bluetooth/Kconfig"
 source "net/ieee802154/Kconfig"
 source "net/icmp/Kconfig"
 source "net/icmpv6/Kconfig"
+source "net/mld/Kconfig"
 source "net/igmp/Kconfig"
 source "net/arp/Kconfig"
 source "net/loopback/Kconfig"
@@ -364,11 +379,5 @@ endchoice # Node role
 endmenu # Network Topologies
 
 source "net/route/Kconfig"
-
-config NET_HOSTNAME
-	string "Host name for this device"
-	default ""
-	---help---
-		A unique name to identify device on the network
 
 endif # NET
