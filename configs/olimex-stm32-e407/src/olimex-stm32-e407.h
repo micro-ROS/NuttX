@@ -132,10 +132,10 @@
    * will cause waiting.  Use either:
    *
    *  CONFIG_LIB_BOARDCTL=y, OR
-   *  CONFIG_BOARD_INITIALIZE=y && CONFIG_BOARD_INITTHREAD=y
+   *  CONFIG_BOARD_LATE_INITIALIZE=y && CONFIG_BOARD_INITTHREAD=y
    */
 
-#  if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_LIB_BOARDCTL) && \
+#  if defined(CONFIG_BOARD_LATE_INITIALIZE) && !defined(CONFIG_LIB_BOARDCTL) && \
      !defined(CONFIG_BOARD_INITTHREAD)
 #    warning SDIO initialization cannot be perfomed on the IDLE thread
 #    undef HAVE_SDIO
