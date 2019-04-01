@@ -20,7 +20,7 @@ if [ $1 = "olimex-stm32-e407" ]; then
   elif [ $2 = "mrf24j40-6lowpan" ];then
     ./tools/configure.sh olimex-stm32-e407/mrf24j40-6lowpan
   elif [ $2 = "mrf24j40-mac" ];then
-    ./tools/configure.sh olimex-stm32-e407/mac
+    ./tools/configure.sh olimex-stm32-e407/mrf24j40-mac
   elif [ $2 = "pm" ];then
     ./tools/configure.sh olimex-stm32-e407/pm
   elif [ $2 = "tcpecho" ];then
@@ -31,8 +31,10 @@ if [ $1 = "olimex-stm32-e407" ]; then
     ./tools/configure.sh olimex-stm32-e407/sd
   elif [ $2 = "timer" ];then
     ./tools/configure.sh olimex-stm32-e407/timer
-  elif [ $2 = "telemetry" ];then
-    ./tools/configure.sh olimex-stm32-e407/telemetry
+  elif [ $2 = "dac" ];then
+    ./tools/configure.sh olimex-stm32-e407/dac
+  elif [ $2 = "uros" ];then
+    ./tools/configure.sh olimex-stm32-e407/uros
   else
     echo "Error"
   fi
