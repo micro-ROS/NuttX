@@ -1,0 +1,28 @@
+This is the configuration to bring-up the connection between the RPI and the NuttX board.
+
+Write the next configuration on the RPI:
+
+	- Set the PAN ID: sudo iwpan dev wpan0 set pan_id 0xabcd
+	- Set the page and channel: sudo iwpan phy phy0 set channel 0 26
+	- Set the short address: sudo iwpan dev wpan0 set short_addr 0x4204 (Or whatever you want)
+	- Attach the phy layer to the lowpan: sudo ip link add link wpan0 name lowpan0 type lowpan
+	- Bring up the WPAN0 interface: sudo ip link set wpan0 up
+
+Now go to the NuttX board and set the next commands:
+
+	- Start topology using the PANID AB:CD :i8sak wpan0 startpan cd:ab
+	- Set channel: i8sak set chan 26
+	- Set the short address: i8sak set saddr 42:01
+	- Set the long address: i8sak set eaddr 00:fa:de:00:de:ad:be:cc
+	- Bring up the network: ifup wpan0
+	- Mount the file system:  mount -t procfs /proc
+	- Check the IP: ifconfig
+
+At this point only left to do a ping to NuttX, so go back to the RPI and type the next commands:
+	- Bring up the RPI lowpan: sudo ip link set lowpan0 up
+	- Send a ping to add to the neigbor table: ping6 -I lowpan0 <ipv6_of_nuttx>
+
+Now everything is ready to receive and send UDP+6lowpan package in both boards.
+
+
+
