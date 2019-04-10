@@ -1676,6 +1676,10 @@ source graphics/Kconfig
 source libs/libnx/Kconfig
 endmenu
 
+menu "Backtrace Support"
+source libs/libbacktrace/Kconfig
+endmenu
+
 menu "Memory Management"
 source mm/Kconfig
 endmenu

@@ -196,7 +196,13 @@ staging$(DELIM)libproxies$(LIBEXT): syscall$(DELIM)libproxies$(LIBEXT)
 
 # Possible non-kernel builds
 
-libs$(DELIM)libc$(DELIM)libc$(LIBEXT): context
+libs$(DELIM)libbacktrace$(DELIM)libbacktrace$(LIBEXT): context
+	$(Q) $(MAKE) -C libs$(DELIM)libbacktrace TOPDIR="$(TOPDIR)" libbacktrace$(LIBEXT)
+
+staging$(DELIM)libbacktrace$(LIBEXT): libs$(DELIM)libbacktrace$(DELIM)libbacktrace$(LIBEXT)
+	$(Q) $(call INSTALL_LIB,$<,$@)
+
+libs$(DELIM)libc$(DELIM)libc$(LIBEXT): libs$(DELIM)libc$(DELIM)libc$(LIBEXT)
 	$(Q) $(MAKE) -C libs$(DELIM)libc TOPDIR="$(TOPDIR)" libc$(LIBEXT)
 
 staging$(DELIM)libc$(LIBEXT): libs$(DELIM)libc$(DELIM)libc$(LIBEXT)
