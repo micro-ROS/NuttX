@@ -70,7 +70,25 @@
 
 FAR struct neighbor_entry *neighbor_findentry(const net_ipv6addr_t ipaddr)
 {
-  int i;
+  #ifdef CONFIG_NET_6LOWPAN
+  #else
+    int i;
+
+    for (i = 0; i < CONFIG_NET_IPv6_NCONF_ENTRIES; ++i)
+      {
+        FAR struct neighbor_entry *neighbor = &g_neighbors[i];
+
+        if (net_ipv6addr_cmp(neighbor->ne_ipaddr, ipaddr))
+          {
+            neighbor_dumpentry("Entry found", neighbor);
+            return neighbor;
+          }
+      }
+
+    neighbor_dumpipaddr("Not found", ipaddr);
+    return NULL
+  #endif
+  /*int i;
 
   for (i = 0; i < CONFIG_NET_IPv6_NCONF_ENTRIES; ++i)
     {
@@ -84,5 +102,5 @@ FAR struct neighbor_entry *neighbor_findentry(const net_ipv6addr_t ipaddr)
     }
 
   neighbor_dumpipaddr("Not found", ipaddr);
-  return NULL;
+  return NULL;*/
 }
