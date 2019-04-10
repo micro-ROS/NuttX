@@ -1,0 +1,55 @@
+#
+# Copyright 2015 Stephen Street <stephen@redrocketcomputing.com>
+# 
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/. 
+#
+
+ifeq (${.DEFAULT_GOAL},)
+.DEFAULT_GOAL := all
+endif
+
+ifeq ("$(origin V)", "command line")
+VERBOSE = ${V}
+endif
+
+ifndef VERBOSE
+VERBOSE = 0
+endif
+
+ifeq (${VERBOSE},1)
+  quiet =
+  Q =
+else
+  quiet = (${1})
+  Q = @
+endif
+
+export TOOLS_ROOT ?= ${PROJECT_ROOT}/tools
+export BUILD_ROOT ?= ${OUTPUT_ROOT}/${BUILD_TYPE}
+
+CC := ${CROSS_COMPILE}gcc
+CXX := ${CROSS_COMPILE}g++
+LD := ${CROSS_COMPILE}gcc
+AR := ${CROSS_COMPILE}ar
+AS := ${CROSS_COMPILE}as
+OBJCOPY := ${CROSS_COMPILE}objcopy
+OBJDUMP := ${CROSS_COMPILE}objdump
+SIZE := ${CROSS_COMPILE}size
+NM := ${CROSS_COMPILE}nm
+FIND := find
+
+CROSS_FLAGS := -mthumb -mcpu=cortex-m${CORTEX_M}
+
+ARFLAGS := cr
+ASFLAGS := ${CROSS_FLAGS}
+CFLAGS := ${CROSS_FLAGS} -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wunused -Wuninitialized -Wmissing-declarations -std=c11 -mpoke-function-name -funwind-tables -fno-omit-frame-pointer
+CXXFLAGS := ${CROSS_FLAGS} -fno-omit-frame-pointer -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wunused -Wuninitialized -Wmissing-declarations -std=c11 -mpoke-function-name -fno-omit-frame-pointer
+CPPFLAGS += -DBUILD_TYPE="${BUILD_TYPE}"
+LDFLAGS := ${CROSS_FLAGS} -Wl,--gc-sections  -Wl,--cref -Wl,-Map,"$(basename ${TARGET}).map"
+LDLIBS :=
+LOADLIBES := 
+
+-include ${PROJECT_ROOT}/Makefile.${BUILD_TYPE}
+-include ${SOURCE_DIR}/Makefile.${BUILD_TYPE}
