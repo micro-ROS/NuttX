@@ -17,12 +17,8 @@ if [ $1 = "olimex-stm32-e407" ]; then
     ./tools/configure.sh olimex-stm32-e407/adc
   elif [ $2 = "microxrcedds" ];then
     ./tools/configure.sh olimex-stm32-e407/microxrcedds
-  elif [ $2 = "6lowpan-cord" ];then
-    ./tools/configure.sh olimex-stm32-e407/mrf24j40-6lowpan-cord
-  elif [ $2 = "6lowpan-node" ];then
-    ./tools/configure.sh olimex-stm32-e407/mrf24j40-6lowpan-node
-  elif [ $2 = "mrf24j40-mac" ];then
-    ./tools/configure.sh olimex-stm32-e407/mrf24j40-mac
+  elif [ $2 = "mrf24j40-6lowpan" ];then
+    ./tools/configure.sh olimex-stm32-e407/mrf24j40-6lowpan
   elif [ $2 = "pm" ];then
     ./tools/configure.sh olimex-stm32-e407/pm
   elif [ $2 = "tcpecho" ];then
