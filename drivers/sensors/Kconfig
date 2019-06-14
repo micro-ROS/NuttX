@@ -49,6 +49,13 @@ config SENSORS_BMP180
 	---help---
 		Enable driver support for the Bosch BMP180 barometer sensor.
 
+config SENSORS_VL53L1X
+	bool "ST VL53L1X TOF sensor"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the VL53L1X Time Of Flight sensor.
+
 config SENSORS_DHTXX
 	bool "DHTxx humidity/temperature Sensor support"
 	default n
