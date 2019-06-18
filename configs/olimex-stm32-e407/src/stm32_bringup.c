@@ -145,17 +145,21 @@
 int stm32_bringup(void)
 {
 int ret = OK;
+
+#ifdef CONFIG_SENSORS_VL53L1X
   ret = stm32_vl53l1xinitialize("/dev/tof0");
   if (ret < 0)
     {
       syslog(LOG_ERR, "Failed to initialize BMP180, error %d\n", ret);
       return ret;
     }
+#endif
+
 
 #ifdef CONFIG_ONESHOT
   struct oneshot_lowerhalf_s *os = NULL;
 #endif
-  
+
 
 #ifdef CONFIG_DEV_GPIO
   ret = stm32_gpio_initialize();

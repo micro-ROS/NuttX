@@ -1,8 +1,8 @@
 /************************************************************************************
- * configs/stm32f103-minimum/src/stm32_bmp180.c
+ * configs/olimex-stm32-e407/src/stm32_vl53l1x.c
  *
- *   Copyright (C) 2018 Alan Carvalho de Assis. All rights reserved.
- *   Author: Alan Carvalho de Assis <acassis@gmail.com>
+ *   Copyright (C) 2019 Acutronics Robotics. All rights reserved.
+ *   Author: Acutronics Robotics (Juan Flores Muñoz) <juan@erlerobotics.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,13 +62,13 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_bmp180initialize
+ * Name: stm32_vl53l1xinitialize
  *
  * Description:
- *   Initialize and register the MPL115A Pressure Sensor driver.
+ *   Initialize and register the VL53L1X ditsance/light Sensor driver.
  *
  * Input parameters:
- *   devpath - The full path to the driver to register. E.g., "/dev/press0"
+ *   devpath - The full path to the driver to register. E.g., "/dev/tof0"
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
@@ -102,4 +102,4 @@ int stm32_vl53l1xinitialize(FAR const char *devpath)
   return ret;
 }
 
-#endif /* CONFIG_I2C && CONFIG_SENSORS_MPL115A && CONFIG_STM32_I2C1 */
+#endif /* CONFIG_I2C && CONFIG_SENSORS_VL53L1X && CONFIG_STM32_I2C1 */
