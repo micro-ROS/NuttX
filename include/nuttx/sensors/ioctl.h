@@ -79,6 +79,13 @@
 #define SNIOC_READTOS              _SNIOC(0x0013) /* Arg: b16_t* pointer */
 #define SNIOC_WRITETOS             _SNIOC(0x0014) /* Arg: b16_t value */
 
+/* IOCTL commands unique to the VL53L1X */
+
+#define SNIOC_DISTANCESHORT        _SNIOC(0x0100) /* Arg: None */
+#define SNIOC_DISTANCELONG         _SNIOC(0x0101) /* Arg: None */
+#define SNIOC_CALIBRATE            _SNIOC(0x0102) /* Arg: b16_t value */
+#define SNIOC_TEMPUPDATE           _SNIOC(0x0103) /* Arg: b16_t value */
+
 /* IOCTL commands unique to the LM92 */
 
 #define SNIOC_READTCRIT            _SNIOC(0x0015) /* Arg: b16_t* pointer */
