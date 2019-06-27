@@ -62,7 +62,7 @@
  ****************************************************************************/
 #define VLM53L1X_FREQ         100000
 #define VL53L1X_ADDR  0x29
-//  ResultBuffer results;
+
 /****************************************************************************
  * Private Type Definitions
  ****************************************************************************/
@@ -70,8 +70,8 @@
 struct vl53l1x_dev_s
 {
   FAR struct i2c_master_s *i2c; /* I2C interface */
-  uint8_t addr;                 /* BMP180 I2C address */
-  int freq;                     /* BMP180 Frequency <= 3.4MHz */
+  uint8_t addr;                 /* VL53L0X I2C address */
+  int freq;                     /* VL53L0X Frequency */
 
 };
 
@@ -184,48 +184,48 @@ static void vl53l1x_putreg16(FAR struct vl53l1x_dev_s *priv, uint16_t regaddr,
 static void vl53l1x_putreg32(FAR struct vl53l1x_dev_s *priv, uint16_t regaddr,
                           uint32_t regval);
 
-//static VL53L1X_ERROR VL53L1X_GetSWVersion(VL53L1X_Version_t *pVersion);
-static VL53L1X_ERROR VL53L1X_SetI2CAddress(uint8_t new_address);
-static VL53L1X_ERROR VL53L1X_SensorInit(struct vl53l1x_dev_s *priv);
-static VL53L1X_ERROR VL53L1X_ClearInterrupt(struct vl53l1x_dev_s *priv);
-static VL53L1X_ERROR VL53L1X_SetInterruptPolarity(struct vl53l1x_dev_s *priv , uint8_t IntPol);
-static VL53L1X_ERROR VL53L1X_GetInterruptPolarity(uint8_t *pIntPol);
-static VL53L1X_ERROR VL53L1X_StartRanging(struct vl53l1x_dev_s *priv);
-static VL53L1X_ERROR VL53L1X_StopRanging(struct vl53l1x_dev_s *priv);
-static VL53L1X_ERROR VL53L1X_CheckForDataReady(struct vl53l1x_dev_s *priv, uint8_t *isDataReady);
-static VL53L1X_ERROR VL53L1X_SetTimingBudgetInMs(struct vl53l1x_dev_s *priv, uint16_t TimingBudgetInMs);
-static VL53L1X_ERROR VL53L1X_GetTimingBudgetInMs(struct vl53l1x_dev_s *priv, uint16_t *pTimingBudgetInMs);
-static VL53L1X_ERROR VL53L1X_SetDistanceMode(struct vl53l1x_dev_s *priv, uint16_t DistanceMode);
-static VL53L1X_ERROR VL53L1X_GetDistanceMode(struct vl53l1x_dev_s *priv, uint16_t *pDistanceMode);
-static VL53L1X_ERROR VL53L1X_SetInterMeasurementInMs(struct vl53l1x_dev_s *priv, uint16_t InterMeasurementInMs);
-static VL53L1X_ERROR VL53L1X_GetInterMeasurementInMs(struct vl53l1x_dev_s *priv, uint16_t * pIM);
-static VL53L1X_ERROR VL53L1X_BootState(struct vl53l1x_dev_s *priv, uint8_t *state);
-static VL53L1X_ERROR VL53L1X_GetSensorId(struct vl53l1x_dev_s *priv, uint16_t *id);
-static VL53L1X_ERROR VL53L1X_GetDistance(struct vl53l1x_dev_s *priv, uint16_t *distance);
-static VL53L1X_ERROR VL53L1X_GetSignalPerSpad(struct vl53l1x_dev_s *priv, uint16_t *signalPerSp);
-static VL53L1X_ERROR VL53L1X_GetAmbientPerSpad(struct vl53l1x_dev_s *priv, uint16_t *amb);
-static VL53L1X_ERROR VL53L1X_GetSignalRate(struct vl53l1x_dev_s *priv, uint16_t *signalRate);
-static VL53L1X_ERROR VL53L1X_GetSpadNb(struct vl53l1x_dev_s *priv, uint16_t *spNb);
-static VL53L1X_ERROR VL53L1X_GetAmbientRate(struct vl53l1x_dev_s *priv, uint16_t *ambRate);
-static VL53L1X_ERROR VL53L1X_GetRangeStatus(struct vl53l1x_dev_s *priv, uint8_t *rangeStatus);
-static VL53L1X_ERROR VL53L1X_SetOffset(struct vl53l1x_dev_s *priv, int16_t OffsetValue);
-static VL53L1X_ERROR VL53L1X_GetOffset(struct vl53l1x_dev_s *priv, int16_t *Offset);
-static VL53L1X_ERROR VL53L1X_SetXtalk(struct vl53l1x_dev_s *priv, uint16_t XtalkValue);
-static VL53L1X_ERROR VL53L1X_GetXtalk(struct vl53l1x_dev_s *priv, uint16_t *Xtalk);
-static VL53L1X_ERROR VL53L1X_SetDistanceThreshold(struct vl53l1x_dev_s *priv, uint16_t ThreshLow,
+
+static  void VL53L1X_SetI2CAddress(uint8_t new_address);
+static  void VL53L1X_SensorInit(struct vl53l1x_dev_s *priv);
+static  void VL53L1X_ClearInterrupt(struct vl53l1x_dev_s *priv);
+static  void VL53L1X_SetInterruptPolarity(struct vl53l1x_dev_s *priv , uint8_t IntPol);
+static  void VL53L1X_GetInterruptPolarity(uint8_t *pIntPol);
+static  void VL53L1X_StartRanging(struct vl53l1x_dev_s *priv);
+static  void VL53L1X_StopRanging(struct vl53l1x_dev_s *priv);
+static  void VL53L1X_CheckForDataReady(struct vl53l1x_dev_s *priv, uint8_t *isDataReady);
+static  void VL53L1X_SetTimingBudgetInMs(struct vl53l1x_dev_s *priv, uint16_t TimingBudgetInMs);
+static  void VL53L1X_GetTimingBudgetInMs(struct vl53l1x_dev_s *priv, uint16_t *pTimingBudgetInMs);
+static  void VL53L1X_SetDistanceMode(struct vl53l1x_dev_s *priv, uint16_t DistanceMode);
+static  void VL53L1X_GetDistanceMode(struct vl53l1x_dev_s *priv, uint16_t *pDistanceMode);
+static  void VL53L1X_SetInterMeasurementInMs(struct vl53l1x_dev_s *priv, uint16_t InterMeasurementInMs);
+static  void VL53L1X_GetInterMeasurementInMs(struct vl53l1x_dev_s *priv, uint16_t * pIM);
+static  void VL53L1X_BootState(struct vl53l1x_dev_s *priv, uint8_t *state);
+static  void VL53L1X_GetSensorId(struct vl53l1x_dev_s *priv, uint16_t *id);
+static  void VL53L1X_GetDistance(struct vl53l1x_dev_s *priv, uint16_t *distance);
+static  void VL53L1X_GetSignalPerSpad(struct vl53l1x_dev_s *priv, uint16_t *signalPerSp);
+static  void VL53L1X_GetAmbientPerSpad(struct vl53l1x_dev_s *priv, uint16_t *amb);
+static  void VL53L1X_GetSignalRate(struct vl53l1x_dev_s *priv, uint16_t *signalRate);
+static  void VL53L1X_GetSpadNb(struct vl53l1x_dev_s *priv, uint16_t *spNb);
+static  void VL53L1X_GetAmbientRate(struct vl53l1x_dev_s *priv, uint16_t *ambRate);
+static  void VL53L1X_GetRangeStatus(struct vl53l1x_dev_s *priv, uint8_t *rangeStatus);
+static  void VL53L1X_SetOffset(struct vl53l1x_dev_s *priv, int16_t OffsetValue);
+static  void VL53L1X_GetOffset(struct vl53l1x_dev_s *priv, int16_t *Offset);
+static  void VL53L1X_SetXtalk(struct vl53l1x_dev_s *priv, uint16_t XtalkValue);
+static  void VL53L1X_GetXtalk(struct vl53l1x_dev_s *priv, uint16_t *Xtalk);
+static  void VL53L1X_SetDistanceThreshold(struct vl53l1x_dev_s *priv, uint16_t ThreshLow,
 				  uint16_t ThreshHigh, uint8_t Window,
 				  uint8_t IntOnNoTarget);
-static VL53L1X_ERROR VL53L1X_GetDistanceThresholdWindow(struct vl53l1x_dev_s *priv, uint16_t *window);
-static VL53L1X_ERROR VL53L1X_GetDistanceThresholdLow(struct vl53l1x_dev_s *priv, uint16_t *low);
-static VL53L1X_ERROR VL53L1X_GetDistanceThresholdHigh(struct vl53l1x_dev_s *priv, uint16_t *high);
-static VL53L1X_ERROR VL53L1X_SetROI(struct vl53l1x_dev_s *priv, uint16_t X, uint16_t Y);
-static VL53L1X_ERROR VL53L1X_GetROI_XY(struct vl53l1x_dev_s *priv, uint16_t *ROI_X, uint16_t *ROI_Y);
-static VL53L1X_ERROR VL53L1X_SetSignalThreshold(struct vl53l1x_dev_s *priv, uint16_t signal);
-static VL53L1X_ERROR VL53L1X_GetSignalThreshold(struct vl53l1x_dev_s *priv, uint16_t *signal);
-static VL53L1X_ERROR VL53L1X_SetSigmaThreshold(struct vl53l1x_dev_s *priv, uint16_t sigma);
-static VL53L1X_ERROR VL53L1X_GetSigmaThreshold(struct vl53l1x_dev_s *priv, uint16_t *signal);
-static VL53L1X_ERROR VL53L1X_StartTemperatureUpdate();
-static VL53L1X_ERROR VL53L1X_CalibrateOffset(struct vl53l1x_dev_s *priv, uint16_t TargetDistInMm, int16_t *offset);
+static  void VL53L1X_GetDistanceThresholdWindow(struct vl53l1x_dev_s *priv, uint16_t *window);
+static  void VL53L1X_GetDistanceThresholdLow(struct vl53l1x_dev_s *priv, uint16_t *low);
+static  void VL53L1X_GetDistanceThresholdHigh(struct vl53l1x_dev_s *priv, uint16_t *high);
+static  void VL53L1X_SetROI(struct vl53l1x_dev_s *priv, uint16_t X, uint16_t Y);
+static  void VL53L1X_GetROI_XY(struct vl53l1x_dev_s *priv, uint16_t *ROI_X, uint16_t *ROI_Y);
+static  void VL53L1X_SetSignalThreshold(struct vl53l1x_dev_s *priv, uint16_t signal);
+static  void VL53L1X_GetSignalThreshold(struct vl53l1x_dev_s *priv, uint16_t *signal);
+static  void VL53L1X_SetSigmaThreshold(struct vl53l1x_dev_s *priv, uint16_t sigma);
+static  void VL53L1X_GetSigmaThreshold(struct vl53l1x_dev_s *priv, uint16_t *signal);
+static  void VL53L1X_StartTemperatureUpdate();
+static  void VL53L1X_CalibrateOffset(struct vl53l1x_dev_s *priv, uint16_t TargetDistInMm, int16_t *offset);
 static int8_t VL53L1X_CalibrateXtalk(struct vl53l1x_dev_s *priv, uint16_t TargetDistInMm, uint16_t *xtalk);
 
 
@@ -262,85 +262,137 @@ static const struct file_operations g_vl53l1xfops =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
- static VL53L1X_ERROR VL53L1X_SensorInit(struct vl53l1x_dev_s *priv)
+
+ /****************************************************************************
+  * Name: VL53L1X_SensorInit
+  *
+  * Description:
+  *   This function loads the 135 bytes default values to initialize the sensor.
+  *
+  ****************************************************************************/
+
+ static  void VL53L1X_SensorInit(struct vl53l1x_dev_s *priv)
  {
- 	VL53L1X_ERROR status = 0;
+
  	uint8_t Addr = 0x00, tmp=0;
 
  	for (Addr = 0x2D; Addr <= 0x87; Addr++){
- 		/*status = */vl53l1x_putreg8(priv, Addr,VL51L1X_DEFAULT_CONFIGURATION[Addr - 0x2D]);
+ 		vl53l1x_putreg8(priv, Addr,VL51L1X_DEFAULT_CONFIGURATION[Addr - 0x2D]);
  	}
- 	status = VL53L1X_StartRanging(priv);
+ 	VL53L1X_StartRanging(priv);
  	while(tmp==0){
- 			status = VL53L1X_CheckForDataReady(priv,&tmp);
+ 			VL53L1X_CheckForDataReady(priv,&tmp);
  	}
  	tmp  = 0;
- 	status = VL53L1X_ClearInterrupt(priv);
- 	status = VL53L1X_StopRanging(priv);
- 	/*status = */vl53l1x_putreg8(priv, VL53L1_VHV_CONFIG__TIMEOUT_MACROP_LOOP_BOUND,0x09);//vl53l1x_putreg8(priv,  VL53L1_VHV_CONFIG__TIMEOUT_MACROP_LOOP_BOUND, 0x09); // two bounds VHV
- 	/*status =*/vl53l1x_putreg8(priv, 0x0B,0);//vl53l1x_putreg8(priv,  0x0B, 0); // start VHV from the previous temperature
- 	return status;
- }
+ 	VL53L1X_ClearInterrupt(priv);
+ 	VL53L1X_StopRanging(priv);
+ 	vl53l1x_putreg8(priv, VL53L1_VHV_CONFIG__TIMEOUT_MACROP_LOOP_BOUND,0x09); // two bounds VHV
+ 	vl53l1x_putreg8(priv, 0x0B,0); // start VHV from the previous temperature
 
-static VL53L1X_ERROR VL53L1X_ClearInterrupt(struct vl53l1x_dev_s *priv)
-{
-	VL53L1X_ERROR status = 0;
-
-	/*status = */vl53l1x_putreg8(priv,  SYSTEM__INTERRUPT_CLEAR, 0x01);
-	return status;
 }
 
-static VL53L1X_ERROR VL53L1X_SetInterruptPolarity(struct vl53l1x_dev_s *priv,uint8_t NewPolarity)
+/****************************************************************************
+ * Name: VL53L1X_ClearInterrupt
+ *
+ * Description:
+ *   This function clears the interrupt, to be called after a ranging data
+ *   reading to arm the interrupt for the next data ready event.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_ClearInterrupt(struct vl53l1x_dev_s *priv)
+{
+	vl53l1x_putreg8(priv,  SYSTEM__INTERRUPT_CLEAR, 0x01);
+}
+
+/****************************************************************************
+ * Name: VL53L1X_SetInterruptPolarity
+ *
+ * Description:
+ *   This function programs the interrupt polarity.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_SetInterruptPolarity(struct vl53l1x_dev_s *priv,uint8_t NewPolarity)
 {
 	uint8_t Temp;
-	VL53L1X_ERROR status = 0;
 
-	/*status = */Temp = vl53l1x_getreg8(priv, GPIO_HV_MUX__CTRL);
+	Temp = vl53l1x_getreg8(priv, GPIO_HV_MUX__CTRL);
 	Temp = Temp & 0xEF;
-	/*status = */vl53l1x_putreg8(priv,  GPIO_HV_MUX__CTRL, Temp | (!(NewPolarity & 1)) << 4);
-	return status;
+	vl53l1x_putreg8(priv,  GPIO_HV_MUX__CTRL, Temp | (!(NewPolarity & 1)) << 4);
+
 }
 
-static VL53L1X_ERROR VL53L1X_StartRanging(struct vl53l1x_dev_s *priv)
+/****************************************************************************
+ * Name: VL53L1X_StartRanging
+ *
+ * Description:
+ *   This function starts the ranging distance operation. The ranging operation
+ *   is continuous. The clear interrupt has to be done after each get data to
+ *   allow the interrupt to raise when the next data is ready.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_StartRanging(struct vl53l1x_dev_s *priv)
 {
-	VL53L1X_ERROR status = 0;
 
-	/*status = */vl53l1x_putreg8(priv,  SYSTEM__MODE_START, 0x40);	// Enable VL53L1X
-	return status;
+	vl53l1x_putreg8(priv,  SYSTEM__MODE_START, 0x40);	// Enable VL53L1X
+
 }
 
-static VL53L1X_ERROR VL53L1X_StopRanging(struct vl53l1x_dev_s *priv)
+/****************************************************************************
+ * Name: VL53L1X_StopRanging
+ *
+ * Description:
+ *   This function stops the ranging.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_StopRanging(struct vl53l1x_dev_s *priv)
 {
-	VL53L1X_ERROR status = 0;
-
-	/*status = */vl53l1x_putreg8(priv,  SYSTEM__MODE_START, 0x00);	// Disable VL53L1X
-	return status;
+	vl53l1x_putreg8(priv,  SYSTEM__MODE_START, 0x00);	// Disable VL53L1X
 }
 
-static VL53L1X_ERROR VL53L1X_CheckForDataReady(struct vl53l1x_dev_s *priv, uint8_t *isDataReady)
+/****************************************************************************
+ * Name: VL53L1X_CheckForDataReady
+ *
+ * Description:
+ *   This function checks if the new ranging data is available by polling the
+ *   dedicated register.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_CheckForDataReady(struct vl53l1x_dev_s *priv, uint8_t *isDataReady)
 {
 	uint8_t Temp;
 	uint8_t IntPol;
-	VL53L1X_ERROR status = 0;
 
-	//status = VL53L1X_GetInterruptPolarity(&IntPol); TODO
 	Temp = vl53l1x_getreg8(priv, GPIO__TIO_HV_STATUS);
 	// Read in the register to check if a new value is available
-	if (status == 0){
-		if ((Temp & 1) == IntPol)
-			*isDataReady = 1;
-		else
-			*isDataReady = 0;
-	}
-	return status;
+
+	if ((Temp & 1) == IntPol)
+  {
+    *isDataReady = 1;
+  }
+	else
+  {
+    *isDataReady = 0;
+  }
+
 }
 
-static VL53L1X_ERROR VL53L1X_SetTimingBudgetInMs(struct vl53l1x_dev_s *priv, uint16_t TimingBudgetInMs)
+/****************************************************************************
+ * Name: VL53L1X_SetTimingBudgetInMs
+ *
+ * Description:
+ *   This function programs the timing budget in ms.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_SetTimingBudgetInMs(struct vl53l1x_dev_s *priv, uint16_t TimingBudgetInMs)
 {
 	uint16_t DM;
-	VL53L1X_ERROR  status=0;
-
-	status = VL53L1X_GetDistanceMode(priv,&DM);
+	VL53L1X_GetDistanceMode(priv,&DM);
 	if (DM == 0)
 		return 1;
 	else if (DM == 1) {	// Short DistanceMode
@@ -388,7 +440,7 @@ static VL53L1X_ERROR VL53L1X_SetTimingBudgetInMs(struct vl53l1x_dev_s *priv, uin
 					0x05C1);
 			break;
 		default:
-			status = 1;
+
 			break;
 		}
 	} else {
@@ -430,17 +482,24 @@ static VL53L1X_ERROR VL53L1X_SetTimingBudgetInMs(struct vl53l1x_dev_s *priv, uin
 					0x04A4);
 			break;
 		default:
-			status = 1;
+
 			break;
 		}
 	}
-	return status;
+
 }
 
-static VL53L1X_ERROR VL53L1X_GetTimingBudgetInMs(struct vl53l1x_dev_s *priv, uint16_t *pTimingBudget)
+/****************************************************************************
+ * Name: VL53L1X_GetTimingBudgetInMs
+ *
+ * Description:
+ *   This function returns the timing budget in ms.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetTimingBudgetInMs(struct vl53l1x_dev_s *priv, uint16_t *pTimingBudget)
 {
 	uint16_t Temp;
-	VL53L1X_ERROR status = 0;
 
 	Temp = vl53l1x_getreg16(priv, RANGE_CONFIG__TIMEOUT_MACROP_A_HI);
 	switch (Temp) {
@@ -475,113 +534,176 @@ static VL53L1X_ERROR VL53L1X_GetTimingBudgetInMs(struct vl53l1x_dev_s *priv, uin
 			*pTimingBudget = 0;
 			break;
 	}
-	return status;
+
 }
 
-static VL53L1X_ERROR VL53L1X_SetDistanceMode(struct vl53l1x_dev_s *priv, uint16_t DM)
+/****************************************************************************
+ * Name: VL53L1X_SetDistanceMode
+ *
+ * Description:
+ *   This function programs the distance mode (1=short, 2=long(default)).
+ *   Short mode max distance is limited to 1.3 m but better ambient immunity.
+ *   Long mode can range up to 4 m in the dark with 200 ms timing budget.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_SetDistanceMode(struct vl53l1x_dev_s *priv, uint16_t DM)
 {
 	uint16_t TB;
-	VL53L1X_ERROR status = 0;
 
-	status = VL53L1X_GetTimingBudgetInMs(priv,&TB);
+	VL53L1X_GetTimingBudgetInMs(priv,&TB);
 	switch (DM) {
 	case 1:
-		/*status = */vl53l1x_putreg8(priv,  PHASECAL_CONFIG__TIMEOUT_MACROP, 0x14);
-		/*status = */vl53l1x_putreg8(priv,  RANGE_CONFIG__VCSEL_PERIOD_A, 0x07);
-		/*status = */vl53l1x_putreg8(priv,  RANGE_CONFIG__VCSEL_PERIOD_B, 0x05);
-		/*status = */vl53l1x_putreg8(priv,  RANGE_CONFIG__VALID_PHASE_HIGH, 0x38);
-		/*status = */vl53l1x_putreg16(priv, SD_CONFIG__WOI_SD0, 0x0705);
-		/*status = */vl53l1x_putreg16(priv, SD_CONFIG__INITIAL_PHASE_SD0, 0x0606);
+		vl53l1x_putreg8(priv,  PHASECAL_CONFIG__TIMEOUT_MACROP, 0x14);
+		vl53l1x_putreg8(priv,  RANGE_CONFIG__VCSEL_PERIOD_A, 0x07);
+		vl53l1x_putreg8(priv,  RANGE_CONFIG__VCSEL_PERIOD_B, 0x05);
+		vl53l1x_putreg8(priv,  RANGE_CONFIG__VALID_PHASE_HIGH, 0x38);
+		vl53l1x_putreg16(priv, SD_CONFIG__WOI_SD0, 0x0705);
+		vl53l1x_putreg16(priv, SD_CONFIG__INITIAL_PHASE_SD0, 0x0606);
 		break;
 	case 2:
-		/*status = */vl53l1x_putreg8(priv,  PHASECAL_CONFIG__TIMEOUT_MACROP, 0x0A);
-		/*status = */vl53l1x_putreg8(priv,  RANGE_CONFIG__VCSEL_PERIOD_A, 0x0F);
-		/*status = */vl53l1x_putreg8(priv,  RANGE_CONFIG__VCSEL_PERIOD_B, 0x0D);
-		/*status = */vl53l1x_putreg8(priv,  RANGE_CONFIG__VALID_PHASE_HIGH, 0xB8);
-		/*status = */vl53l1x_putreg16(priv, SD_CONFIG__WOI_SD0, 0x0F0D);
-		/*status = */vl53l1x_putreg16(priv, SD_CONFIG__INITIAL_PHASE_SD0, 0x0E0E);
+		vl53l1x_putreg8(priv,  PHASECAL_CONFIG__TIMEOUT_MACROP, 0x0A);
+		vl53l1x_putreg8(priv,  RANGE_CONFIG__VCSEL_PERIOD_A, 0x0F);
+		vl53l1x_putreg8(priv,  RANGE_CONFIG__VCSEL_PERIOD_B, 0x0D);
+		vl53l1x_putreg8(priv,  RANGE_CONFIG__VALID_PHASE_HIGH, 0xB8);
+		vl53l1x_putreg16(priv, SD_CONFIG__WOI_SD0, 0x0F0D);
+		vl53l1x_putreg16(priv, SD_CONFIG__INITIAL_PHASE_SD0, 0x0E0E);
 		break;
 	default:
 		break;
 	}
-	status = VL53L1X_SetTimingBudgetInMs(priv,TB);
-	return status;
+	VL53L1X_SetTimingBudgetInMs(priv,TB);
+
 }
 
-static VL53L1X_ERROR VL53L1X_GetDistanceMode(struct vl53l1x_dev_s *priv, uint16_t *DM)
+/****************************************************************************
+ * Name: VL53L1X_GetDistanceMode
+ *
+ * Description:
+ *   This function returns the current distance mode (1=short, 2=long).
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetDistanceMode(struct vl53l1x_dev_s *priv, uint16_t *DM)
 {
-	uint8_t TempDM, status=0;
+	uint8_t TempDM;
 
 	TempDM = vl53l1x_getreg8(priv,PHASECAL_CONFIG__TIMEOUT_MACROP);
-	if (TempDM == 0x14)
-		*DM=1;
+	if (TempDM == 0x14){
+    *DM=1;
+  }
 	if(TempDM == 0x0A)
-		*DM=2;
-	return status;
+  {
+    *DM=2;
+  }
 }
 
-static VL53L1X_ERROR VL53L1X_SetInterMeasurementInMs(struct vl53l1x_dev_s *priv, uint16_t InterMeasMs)
+/****************************************************************************
+ * Name: VL53L1X_SetInterMeasurementInMs
+ *
+ * Description:
+ *   This function programs the Intermeasurement period in ms.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_SetInterMeasurementInMs(struct vl53l1x_dev_s *priv, uint16_t InterMeasMs)
 {
 	uint16_t ClockPLL;
-	VL53L1X_ERROR status = 0;
+
 
 	ClockPLL = vl53l1x_getreg16(priv, VL53L1_RESULT__OSC_CALIBRATE_VAL);
 	ClockPLL = ClockPLL&0x3FF;
 	vl53l1x_putreg32(priv, VL53L1_SYSTEM__INTERMEASUREMENT_PERIOD,
 			(uint32_t)(ClockPLL * InterMeasMs * 1.075));
-	return status;
+
 
 }
 
-static VL53L1X_ERROR VL53L1X_GetInterMeasurementInMs(struct vl53l1x_dev_s *priv, uint16_t *pIM)
+/****************************************************************************
+ * Name: VL53L1X_GetInterMeasurementInMs
+ *
+ * Description:
+ *   This function returns the Intermeasurement period in ms.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetInterMeasurementInMs(struct vl53l1x_dev_s *priv, uint16_t *pIM)
 {
 	uint16_t ClockPLL;
-	VL53L1X_ERROR status = 0;
+
 	uint32_t tmp;
 
 	tmp = vl53l1x_getreg32(priv,VL53L1_SYSTEM__INTERMEASUREMENT_PERIOD);
 	*pIM = (uint16_t)tmp;
-	status = vl53l1_getreg16(priv,  VL53L1_RESULT__OSC_CALIBRATE_VAL, &ClockPLL);
+	vl53l1_getreg16(priv,  VL53L1_RESULT__OSC_CALIBRATE_VAL, &ClockPLL);
 	ClockPLL = ClockPLL&0x3FF;
 	*pIM= (uint16_t)(*pIM/(ClockPLL*1.065));
-	return status;
+
 }
 
-static VL53L1X_ERROR VL53L1X_BootState(struct vl53l1x_dev_s *priv, uint8_t *state)
+/****************************************************************************
+ * Name: VL53L1X_BootState
+ *
+ * Description:
+ *  This function returns the boot state of the device (1:booted, 0:not booted)
+ *
+ ****************************************************************************/
+
+static void VL53L1X_BootState(struct vl53l1x_dev_s *priv, uint8_t *state)
 {
-	VL53L1X_ERROR status = 0;
 	uint8_t tmp = 0;
 
 	tmp = vl53l1x_getreg8(priv, VL53L1_FIRMWARE__SYSTEM_STATUS);
 	*state = tmp;
-	return status;
+
 }
 
-static VL53L1X_ERROR VL53L1X_GetSensorId(struct vl53l1x_dev_s *priv, uint16_t *sensorId)
+/****************************************************************************
+ * Name: VL53L1X_GetSensorId
+ *
+ * Description:
+ *  This function returns the sensor id, sensor Id must be 0xEEAC.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetSensorId(struct vl53l1x_dev_s *priv, uint16_t *sensorId)
 {
-	VL53L1X_ERROR status = 0;
 	uint16_t tmp = 0;
 
 	tmp = vl53l1x_getreg16(priv,  VL53L1_IDENTIFICATION__MODEL_ID);
 	*sensorId = tmp;
-	return status;
+
 }
 
-static VL53L1X_ERROR VL53L1X_GetDistance(struct vl53l1x_dev_s *priv, uint16_t *distance)
+/****************************************************************************
+ * Name: VL53L1X_GetDistance
+ *
+ * Description:
+ *  This function returns the distance measured by the sensor in mm.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetDistance(struct vl53l1x_dev_s *priv, uint16_t *distance)
 {
-	VL53L1X_ERROR status = 0;
 	uint16_t tmp;
 
 	tmp = (vl53l1x_getreg16(priv,
 			VL53L1_RESULT__FINAL_CROSSTALK_CORRECTED_RANGE_MM_SD0));
 	*distance = tmp;
-	return status;
+
 }
+/****************************************************************************
+ * Name: VL53L1X_GetSignalPerSpad
+ *
+ * Description:
+ *  This function returns the returned signal per SPAD in kcps/SPAD.
+ *  With kcps stands for Kilo Count Per Second.
+ *
+ ****************************************************************************/
 
-
-static VL53L1X_ERROR VL53L1X_GetSignalPerSpad(struct vl53l1x_dev_s *priv, uint16_t *signalRate)
+static void VL53L1X_GetSignalPerSpad(struct vl53l1x_dev_s *priv, uint16_t *signalRate)
 {
-	VL53L1X_ERROR status = 0;
+
 	uint16_t SpNb=1, signal;
 
 	signal = vl53l1x_getreg16(priv,
@@ -589,55 +711,92 @@ static VL53L1X_ERROR VL53L1X_GetSignalPerSpad(struct vl53l1x_dev_s *priv, uint16
 	SpNb = vl53l1x_getreg16(priv,
 		VL53L1_RESULT__DSS_ACTUAL_EFFECTIVE_SPADS_SD0);
 	*signalRate = (uint16_t) (2000.0*signal/SpNb);
-	return status;
+
 }
 
-static VL53L1X_ERROR VL53L1X_GetAmbientPerSpad(struct vl53l1x_dev_s *priv,  uint16_t *ambPerSp)
+/****************************************************************************
+ * Name: VL53L1X_GetAmbientPerSpad
+ *
+ * Description:
+ *  This function returns the ambient per SPAD in kcps/SPAD.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetAmbientPerSpad(struct vl53l1x_dev_s *priv,  uint16_t *ambPerSp)
 {
-	VL53L1X_ERROR status=0;
 	uint16_t AmbientRate, SpNb=1;
 
 	AmbientRate = vl53l1x_getreg16(priv,  RESULT__AMBIENT_COUNT_RATE_MCPS_SD);
 	SpNb = vl53l1x_getreg16(priv,  VL53L1_RESULT__DSS_ACTUAL_EFFECTIVE_SPADS_SD0);
 	*ambPerSp=(uint16_t) (2000.0 * AmbientRate / SpNb);
-	return status;
+
 }
 
-static VL53L1X_ERROR VL53L1X_GetSignalRate(struct vl53l1x_dev_s *priv,  uint16_t *signal)
+/****************************************************************************
+ * Name: VL53L1X_GetSignalRate
+ *
+ * Description:
+ *  This function returns the returned signal in kcps.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetSignalRate(struct vl53l1x_dev_s *priv,  uint16_t *signal)
 {
-	VL53L1X_ERROR status = 0;
+
 	uint16_t tmp;
 
 	tmp = vl53l1x_getreg16(priv,
 		VL53L1_RESULT__PEAK_SIGNAL_COUNT_RATE_CROSSTALK_CORRECTED_MCPS_SD0);
 	*signal = tmp*8;
-	return status;
+
 }
 
-static VL53L1X_ERROR VL53L1X_GetSpadNb(struct vl53l1x_dev_s *priv, uint16_t *spNb)
+/****************************************************************************
+ * Name: VL53L1X_GetSpadNb
+ *
+ * Description:
+ *  This function returns the current number of enabled SPADs.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetSpadNb(struct vl53l1x_dev_s *priv, uint16_t *spNb)
 {
-	VL53L1X_ERROR status = 0;
+
 	uint16_t tmp;
 
 	tmp = vl53l1x_getreg16(priv,
 			      VL53L1_RESULT__DSS_ACTUAL_EFFECTIVE_SPADS_SD0);
 	*spNb = tmp >> 8;
-	return status;
+
 }
 
-static VL53L1X_ERROR VL53L1X_GetAmbientRate(struct vl53l1x_dev_s *priv,  uint16_t *ambRate)
+/****************************************************************************
+ * Name: VL53L1X_GetAmbientRate
+ *
+ * Description:
+ *  This function returns the ambient rate in kcps.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetAmbientRate(struct vl53l1x_dev_s *priv,  uint16_t *ambRate)
 {
-	VL53L1X_ERROR status = 0;
 	uint16_t tmp;
 
 	tmp = vl53l1x_getreg16(priv,  RESULT__AMBIENT_COUNT_RATE_MCPS_SD);
 	*ambRate = tmp*8;
-	return status;
+
 }
 
-static VL53L1X_ERROR VL53L1X_GetRangeStatus(struct vl53l1x_dev_s *priv,  uint8_t *rangeStatus)
+/****************************************************************************
+ * Name: VL53L1X_GetRangeStatus
+ *
+ * Description:
+ *  This function returns the ranging status error.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetRangeStatus(struct vl53l1x_dev_s *priv,  uint8_t *rangeStatus)
 {
-	VL53L1X_ERROR status = 0;
 	uint8_t RgSt;
 
 	RgSt = vl53l1x_getreg8(priv,  VL53L1_RESULT__RANGE_STATUS);
@@ -687,13 +846,19 @@ static VL53L1X_ERROR VL53L1X_GetRangeStatus(struct vl53l1x_dev_s *priv,  uint8_t
 		break;
 	}
 	*rangeStatus = RgSt;
-	return status;
+
 }
 
+/****************************************************************************
+ * Name: VL53L1X_SetOffset
+ *
+ * Description:
+ *  This function programs the offset correction in mm.
+ *
+ ****************************************************************************/
 
-static VL53L1X_ERROR VL53L1X_SetOffset(struct vl53l1x_dev_s *priv, int16_t OffsetValue)
+static void VL53L1X_SetOffset(struct vl53l1x_dev_s *priv, int16_t OffsetValue)
 {
-	VL53L1X_ERROR status = 0;
 	int16_t Temp;
 
 	Temp = (OffsetValue*4);
@@ -701,25 +866,38 @@ static VL53L1X_ERROR VL53L1X_SetOffset(struct vl53l1x_dev_s *priv, int16_t Offse
 			(uint16_t)Temp);
 	vl53l1x_putreg16(priv, MM_CONFIG__INNER_OFFSET_MM, 0x0);
 	vl53l1x_putreg16(priv, MM_CONFIG__OUTER_OFFSET_MM, 0x0);
-	return status;
 }
 
-static VL53L1X_ERROR  VL53L1X_GetOffset(struct vl53l1x_dev_s *priv, int16_t *offset)
+/****************************************************************************
+ * Name: VL53L1X_GetOffset
+ *
+ * Description:
+ *  This function returns the programmed offset correction value in mm.
+ *
+ ****************************************************************************/
+
+static void  VL53L1X_GetOffset(struct vl53l1x_dev_s *priv, int16_t *offset)
 {
-	VL53L1X_ERROR status = 0;
 	uint16_t Temp;
 
 	Temp = vl53l1x_getreg16(priv, ALGO__PART_TO_PART_RANGE_OFFSET_MM);
 	Temp = Temp<<3;
 	Temp = Temp >>5;
 	*offset = (int16_t)(Temp);
-	return status;
 }
 
-static VL53L1X_ERROR VL53L1X_SetXtalk(struct vl53l1x_dev_s *priv, uint16_t XtalkValue)
+/****************************************************************************
+ * Name: VL53L1X_SetXtalk
+ *
+ * Description:
+ *  This function programs the xtalk correction value in cps (Count Per Second).
+ *  This is the number of photons reflected back from the cover glass in cps.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_SetXtalk(struct vl53l1x_dev_s *priv, uint16_t XtalkValue)
 {
 /* XTalkValue in count per second to avoid float type */
-	VL53L1X_ERROR status = 0;
 
 	 vl53l1x_putreg16(priv,
 			ALGO__CROSSTALK_COMPENSATION_X_PLANE_GRADIENT_KCPS,
@@ -728,25 +906,38 @@ static VL53L1X_ERROR VL53L1X_SetXtalk(struct vl53l1x_dev_s *priv, uint16_t Xtalk
 			0x0000);
 	 vl53l1x_putreg16(priv, ALGO__CROSSTALK_COMPENSATION_PLANE_OFFSET_KCPS,
 			(XtalkValue<<9)/1000); // * << 9 (7.9 format) and /1000 to convert cps to kpcs
-	return status;
+
 }
 
+/****************************************************************************
+ * Name: VL53L1X_GetXtalk
+ *
+ * Description:
+ *  This function returns the current programmed xtalk correction value in cps.
+ *
+ ****************************************************************************/
 
-static VL53L1X_ERROR VL53L1X_GetXtalk(struct vl53l1x_dev_s *priv, uint16_t *xtalk )
+static void VL53L1X_GetXtalk(struct vl53l1x_dev_s *priv, uint16_t *xtalk )
 {
-	VL53L1X_ERROR status = 0;
 	uint16_t tmp;
 
 	tmp = vl53l1x_getreg16(priv, ALGO__CROSSTALK_COMPENSATION_PLANE_OFFSET_KCPS);
 	*xtalk = (tmp*1000)>>9; // * 1000 to convert kcps to cps and >> 9 (7.9 format)
-	return status;
 }
 
-static VL53L1X_ERROR VL53L1X_SetDistanceThreshold(struct vl53l1x_dev_s *priv, uint16_t ThreshLow,
+/****************************************************************************
+ * Name: VL53L1X_SetDistanceThreshold
+ *
+ * Description:
+ *  This function programs the threshold detection mode.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_SetDistanceThreshold(struct vl53l1x_dev_s *priv, uint16_t ThreshLow,
 			      uint16_t ThreshHigh, uint8_t Window,
 			      uint8_t IntOnNoTarget)
 {
-	VL53L1X_ERROR status = 0;
+
 	uint8_t Temp = 0;
 
 	Temp = vl53l1x_getreg8(priv,  SYSTEM__INTERRUPT_CONFIG_GPIO);
@@ -760,43 +951,67 @@ static VL53L1X_ERROR VL53L1X_SetDistanceThreshold(struct vl53l1x_dev_s *priv, ui
 	}
 	vl53l1x_putreg16(priv, SYSTEM__THRESH_HIGH, ThreshHigh);
 	vl53l1x_putreg16(priv, SYSTEM__THRESH_LOW, ThreshLow);
-	return status;
+
 }
 
+/****************************************************************************
+ * Name: VL53L1X_GetDistanceThresholdWindow
+ *
+ * Description:
+ *  This function returns the window detection mode (0=below; 1=above; 2=out; 3=in).
+ *
+ ****************************************************************************/
 
-static VL53L1X_ERROR VL53L1X_GetDistanceThresholdWindow(struct vl53l1x_dev_s *priv, uint16_t *window)
+static void VL53L1X_GetDistanceThresholdWindow(struct vl53l1x_dev_s *priv, uint16_t *window)
 {
-	VL53L1X_ERROR status = 0;
 	uint8_t tmp;
 	tmp = vl53l1x_getreg8(priv, SYSTEM__INTERRUPT_CONFIG_GPIO);
 	*window = (uint16_t)(tmp & 0x7);
-	return status;
 }
 
-static VL53L1X_ERROR VL53L1X_GetDistanceThresholdLow(struct vl53l1x_dev_s *priv, uint16_t *low)
+/****************************************************************************
+ * Name: VL53L1X_GetDistanceThresholdLow
+ *
+ * Description:
+ *  This function returns the low threshold in mm.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetDistanceThresholdLow(struct vl53l1x_dev_s *priv, uint16_t *low)
 {
-	VL53L1X_ERROR status = 0;
 	uint16_t tmp;
 
 	tmp = vl53l1x_getreg16(priv, SYSTEM__THRESH_LOW);
 	*low = tmp;
-	return status;
 }
 
-static VL53L1X_ERROR VL53L1X_GetDistanceThresholdHigh(struct vl53l1x_dev_s *priv, uint16_t *high)
+/****************************************************************************
+ * Name: VL53L1X_GetDistanceThresholdHigh
+ *
+ * Description:
+ *  This function returns the high threshold in mm.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetDistanceThresholdHigh(struct vl53l1x_dev_s *priv, uint16_t *high)
 {
-	VL53L1X_ERROR status = 0;
 	uint16_t tmp;
 
 	tmp = vl53l1x_getreg16(priv, SYSTEM__THRESH_HIGH);
 	*high = tmp;
-	return status;
 }
 
-static VL53L1X_ERROR VL53L1X_SetROI(struct vl53l1x_dev_s *priv, uint16_t X, uint16_t Y)
+/****************************************************************************
+ * Name: VL53L1X_SetROI
+ *
+ * Description:
+ *  This function programs the ROI (Region of Interest).
+ *
+ ****************************************************************************/
+
+static void VL53L1X_SetROI(struct vl53l1x_dev_s *priv, uint16_t X, uint16_t Y)
 {
 	uint8_t OpticalCenter;
-	VL53L1X_ERROR status = 0;
 
 	OpticalCenter =vl53l1x_getreg8(priv,  VL53L1_ROI_CONFIG__MODE_ROI_CENTRE_SPAD);
 	if (X > 16)
@@ -809,107 +1024,158 @@ static VL53L1X_ERROR VL53L1X_SetROI(struct vl53l1x_dev_s *priv, uint16_t X, uint
 	vl53l1x_putreg8(priv,  ROI_CONFIG__USER_ROI_CENTRE_SPAD, OpticalCenter);
 	vl53l1x_putreg8(priv,  ROI_CONFIG__USER_ROI_REQUESTED_GLOBAL_XY_SIZE,
 		       (Y - 1) << 4 | (X - 1));
-	return status;
 }
 
-static VL53L1X_ERROR VL53L1X_GetROI_XY(struct vl53l1x_dev_s *priv, uint16_t *ROI_X, uint16_t *ROI_Y)
+/****************************************************************************
+ * Name: VL53L1X_GetROI_XY
+ *
+ * Description:
+ *  This function returns width X and height Y.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetROI_XY(struct vl53l1x_dev_s *priv, uint16_t *ROI_X, uint16_t *ROI_Y)
 {
-	VL53L1X_ERROR status = 0;
 	uint8_t tmp;
 
 	tmp = vl53l1x_getreg8(priv, ROI_CONFIG__USER_ROI_REQUESTED_GLOBAL_XY_SIZE);
 	*ROI_X = ((uint16_t)tmp & 0x0F) + 1;
 	*ROI_Y = (((uint16_t)tmp & 0xF0) >> 4) + 1;
-	return status;
 }
 
-static VL53L1X_ERROR VL53L1X_SetSignalThreshold(struct vl53l1x_dev_s *priv, uint16_t Signal)
-{
-	VL53L1X_ERROR status = 0;
+/****************************************************************************
+ * Name: VL53L1X_SetSignalThreshold
+ *
+ * Description:
+ *  This function programs a new signal threshold in kcps.
+ *
+ ****************************************************************************/
 
-	vl53l1x_putreg16(priv,RANGE_CONFIG__MIN_COUNT_RATE_RTN_LIMIT_MCPS,Signal>>3);
-	return status;
+static void VL53L1X_SetSignalThreshold(struct vl53l1x_dev_s *priv, uint16_t Signal)
+{
+  vl53l1x_putreg16(priv,RANGE_CONFIG__MIN_COUNT_RATE_RTN_LIMIT_MCPS,Signal>>3);
 }
 
-static VL53L1X_ERROR VL53L1X_GetSignalThreshold(struct vl53l1x_dev_s *priv, uint16_t *signal)
+/****************************************************************************
+ * Name: VL53L1X_GetSignalThreshold
+ *
+ * Description:
+ *  This function returns the current signal threshold in kcps.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetSignalThreshold(struct vl53l1x_dev_s *priv, uint16_t *signal)
 {
-	VL53L1X_ERROR status = 0;
 	uint16_t tmp;
 
 	tmp = vl53l1x_getreg16(priv,
 				RANGE_CONFIG__MIN_COUNT_RATE_RTN_LIMIT_MCPS);
 	*signal = tmp <<3;
-	return status;
 }
 
-static VL53L1X_ERROR VL53L1X_SetSigmaThreshold(struct vl53l1x_dev_s *priv, uint16_t Sigma)
-{
-	VL53L1X_ERROR status = 0;
+/****************************************************************************
+ * Name: VL53L1X_SetSigmaThreshold
+ *
+ * Description:
+ *  This function programs a new sigma threshold in mm (default=15 mm).
+ *
+ ****************************************************************************/
 
+static void VL53L1X_SetSigmaThreshold(struct vl53l1x_dev_s *priv, uint16_t Sigma)
+{
 	if(Sigma>(0xFFFF>>2)){
 		return 1;
 	}
 	// 16 bits register 14.2 format
 	vl53l1x_putreg16(priv,RANGE_CONFIG__SIGMA_THRESH,Sigma<<2);
-	return status;
 }
 
-static VL53L1X_ERROR VL53L1X_GetSigmaThreshold(struct vl53l1x_dev_s *priv, uint16_t *sigma)
+/****************************************************************************
+ * Name: VL53L1X_GetSigmaThreshold
+ *
+ * Description:
+ *  This function returns the current sigma threshold in mm.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_GetSigmaThreshold(struct vl53l1x_dev_s *priv, uint16_t *sigma)
 {
-	VL53L1X_ERROR status = 0;
 	uint16_t tmp;
 
 	tmp = vl53l1x_getreg16(priv, RANGE_CONFIG__SIGMA_THRESH);
 	*sigma = tmp >> 2;
-	return status;
-
 }
 
-static VL53L1X_ERROR VL53L1X_StartTemperatureUpdate(struct vl53l1x_dev_s *priv)
+/****************************************************************************
+ * Name: VL53L1X_StartTemperatureUpdate
+ *
+ * Description:
+ *  This function performs the temperature calibration. It is recommended to
+ *  call this function any time the temperature might have changed by more than
+ *  8 deg C without sensor ranging activity for an extended period.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_StartTemperatureUpdate(struct vl53l1x_dev_s *priv)
 {
-	VL53L1X_ERROR status = 0;
 	uint8_t tmp=0;
 
-	/*status = */vl53l1x_putreg8(priv, VL53L1_VHV_CONFIG__TIMEOUT_MACROP_LOOP_BOUND,0x81); // full VHV
-	/*status = */vl53l1x_putreg8(priv, 0x0B,0x92);
-	/*status = */VL53L1X_StartRanging(priv);
+	vl53l1x_putreg8(priv, VL53L1_VHV_CONFIG__TIMEOUT_MACROP_LOOP_BOUND,0x81); // full VHV
+	vl53l1x_putreg8(priv, 0x0B,0x92);
+	VL53L1X_StartRanging(priv);
 	while(tmp==0){
-		status = VL53L1X_CheckForDataReady(priv, &tmp);
+		 VL53L1X_CheckForDataReady(priv, &tmp);
 	}
 	tmp  = 0;
-	status = VL53L1X_ClearInterrupt(priv);
-	status = VL53L1X_StopRanging(priv);
-	/*status = */vl53l1x_putreg8(priv,  VL53L1_VHV_CONFIG__TIMEOUT_MACROP_LOOP_BOUND, 0x09); // two bounds VHV
-	/*status = */vl53l1x_putreg8(priv,  0x0B, 0); // start VHV from the previous temperature
-	return status;
+	VL53L1X_ClearInterrupt(priv);
+	VL53L1X_StopRanging(priv);
+	vl53l1x_putreg8(priv,  VL53L1_VHV_CONFIG__TIMEOUT_MACROP_LOOP_BOUND, 0x09); // two bounds VHV
+	vl53l1x_putreg8(priv,  0x0B, 0); // start VHV from the previous temperature
 }
 
-static int8_t VL53L1X_CalibrateOffset(struct vl53l1x_dev_s *priv, uint16_t TargetDistInMm, int16_t *offset)
+/****************************************************************************
+ * Name: VL53L1X_CalibrateOffset
+ *
+ * Description:
+ *  The function returns the offset value found and programs the offset
+ *  compensation into the device.
+ *
+ ****************************************************************************/
+
+static void VL53L1X_CalibrateOffset(struct vl53l1x_dev_s *priv, uint16_t TargetDistInMm, int16_t *offset)
 {
 	uint8_t i = 0, tmp;
 	int16_t AverageDistance = 0;
 	uint16_t distance;
-	VL53L1X_ERROR status = 0;
 
-	/*status = */vl53l1x_putreg16(priv, ALGO__PART_TO_PART_RANGE_OFFSET_MM, 0x0);
-	/*status = */vl53l1x_putreg16(priv, MM_CONFIG__INNER_OFFSET_MM, 0x0);
-	/*status = */vl53l1x_putreg16(priv, MM_CONFIG__OUTER_OFFSET_MM, 0x0);
-	status = VL53L1X_StartRanging(priv);	// Enable VL53L1X sensor
+	vl53l1x_putreg16(priv, ALGO__PART_TO_PART_RANGE_OFFSET_MM, 0x0);
+	vl53l1x_putreg16(priv, MM_CONFIG__INNER_OFFSET_MM, 0x0);
+	vl53l1x_putreg16(priv, MM_CONFIG__OUTER_OFFSET_MM, 0x0);
+	VL53L1X_StartRanging(priv);	// Enable VL53L1X sensor
 	for (i = 0; i < 50; i++) {
 		while (tmp == 0){
-			status = VL53L1X_CheckForDataReady(priv,&tmp);
+			VL53L1X_CheckForDataReady(priv,&tmp);
 		}
 		tmp = 0;
-		status = VL53L1X_GetDistance(priv,&distance);
-		status = VL53L1X_ClearInterrupt(priv);
+		VL53L1X_GetDistance(priv,&distance);
+		VL53L1X_ClearInterrupt(priv);
 		AverageDistance = AverageDistance + distance;
 	}
-	status = VL53L1X_StopRanging(priv);
+	VL53L1X_StopRanging(priv);
 	AverageDistance = AverageDistance / 50;
 	*offset = TargetDistInMm - AverageDistance;
-	/*status = */vl53l1x_putreg16(priv, ALGO__PART_TO_PART_RANGE_OFFSET_MM, *offset*4);
-	return status;
+	vl53l1x_putreg16(priv, ALGO__PART_TO_PART_RANGE_OFFSET_MM, *offset*4);
+
 }
+
+/****************************************************************************
+ * Name: VL53L1X_CalibrateXtalk
+ *
+ * Description:
+ *  The function returns the xtalk value found and programs the xtalk
+ *  compensation to the device.
+ *
+ ****************************************************************************/
 
 static int8_t VL53L1X_CalibrateXtalk(struct vl53l1x_dev_s *priv, uint16_t TargetDistInMm, uint16_t *xtalk)
 {
@@ -919,44 +1185,43 @@ static int8_t VL53L1X_CalibrateXtalk(struct vl53l1x_dev_s *priv, uint16_t Target
 	float AverageSpadNb = 0;
 	uint16_t distance = 0, spadNum;
 	uint16_t sr;
-	VL53L1X_ERROR status = 0;
 
-	/*status = */vl53l1x_putreg16(priv, 0x0016,0);
-	status = VL53L1X_StartRanging(priv);
+	vl53l1x_putreg16(priv, 0x0016,0);
+	VL53L1X_StartRanging(priv);
 	for (i = 0; i < 50; i++) {
 		while (tmp == 0){
-			status = VL53L1X_CheckForDataReady(priv,&tmp);
+			VL53L1X_CheckForDataReady(priv,&tmp);
 		}
 		tmp=0;
-		status= VL53L1X_GetSignalRate(priv, &sr);
-		status= VL53L1X_GetDistance(priv, &distance);
-		status = VL53L1X_ClearInterrupt(priv);
+		VL53L1X_GetSignalRate(priv, &sr);
+		VL53L1X_GetDistance(priv, &distance);
+		VL53L1X_ClearInterrupt(priv);
 		AverageDistance = AverageDistance + distance;
-		status = VL53L1X_GetSpadNb(priv, &spadNum);
+		VL53L1X_GetSpadNb(priv, &spadNum);
 		AverageSpadNb = AverageSpadNb + spadNum;
 		AverageSignalRate =
 		    AverageSignalRate + sr;
 	}
-	status = VL53L1X_StopRanging(priv);
+	VL53L1X_StopRanging(priv);
 	AverageDistance = AverageDistance / 50;
 	AverageSpadNb = AverageSpadNb / 50;
 	AverageSignalRate = AverageSignalRate / 50;
 	// Calculate Xtalk value
 	*xtalk = (uint16_t)(512*(AverageSignalRate*(1-(AverageDistance/TargetDistInMm)))/AverageSpadNb);
-	/*status = */vl53l1x_putreg16(priv, 0x0016, *xtalk);
-	return status;
+	vl53l1x_putreg16(priv, 0x0016, *xtalk);
+
 }
 
 
 
 
 /****************************************************************************
- * Name: vl53l1x_getreg8
- *
- * Description:
- *   Read from an 8-bit VL53L1X register
- *
- ****************************************************************************/
+* Name: vl53l1x_getreg8
+*
+* Description:
+*   Read from an 8-bit VL53L1X register
+*
+****************************************************************************/
 
  static uint8_t vl53l1x_getreg8(FAR struct vl53l1x_dev_s *priv, uint16_t regaddr)
  {
@@ -997,12 +1262,12 @@ static int8_t VL53L1X_CalibrateXtalk(struct vl53l1x_dev_s *priv, uint16_t Target
  }
 
 /****************************************************************************
- * Name: bmp180_getreg16
- *
- * Description:
- *   Read two 8-bit from a BMP180 register
- *
- ****************************************************************************/
+* Name: bmp180_getreg16
+*
+* Description:
+*   Read two 8-bit from a BMP180 register
+*
+****************************************************************************/
 
  static uint16_t vl53l1x_getreg16(FAR struct vl53l1x_dev_s *priv, uint16_t regaddr)
  {
@@ -1051,12 +1316,12 @@ static int8_t VL53L1X_CalibrateXtalk(struct vl53l1x_dev_s *priv, uint16_t Target
  }
 
 /****************************************************************************
- * Name: vl53l1x_getreg32
- *
- * Description:
- *   Read 4 8-bit from a VL53L1X register
- *
- ****************************************************************************/
+* Name: vl53l1x_getreg32
+*
+* Description:
+*   Read 4 8-bit from a VL53L1X register
+*
+****************************************************************************/
 
  static uint32_t vl53l1x_getreg32(FAR struct vl53l1x_dev_s *priv, uint16_t regaddr)
  {
@@ -1105,12 +1370,12 @@ static int8_t VL53L1X_CalibrateXtalk(struct vl53l1x_dev_s *priv, uint16_t Target
  }
 
 /****************************************************************************
- * Name: vl53l1x_putreg8
- *
- * Description:
- *   Write to an 8-bit VL53L1X register
- *
- ****************************************************************************/
+* Name: vl53l1x_putreg8
+*
+* Description:
+*   Write to an 8-bit VL53L1X register
+*
+****************************************************************************/
 
  static void vl53l1x_putreg8(FAR struct vl53l1x_dev_s *priv, uint16_t regaddr,
                             uint8_t regval)
@@ -1143,12 +1408,12 @@ static int8_t VL53L1X_CalibrateXtalk(struct vl53l1x_dev_s *priv, uint16_t Target
 
 
 /****************************************************************************
- * Name: vl53l1x_putreg16
- *
- * Description:
- *   Write to an 16-bit VL53L1X register
- *
- ****************************************************************************/
+* Name: vl53l1x_putreg16
+*
+* Description:
+*   Write to an 16-bit VL53L1X register
+*
+****************************************************************************/
 
  static void vl53l1x_putreg16(FAR struct vl53l1x_dev_s *priv, uint16_t regaddr,
                             uint16_t regval)
@@ -1181,12 +1446,12 @@ static int8_t VL53L1X_CalibrateXtalk(struct vl53l1x_dev_s *priv, uint16_t Target
  }
 
 /****************************************************************************
- * Name: vl53l1x_putreg32
- *
- * Description:
- *   Write to an 32-bit VL53L1X register
- *
- ****************************************************************************/
+* Name: vl53l1x_putreg32
+*
+* Description:
+*   Write to an 32-bit VL53L1X register
+*
+****************************************************************************/
 
  static void vl53l1x_putreg32(FAR struct vl53l1x_dev_s *priv, uint16_t regaddr,
                             uint32_t regval)
@@ -1224,12 +1489,12 @@ static int8_t VL53L1X_CalibrateXtalk(struct vl53l1x_dev_s *priv, uint16_t Target
 
 
 /****************************************************************************
- * Name: vl53l1x_open
- *
- * Description:
- *   This function is called whenever the VL53L1X device is opened.
- *
- ****************************************************************************/
+* Name: vl53l1x_open
+*
+* Description:
+*   This function is called whenever the VL53L1X device is opened.
+*
+****************************************************************************/
 
 static int vl53l1x_open(FAR struct file *filep)
 {
@@ -1237,12 +1502,12 @@ static int vl53l1x_open(FAR struct file *filep)
 }
 
 /****************************************************************************
- * Name: vl53l1x_close
- *
- * Description:
- *   This routine is called when the VL53L1X device is closed.
- *
- ****************************************************************************/
+* Name: vl53l1x_close
+*
+* Description:
+*   This routine is called when the VL53L1X device is closed.
+*
+****************************************************************************/
 
 static int vl53l1x_close(FAR struct file *filep)
 {
@@ -1359,7 +1624,7 @@ int vl53l1x_register(FAR const char *devpath, FAR struct i2c_master_s *i2c)
 
   VL53L1X_SensorInit(priv);
 
-  ret = VL53L1X_GetSensorId(priv,&sensorId);
+  VL53L1X_GetSensorId(priv,&sensorId);
   if(sensorId != 0xEACC){
     snerr("ERROR: Failed sensor ID %04x\n", sensorId);
     kmm_free(priv);
@@ -1368,7 +1633,7 @@ int vl53l1x_register(FAR const char *devpath, FAR struct i2c_master_s *i2c)
 
 
 
-  ret = register_driver(devpath, &g_vl53l1xfops, 0666, priv);
+  register_driver(devpath, &g_vl53l1xfops, 0666, priv);
   if (ret < 0)
   {
     snerr("ERROR: Failed to register driver: %d\n", ret);
