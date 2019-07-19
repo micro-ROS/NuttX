@@ -119,8 +119,6 @@ EXTRA_LIBS ?=
 EXTRA_LIBPATHS ?= 
 LINKLIBS ?=
 
-LIBPATHS+=-L/usr/lib/gcc/arm-none-eabi/6.3.1/../../../arm-none-eabi/lib/hard/
-
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   BOARDMAKE = $(if $(wildcard .\board\Makefile),y,)
   LIBPATHS += -L"$(TOPDIR)\staging"
