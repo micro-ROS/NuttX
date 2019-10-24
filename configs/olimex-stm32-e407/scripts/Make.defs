@@ -51,7 +51,7 @@ else
   # Linux/Cygwin-native toolchain
   MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
   ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
-  ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx -isystem $(TOPDIR)/include/uClibc++
+  ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx -isystem $(TOPDIR)/include/uClibc++ $(TOPDIR)/include/libcxx
   ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
 endif
 
@@ -80,7 +80,11 @@ ARCHCFLAGS = -fno-builtin
 ifeq ($(CONFIG_UCLIBCXX_EXCEPTION),y)
   ARCHCXXFLAGS = -fno-builtin -fcheck-new 
 else
+ifeq  ($(CONFIG_LIBCXX_EXCEPTION),y)
+  ARCHCXXFLAGS = -fno-builtin -fcheck-new 
+else
   ARCHCXXFLAGS = -fno-builtin -fno-exceptions -fcheck-new -fno-rtti
+endif
 endif
 ARCHWARNINGS = -Wall -Wstrict-prototypes -Wshadow -Wundef
 ARCHWARNINGSXX = -Wall -Wshadow -Wundef
