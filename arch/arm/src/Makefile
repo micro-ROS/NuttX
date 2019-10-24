@@ -116,7 +116,7 @@ LDSTARTGROUP ?= --start-group
 LDENDGROUP ?= --end-group
 
 EXTRA_LIBS ?=
-EXTRA_LIBPATHS ?=
+EXTRA_LIBPATHS ?= 
 LINKLIBS ?=
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
@@ -182,7 +182,7 @@ board$(DELIM)libboard$(LIBEXT):
 
 nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT)
 	$(Q) echo "LD: nuttx"
-	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
+	$(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
 		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) \
 		$(LDSTARTGROUP) $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) $(LDENDGROUP)
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
