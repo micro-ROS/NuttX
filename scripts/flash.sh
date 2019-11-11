@@ -1,9 +1,11 @@
 #!/bin/bash
 
+# Source tools
 currdir="${0%/*}"
 . $currdir/tools.sh
 
-install_dep usbutils git
+# lsusb dependency installation
+install_dep usbutils
 
 if [ $1 = "olimex-stm32-e407" ];then
   if lsusb -d 15BA:002a; then

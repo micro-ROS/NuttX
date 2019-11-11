@@ -1,9 +1,15 @@
 #!/bin/bash
 
+
+# Returns if a command is available in the current machine
 function has_command() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Sets multiple variables with system specifics.
+# INSTALL_COMMAND: is the package manager of the linux distribution
+# INSTALL_OPTIONS: are the options to install packages without any input from the user required
+# INSTALL_QUERY: command and options to use for checking the existence of packages.
 function set_host_installer() {
     if [ -f /etc/arch-release ]; then
         if has_command pacman; then
@@ -20,6 +26,7 @@ function set_host_installer() {
     fi
 }
 
+# Takes a list of pakages and sets MISSING_PKGS with those missing in the current system.
 function filter_installed() {
     for package in "$@"
     do
@@ -31,7 +38,7 @@ function filter_installed() {
     done
 }
 
-
+# Install the list of packages in the current system.
 function install_dep() {
     set_host_installer
     filter_installed "$@"
