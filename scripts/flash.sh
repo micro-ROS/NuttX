@@ -1,5 +1,10 @@
 #!/bin/bash
 
+currdir="${0%/*}"
+. $currdir/tools.sh
+
+install_dep usbutils git
+
 if [ $1 = "olimex-stm32-e407" ];then
   if lsusb -d 15BA:002a; then
     openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg -f target/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx.bin 0x08000000"
