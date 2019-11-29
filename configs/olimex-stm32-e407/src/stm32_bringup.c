@@ -363,11 +363,22 @@ int ret = OK;
 #endif
 
 #ifdef CONFIG_ONESHOT
+#ifndef CONFIG_CPULOAD_ONESHOT
   os = oneshot_initialize(1, 10);
+#else
+  os = oneshot_initialize(1, 125); // for cpu load measurement -> ~130Hz
+#endif
+
   if (os)
     {
       ret = oneshot_register("/dev/oneshot", os);
     }
+
+#ifdef CONFIG_CPULOAD_ONESHOT
+/* Configure the oneshot timer to support CPU load measurement */
+  sched_oneshot_extclk(os);
+#endif
+
 #endif
 
 #ifdef CONFIG_BUTTONS
