@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+comment "Backtrace Support"
+config LIBBACKTRACE
+	bool "Enable backtrace support"
+	depends on ARCH_CHIP_STM32
+	default n
+	---help---
+		Enables support for backtrace. It will use an additional
+		~5KBytes of memory. Needed for memory benchmarking.

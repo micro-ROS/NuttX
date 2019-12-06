@@ -110,6 +110,10 @@ ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   LDFLAGS += -g
 endif
 
+ifeq ($(CONFIG_LIBBACKTRACE), y)
+  CFLAGS +=  -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wunused -Wuninitialized -Wmissing-declarations -std=c11 -mpoke-function-name -funwind-tables -fno-omit-frame-pointer
+endif
+
 
 HOSTCC = gcc
 HOSTINCLUDES = -I.

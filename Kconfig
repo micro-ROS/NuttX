@@ -1676,6 +1676,11 @@ source graphics/Kconfig
 source libs/libnx/Kconfig
 endmenu
 
+menu "Benchmarking Support"
+source benchmarking/Kconfig
+source libs/libbacktrace/Kconfig
+endmenu
+
 menu "Memory Management"
 source mm/Kconfig
 endmenu

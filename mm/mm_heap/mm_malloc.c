@@ -55,6 +55,140 @@
 #endif
 
 /****************************************************************************
+ * Debugging Functions
+ ****************************************************************************/
+#ifdef CONFIG_LIBBACKTRACE
+
+#include <backtrace.h>
+
+#define BACKTRACE_SIZE	8
+FAR backtrace_t backtrace_buf[BACKTRACE_SIZE];
+
+/* To satisfy nuttx with its -Wmissing-declarations */
+FAR void print_itm(unsigned int data);
+FAR void print_str(const char *str, int max_len);
+FAR void print_number_dec(unsigned int data);
+FAR void print_number_hex(unsigned int data);
+FAR void dump_backtrace(backtrace_t *bt, int count, int size_blk, void *blk);
+
+/* TODO: fix this to be usable indepently of the CPU core */
+#define STIMULI_BASE 	(0xE0000000)
+#define ITM_TCR         ( *(volatile uint32_t *) 0xe0000e80)
+#define ITM_TENR             ( *(volatile uint32_t *) 0xe0000e00)
+
+struct stimuli_reg {
+	union {
+		uint32_t reg_base;
+		char reg_char[4];
+	};
+}__attribute__((packed));
+
+/****************************************************************************
+ * Name: print_itm
+ *
+ * Description: Print the data to the itm. The data will be casted to a char.
+ ****************************************************************************/
+FAR void print_itm(unsigned int data)
+{
+	volatile struct stimuli_reg *STMU =
+					(volatile struct stimuli_reg *) STIMULI_BASE;
+	unsigned int timeout = 100000;
+
+	/* ITM enabled */
+	if (((ITM_TCR & 0x1UL) != 0UL) &&
+			((ITM_TENR & 1UL) != 0UL))  {
+		/* Wait for available reg ot be available */
+		while (STMU->reg_base == (unsigned int) 0x0) {
+			if (!timeout--) {
+				return;
+			}
+		}
+		STMU->reg_char[0] = (char) data;
+	}
+}
+
+/****************************************************************************
+ * Name: print_number_dec
+ *
+ * Description: Procedure to print to decimal  number to the itm
+ ****************************************************************************/
+FAR void print_str(const char *str, int max_len)
+{
+	unsigned int i = 0;
+
+	while ((str[i] != '\0') && (i < max_len)) {
+		print_itm((unsigned int) str[i++]);
+	}
+}
+
+/****************************************************************************
+ * Name: print_number_dec
+ *
+ * Description: Procedure to print to decimal  number to the itm
+ ****************************************************************************/
+FAR void print_number_dec(unsigned int data)
+{
+	char data_str[] = "000000000";
+	int j = sizeof(data_str) - 2;
+	unsigned int unity;
+
+	while (data > 9) {
+		unity = data % 10;
+		data_str[j--] = unity + '0';
+		data = data / 10;
+	}
+
+	data_str[j] = data + '0';
+	print_str(&data_str[j], sizeof(data_str) - 2 + j);
+}
+
+/****************************************************************************
+ * Name: print_number_hex
+ *
+ * Description: Procedure to print to hex number to the itm
+ ****************************************************************************/
+FAR void print_number_hex(unsigned int data)
+{
+	const char hex_to_str[] = "0123456789ABCDEF";
+	char hex;
+
+	print_itm((unsigned int)'0');
+	print_itm((unsigned int)'x');
+	for (int i = (sizeof(unsigned int) * 2) - 1; i >= 0; --i) {
+		hex = hex_to_str[((data >> i * 4)  & 0xf)];
+		print_itm((unsigned int) hex);
+	}
+}
+
+
+/****************************************************************************
+ * Name: dump_backtrace
+ *
+ * Description:
+ *	Create a backtrace dump from the once called and print it to the ITM
+ *	trace. The format shall look as follow:
+ *		alloc <size_in_bytes> <blk_pointer>
+ *		<address_backtrace> <function_name>  <-- one line per depth bt
+ ****************************************************************************/
+FAR void dump_backtrace(backtrace_t *bt, int count, int size_blk, void *blk)
+{
+	print_str("alloc  ", sizeof("alloc ") - 1);
+	print_number_dec(size_blk);
+	print_itm(' ');
+	print_number_hex((unsigned int) blk);
+	print_itm('\n');
+
+	for (int i = count - 1; i > -1 ; i--) {
+		print_number_hex((unsigned int) bt[i].address);
+		print_itm(' ');
+		print_str(bt[i].name, 32);
+		print_itm((unsigned int)'\n');
+	}
+}
+
+#endif // CONFIG_LIBBACKTRACE
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -75,6 +209,9 @@ FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
   size_t alignsize;
   void *ret = NULL;
   int ndx;
+#ifdef CONFIG_LIBBACKTRACE
+  int count;
+#endif
 
   /* Ignore zero-length allocations */
 
@@ -206,6 +343,11 @@ FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
       minfo("Allocated %p, size %d\n", ret, alignsize);
     }
 #endif
+
+#ifdef CONFIG_LIBBACKTRACE
+  count = backtrace_unwind(backtrace_buf, BACKTRACE_SIZE);
+  dump_backtrace(backtrace_buf, count, alignsize + SIZEOF_MM_ALLOCNODE, ret);
+#endif // CONFIG_LIBBACKTRACE
 
   return ret;
 }
