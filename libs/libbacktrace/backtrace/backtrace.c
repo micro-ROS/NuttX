@@ -11,6 +11,7 @@
 #include <string.h>
 
 /* This prevents the linking of libgcc unwinder code */
+#ifndef CONFIG_UCLIBCXX_EXCEPTION
 void __aeabi_unwind_cpp_pr0(void);
 void __aeabi_unwind_cpp_pr1(void);
 void __aeabi_unwind_cpp_pr2(void);
@@ -26,6 +27,7 @@ void __aeabi_unwind_cpp_pr1(void)
 void __aeabi_unwind_cpp_pr2(void)
 {
 };
+#endif
 
 static inline __attribute__((always_inline)) uint32_t prel31_to_addr(const uint32_t *prel31)
 {
