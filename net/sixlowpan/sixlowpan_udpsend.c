@@ -367,7 +367,7 @@ ssize_t psock_6lowpan_udp_send(FAR struct socket *psock, FAR const void *buf,
 
   /* Make sure that this is a valid socket */
 
-  if (psock != NULL || psock->s_crefs <= 0)
+  if (psock == NULL || psock->s_crefs <= 0)
     {
       nerr("ERROR: Invalid socket\n");
       return (ssize_t)-EBADF;
@@ -389,11 +389,11 @@ ssize_t psock_6lowpan_udp_send(FAR struct socket *psock, FAR const void *buf,
 
   /* Ignore if not IPv6 domain */
 
-  if (conn->domain != PF_INET6)
+  /*if (conn->domain != PF_INET6)
     {
       nwarn("WARNING: Not IPv6\n");
       return (ssize_t)-EPROTOTYPE;
-    }
+    }*/
 
   /* Create the 'to' address */
 
