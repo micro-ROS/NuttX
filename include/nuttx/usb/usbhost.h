@@ -1105,6 +1105,27 @@ int usbhost_mouse_init(void);
 int usbhost_xboxcontroller_init(void);
 #endif
 
+#ifdef CONFIG_USBHOST_JOYSTICK
+/****************************************************************************
+ * Name: usbhost_joystick_init
+ *
+ * Description:
+ *   Initialize the USB XBox controller driver.  This function
+ *   should be called be platform-specific code in order to initialize and
+ *   register support for the USB XBox controller.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   On success this function will return zero (OK);  A negated errno value
+ *   will be returned on failure.
+ *
+ ****************************************************************************/
+
+int usbhost_joystick_init(void);
+#endif
+
 /****************************************************************************
  * Name: usbhost_wlaninit
  *
