@@ -9,7 +9,9 @@ INTERFACE="$OLIMEX_TINY_H_FOUND $STLINK_V2_FOUND"
 echo Interface: $INTERFACE
 
 if [ $1 = "olimex-stm32-e407" ]; then
-  openocd -f $INTERFACE -f target/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx.bin 0x08000000"
+  openocd -f $INTERFACE -f target/stm32f4x.cfg \
+    -c init -c "reset halt" -c "flash write_image erase nuttx.bin 0x08000000" \
+    -c "reset run" -c "shutdown"
 elif [ $1 = "stm32l1" ]; then
   openocd -f $INTERFACE -f target/stm32l1.cfg -c init -c "reset halt" -c "flash write_image erase nuttx.bin 0x08000000"
 else
