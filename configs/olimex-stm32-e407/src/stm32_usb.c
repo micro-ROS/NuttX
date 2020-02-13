@@ -55,6 +55,7 @@
 #include "up_arch.h"
 #include "stm32.h"
 #include "stm32_otgfs.h"
+#include "stm32_otghs.h"
 #include "olimex-stm32-e407.h"
 
 #ifdef CONFIG_STM32_OTGFS
@@ -168,7 +169,8 @@ int stm32_usbhost_initialize(void)
 {
   int pid;
 #if defined(CONFIG_USBHOST_HUB)    || defined(CONFIG_USBHOST_MSC) || \
-    defined(CONFIG_USBHOST_HIDKBD) || defined(CONFIG_USBHOST_HIDMOUSE)
+    defined(CONFIG_USBHOST_HIDKBD) || defined(CONFIG_USBHOST_HIDMOUSE) || \
+    defined(CONFIG_USBHOST_JOYSTICK)
   int ret;
 #endif
 
@@ -228,6 +230,16 @@ int stm32_usbhost_initialize(void)
     }
 #endif
 
+#ifdef CONFIG_USBHOST_JOYSTICK
+  /* Initialize the HID mouse class */
+
+  ret = usbhost_joystick_init();
+  if (ret != OK)
+    {
+      uerr("ERROR: Failed to register the XBox Controller class\n");
+    }
+#endif
+
   /* Then get an instance of the USB host interface */
 
   uinfo("Initialize USB host\n");
@@ -238,8 +250,8 @@ int stm32_usbhost_initialize(void)
 
       uinfo("Start usbhost_waiter\n");
 
-      pid = kthread_create("usbhost", CONFIG_STM32F4DISCO_USBHOST_PRIO,
-                           CONFIG_STM32F4DISCO_USBHOST_STACKSIZE,
+      pid = kthread_create("usbhost", 100,
+                           1024,
                            (main_t)usbhost_waiter, (FAR char * const *)NULL);
       return pid < 0 ? -ENOEXEC : OK;
     }
