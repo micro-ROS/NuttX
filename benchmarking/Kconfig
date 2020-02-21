@@ -1,0 +1,13 @@
+comment "Benchmarking"
+
+config MEMORY_BEMCHMARKING
+	bool "Heap memory benchmarking"
+	default n
+	depends on !ARMV7M_ITMSYSLOG
+	select LIBBACKTRACE
+	---help---
+		Enables Heap benchmarking. ITMSYSLOG must be
+		deactivated to be able to use it. Indeed the
+		heap benchmarking is instrumenting the
+		mm_malloc function and uses ITM to print the
+		information

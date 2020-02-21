@@ -131,6 +131,12 @@ ifeq ($(CONFIG_HAVE_CXX),y)
 NUTTXLIBS += staging$(DELIM)$(LIBXX)$(LIBEXT)
 endif
 
+# Add backtrace library
+
+ifeq ($(CONFIG_LIBBACKTRACE),y)
+NUTTXLIBS += staging$(DELIM)libbacktrace$(LIBEXT)
+endif
+
 # Add DSP library
 
 ifeq ($(CONFIG_LIBDSP),y)

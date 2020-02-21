@@ -298,3 +298,7 @@ ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),RAISONANCE)
   endif
   ARCHCPUFLAGS = $(TOOLCHAIN_MCPU) -mthumb $(TOOLCHAIN_MFLOAT)
 endif
+
+ifeq ($(CONFIG_LIBBACKTRACE), y)
+ ARCHCPUFLAGS +=  -funwind-tables -mpoke-function-name
+endif

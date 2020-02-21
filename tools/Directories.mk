@@ -148,6 +148,12 @@ else
 OTHERDIRS += wireless
 endif
 
+ifeq ($(CONFIG_LIBBACKTRACE),y)
+NONFSDIRS += libs$(DELIM)libbacktrace
+else
+OTHERDIRS += libs$(DELIM)libbacktrace
+endif
+
 ifeq ($(CONFIG_LIBDSP),y)
 NONFSDIRS += libs$(DELIM)libdsp
 else

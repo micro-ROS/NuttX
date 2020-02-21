@@ -79,7 +79,8 @@ if UCLIBCXX
 
 config UCLIBCXX_EXCEPTION
 	bool "Enable Exception Suppport"
-	default y
+	default n
+	depends on !LIBBACKTRACE
 	select CXX_EXCEPTION
 
 config UCLIBCXX_IOSTREAM_BUFSIZE
