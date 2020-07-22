@@ -533,91 +533,6 @@ int sixlowpan_queue_frames(FAR struct radio_driver_s *radio,
 
   if (buflen > (framelen - framer_hdrlen - protosize - ipv6_header_len))
     {
-#if 0
-      FAR uint8_t *frame1;
-      FAR struct iob_s *qhead;
-      FAR struct iob_s *qtail;
-      FAR struct sixlowpan_reassbuf_s *reass;
-
-      /* qhead will hold the generated frame list; frames will be
-       * added at qtail.
-       */
-      FAR char first_packet [] = {
-	      0x61, 0xcc, 0x1a, 0xcd, 0xab, 0xa3, 0x02, 0x00, 0xff, 0xff, 0xd5,
-	      0xe2, 0x10, 0x00, 0xfa, 0xde, 0x00, 0xde, 0xad, 0xbe, 0xab, 0xc0,
-	      0x9c, 0x00, 0x01, /*0x41,*/ 0x61, 0x00, 0x00, 0x00, 0x00, 0x74, 0x11,
-	      0x40, 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xbe,
-	      0xad, 0xde, 0x00, 0xde, 0xfa, 0x00, 0xfe, 0x80, 0x00, 0x00, 0x00,
-	      0x00, 0x00, 0x00, 0x12, 0xe2, 0xd5, 0xff, 0xff, 0x00, 0x02, 0xa3,
-	      0x04, 0x01, 0x27, 0x0f, 0x00, 0x74, 0xc4, 0xf2, 0x81, 0x80, 0x00,
-	      0x00, 0x01, 0x05, 0x62, 0x00, 0x00, 0x0a, 0x00, 0x01, 0x01, 0x02,
-	      0x00, 0x00, 0x54, 0x00, 0x00, 0x00, 0x3c, 0x64, 0x64, 0x73, 0x3e,
-	      0x3c, 0x70, 0x61, 0x72, 0x74, 0x69, 0x63, 0x69, 0x70, 0x61, 0x6e,
-	      0x74, 0x3e, 0x3c, 0x72, 0x74, 0x70, 0x73, 0x3e, 0x3c, 0x6e, 0x61,
-	      0x6d
-      };
-      FAR char second_packet [] = {
-	      0x61, 0xcc, 0x1b, 0xcd, 0xab, 0xa3, 0x02, 0x00, 0xff, 0xff, 0xd5,
-	      0xe2, 0x10, 0x00, 0xfa, 0xde, 0x00, 0xde, 0xad, 0xbe, 0xab, 0xe0,
-	      0x9c, 0x00, 0x01, 0x0C, 
-	      0x65, 0x3e, 0x69, 0x6e, 0x74, 0x33, 0x32, 0x5f, 0x70, 0x75,
-	      0x62, 0x6c, 0x69, 0x73, 0x68, 0x65, 0x72, 0x5f, 0x72, 0x63, 0x6c,
-	      0x3c, 0x2f, 0x6e, 0x61, 0x6d, 0x65, 0x3e, 0x3c, 0x2f, 0x72, 0x74,
-	      0x70, 0x73, 0x3e, 0x3c, 0x2f, 0x70, 0x61, 0x72, 0x74, 0x69, 0x63,
-	      0x69, 0x70, 0x61, 0x6e, 0x74, 0x3e, 0x3c, 0x2f, 0x64, 0x64, 0x73,
-	      0x3e, 0x00, 0x00, 0x00, 0x00, 0x00
-      };
-
-      reass = (FAR struct sixlowpan_reassbuf_s *)radio->r_dev.d_buf;
-
-      iob = net_ioballoc(false);
-      qhead          = iob;
-      qtail          = iob;
-      iob->io_pktlen = sizeof(first_packet) + sizeof(second_packet);
-      iob->io_len = sizeof(first_packet);
-      iob->io_offset = framer_hdrlen;
-      PUTHOST16(&first_packet[21], SIXLOWPAN_FRAG_TAG, reass->rb_dgramtag);
-      memcpy(iob->io_data,  first_packet, sizeof(first_packet));
-
-      iob = net_ioballoc(false);
-      iob->io_len = sizeof(second_packet);
-      PUTHOST16(&second_packet[21], SIXLOWPAN_FRAG_TAG, reass->rb_dgramtag);
-      memcpy(iob->io_data,  second_packet, sizeof(second_packet));
-      iob->io_offset = framer_hdrlen;
-      iob->io_flink = NULL;
-      qtail->io_flink = iob;
-      qtail           = iob;
-
-      iob = net_ioballoc(false);
-      iob->io_len = sizeof(third_packet);
-      iob->io_offset = 0;
-      PUTHOST16(&third_packet[21], SIXLOWPAN_FRAG_TAG, reass->rb_dgramtag);
-      memcpy(iob->io_data,  third_packet, sizeof(third_packet));
-      iob->io_offset = framer_hdrlen;
-      iob->io_flink = NULL;
-      qtail->io_flink = iob;
-      qtail           = iob;
-
-      ret = sixlowpan_frame_submit(radio, &meta, qhead);
-      for (iob = qhead; iob != NULL; iob = qhead)
-        {
-          /* Remove the IOB containing the frame from the list */
-
-          qhead         = iob->io_flink;
-          iob->io_flink = NULL;
-
-          /* And submit the frame to the MAC */
-
-          ninfo("Submitting frame\n");
-          ret = sixlowpan_frame_submit(radio, &meta, iob);
-          if (ret < 0)
-            {
-              nerr("ERROR: sixlowpan_frame_submit() failed: %d\n", ret);
-            }
-        }
-
-      reass->rb_dgramtag++;
-#endif
       FAR struct sixlowpan_reassbuf_s *reass;
       FAR struct iob_s *qhead;
       FAR struct iob_s *qtail;
@@ -709,103 +624,83 @@ int sixlowpan_queue_frames(FAR struct radio_driver_s *radio,
       iob->io_pktlen = iob->io_len;
 
       /* Create following fragments */
-#if 1
       while (outlen < (buflen + protosize + ipv6_header_len))
-        {
-          uint16_t fragn_hdrlen;
+       {
+         uint16_t fragn_hdrlen;
 
-          /* Allocate an IOB to hold the next fragment, waiting if
-           * necessary.
-           */
+         /* Allocate an IOB to hold the next fragment, waiting if
+          * necessary.
+          */
 
-          iob = net_ioballoc(false);
-          DEBUGASSERT(iob != NULL);
+         iob = net_ioballoc(false);
+         DEBUGASSERT(iob != NULL);
 
-          /* Initialize the IOB */
+         /* Initialize the IOB */
 
-          iob->io_flink  = NULL;
-          iob->io_len    = 0;
-          iob->io_offset = framer_hdrlen;
-          iob->io_pktlen = 0;
-          fptr           = iob->io_data;
+         iob->io_flink  = NULL;
+         iob->io_len    = 0;
+         iob->io_offset = framer_hdrlen;
+         iob->io_pktlen = 0;
+         fptr           = iob->io_data;
 
-          /* Copy the HC1/HC06/IPv6 header the frame header from first
-           * frame, into the correct location after the FRAGN header
-           * of subsequent frames.
-           */
+         /* Copy the HC1/HC06/IPv6 header the frame header from first
+          * frame, into the correct location after the FRAGN header
+          * of subsequent frames.
+          */
 
-          fragptr = fptr + framer_hdrlen;
-          /* Setup up the FRAGN header after the frame header. */
-          PUTHOST16(fragptr, SIXLOWPAN_FRAG_DISPATCH_SIZE,
-                    ((SIXLOWPAN_DISPATCH_FRAGN << 8) | pktlen));
-          PUTHOST16(fragptr, SIXLOWPAN_FRAG_TAG, reass->rb_dgramtag);
-          fragptr[SIXLOWPAN_FRAG_OFFSET] = outlen >> 3;
+         fragptr = fptr + framer_hdrlen;
+         /* Setup up the FRAGN header after the frame header. */
+         PUTHOST16(fragptr, SIXLOWPAN_FRAG_DISPATCH_SIZE,
+                   ((SIXLOWPAN_DISPATCH_FRAGN << 8) | pktlen));
+         PUTHOST16(fragptr, SIXLOWPAN_FRAG_TAG, reass->rb_dgramtag);
+         fragptr[SIXLOWPAN_FRAG_OFFSET] = outlen >> 3;
 
-          fragn_hdrlen = framer_hdrlen + SIXLOWPAN_FRAGN_HDR_LEN;
+         fragn_hdrlen = framer_hdrlen + SIXLOWPAN_FRAGN_HDR_LEN;
 
-          /* Copy payload and enqueue.
-           *
-           * Check for the last fragment.
-           */
+         /* Copy payload and enqueue.
+          *
+          * Check for the last fragment.
+          */
 
-          paysize = (framelen - fragn_hdrlen) & SIXLOWPAN_DISPATCH_FRAG_MASK;
-          if (paysize > (buflen + protosize + ipv6_header_len - outlen))
-            {
-              /* Last fragment, truncate to the correct length */
-              paysize = buflen + protosize + ipv6_header_len - outlen;
-            }
-	 // TODO check if here or not   ipv6 is included
-          memcpy(fptr + fragn_hdrlen,  buf + (outlen - protosize - ipv6_header_len), paysize);
+         paysize = (framelen - fragn_hdrlen) & SIXLOWPAN_DISPATCH_FRAG_MASK;
+         if (paysize > (buflen + protosize + ipv6_header_len - outlen))
+           {
+             /* Last fragment, truncate to the correct length */
+             paysize = buflen + protosize + ipv6_header_len - outlen;
+           }
+        // TODO check if here or not   ipv6 is included
+         memcpy(fptr + fragn_hdrlen,  buf + (outlen - protosize - ipv6_header_len), paysize);
 
-          /* Set outlen to what we already sent from the IP payload */
+         /* Set outlen to what we already sent from the IP payload */
 
-          iob->io_len = paysize + fragn_hdrlen;
-          outlen     += paysize;
+         iob->io_len = paysize + fragn_hdrlen;
+         outlen     += paysize;
 
-          ninfo("Fragment offset=%d, paysize=%d, rb_dgramtag=%d\n",
-                outlen >> 3, paysize, reass->rb_dgramtag);
+         ninfo("Fragment offset=%d, paysize=%d, rb_dgramtag=%d\n",
+               outlen >> 3, paysize, reass->rb_dgramtag);
 
-          sixlowpan_dumpbuffer("Outgoing frame",
-                               (FAR const uint8_t *)iob->io_data,
-                               iob->io_len);
+         sixlowpan_dumpbuffer("Outgoing frame",
+                              (FAR const uint8_t *)iob->io_data,
+                              iob->io_len);
 
-          /* Add the next frame to the tail of the IOB queue */
+         /* Add the next frame to the tail of the IOB queue */
 
-          ninfo("Queuing frame io_len=%u io_offset=%u\n",
-                iob->io_len, iob->io_offset);
+         ninfo("Queuing frame io_len=%u io_offset=%u\n",
+               iob->io_len, iob->io_offset);
 
-          qtail->io_flink = iob;
-          qtail           = iob;
+         qtail->io_flink = iob;
+         qtail           = iob;
 
-          /* Keep track of the total amount of data queue */
+         /* Keep track of the total amount of data queue */
 
-          qhead->io_pktlen += iob->io_len;
-        }
+         qhead->io_pktlen += iob->io_len;
+       }
 
-      /* Submit all of the fragments to the MAC.  We send all frames back-
-       * to-back like this to minimize any possible condition where some
-       * frame which is not a fragment from this sequence from intervening.
+     /* Submit all of the fragments to the MAC.  We send all frames back-
+      * to-back like this to minimize any possible condition where some
+      * frame which is not a fragment from this sequence from intervening.
        */
 
-#endif
-#if 0
-      for (iob = qhead; iob != NULL; iob = qhead)
-        {
-          /* Remove the IOB containing the frame from the list */
-
-          qhead         = iob->io_flink;
-          iob->io_flink = NULL;
-
-          /* And submit the frame to the MAC */
-
-          ninfo("Submitting frame\n");
-          ret = sixlowpan_frame_submit(radio, &meta, iob);
-          if (ret < 0)
-            {
-              nerr("ERROR: sixlowpan_frame_submit() failed: %d\n", ret);
-            }
-        }
-#else 
       ninfo("Submitting frame\n");
       ret = sixlowpan_frame_submit(radio, &meta, qhead);
       if (ret < 0)
@@ -813,9 +708,7 @@ int sixlowpan_queue_frames(FAR struct radio_driver_s *radio,
 	      nerr("ERROR: sixlowpan_frame_submit() failed: %d\n", ret);
       }
 
-#endif
       /* Update the datagram TAG value */
-
       reass->rb_dgramtag++;
     }
   else
