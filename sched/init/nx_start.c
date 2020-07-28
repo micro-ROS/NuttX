@@ -63,6 +63,11 @@
 #include "signal/signal.h"
 #include "wdog/wdog.h"
 #include "semaphore/semaphore.h"
+
+#ifdef CONFIG_CTF_TRACE_CPU_USAGE
+#include <nuttx/tracing/tracing_common.h>
+#endif //CONFIG_CTF_TRACE_CPU_USAGE
+
 #ifndef CONFIG_DISABLE_MQUEUE
 #  include "mqueue/mqueue.h"
 #endif
@@ -75,10 +80,10 @@
 #include "group/group.h"
 #include "init/init.h"
 
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
 #ifdef CONFIG_SMP
 /* This set of all CPUs */
 
@@ -804,6 +809,7 @@ void nx_start(void)
 
   syslog_initialize(SYSLOG_INIT_LATE);
 
+
 #ifdef CONFIG_SMP
   /* Start all CPUs *********************************************************/
 
@@ -838,6 +844,17 @@ void nx_start(void)
   kmm_givesemaphore();
 
 #endif /* CONFIG_SMP */
+
+  /* Start the Tracing ******************************************************/
+  /** Late initilialisation because this needs the whole application to be
+   * runinng
+   */
+#ifdef CONFIG_ENABLE_CTF_TRACING
+  tracing_init();
+#endif // CONFIG_CTF_TRACE_CPU_USAGE
+#ifdef CONFIG_CTF_TRACE_CPU_USAGE
+  cpu_stats_log_init();
+#endif // CONFIG_CTF_TRACE_CPU_USAGE
 
   /* The IDLE Loop **********************************************************/
   /* When control is return to this point, the system is idle. */
