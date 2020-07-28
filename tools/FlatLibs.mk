@@ -118,6 +118,12 @@ ifeq ($(CONFIG_AUDIO),y)
 NUTTXLIBS += staging$(DELIM)libaudio$(LIBEXT)
 endif
 
+# Add libraries for the tracing
+
+ifeq ($(CONFIG_ENABLE_CTF_TRACING),y)
+NUTTXLIBS += staging$(DELIM)libctftracing$(LIBEXT)
+endif
+
 # Add libraries for the Wireless sub-system
 
 ifeq ($(CONFIG_WIRELESS),y)

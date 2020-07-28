@@ -148,6 +148,12 @@ else
 OTHERDIRS += wireless
 endif
 
+ifeq ($(CONFIG_ENABLE_CTF_TRACING),y)
+NONFSDIRS += tracing
+else
+OTHERDIRS += tracing
+endif
+
 ifeq ($(CONFIG_LIBBACKTRACE),y)
 NONFSDIRS += libs$(DELIM)libbacktrace
 else

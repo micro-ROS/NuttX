@@ -1681,6 +1681,10 @@ source benchmarking/Kconfig
 source libs/libbacktrace/Kconfig
 endmenu
 
+menu "Tracing Support"
+source tracing/Kconfig
+endmenu
+
 menu "Memory Management"
 source mm/Kconfig
 endmenu
