@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <ctf/ctf_top.h>
+#include <nuttx/tracing/tracing_probes.h>
 
 void sys_trace_thread_switched_out(void)
 {

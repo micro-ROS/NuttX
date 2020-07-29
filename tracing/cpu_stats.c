@@ -4,7 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <nuttx/tracing/tracing_cpu_stats.h>
+//#include <tracing_cpu_stats.h>
+
+#include <ctf_common.h>
+#include <nuttx/tracing/tracing_probes.h>
 #include <stdio.h>
 
 enum cpu_state {
@@ -13,11 +16,11 @@ enum cpu_state {
 	CPU_STATE_SCHEDULER
 };
 
-static enum cpu_state last_cpu_state = CPU_STATE_SCHEDULER;
+static enum cpu_state last_cpu_state = CPU_STATE_IDLE;
 static enum cpu_state cpu_state_before_interrupts;
 
 static u32_t last_time;
-static struct cpu_stats stats_hw_tick;
+static volatile struct cpu_stats stats_hw_tick;
 static int nested_interrupts;
 static struct tcb_s *current_thread;
 
@@ -71,7 +74,7 @@ void cpu_stats_get_ns(struct cpu_stats *cpu_stats_ns)
 u32_t cpu_stats_non_idle_and_sched_get_percent(void)
 {
 	int key = irq_lock();
-
+//	last_cpu_state = CPU_STATE_IDLE;
 	cpu_stats_update_counters();
 	irq_unlock(key);
 	return ((stats_hw_tick.non_idle + stats_hw_tick.sched) * 100) /
@@ -90,7 +93,7 @@ void cpu_stats_reset_counters(void)
 	irq_unlock(key);
 }
 
-void sys_trace_thread_switched_in(void)
+void sys_trace_thread_switched_in(struct tcb_s *thread)
 {
 	int key = irq_lock();
 
@@ -98,7 +101,7 @@ void sys_trace_thread_switched_in(void)
 	__ASSERT_NO_MSG(nested_interrupts == 0);
 #endif
 	cpu_stats_update_counters();
-	current_thread = sched_self();
+	current_thread = thread;
 	if (z_is_idle_thread_object(current_thread)) {
 		last_cpu_state = CPU_STATE_IDLE;
 	} else {
@@ -107,7 +110,7 @@ void sys_trace_thread_switched_in(void)
 	irq_unlock(key);
 }
 
-void sys_trace_thread_switched_out(void)
+void sys_trace_thread_switched_out(struct tcb_s *thread)
 {
 	int key = irq_lock();
 
@@ -148,6 +151,12 @@ void sys_trace_isr_exit(void)
 
 void sys_trace_idle(void)
 {
+#if 1
+	int key = irq_lock();
+	current_thread = sched_self();
+	last_cpu_state = CPU_STATE_IDLE;
+	irq_unlock(key);
+#endif
 }
 
 static struct work_s cpu_stats_log;
@@ -155,6 +164,10 @@ static struct work_s cpu_stats_log;
 static void cpu_stats_display(void)
 {
 	printf("CPU usage: %u\n", cpu_stats_non_idle_and_sched_get_percent());
+	printf("idle %llu, sched %llu, non_idle %llu, last thread id %d\n",
+			stats_hw_tick.idle, 
+			stats_hw_tick.sched, 
+			stats_hw_tick.non_idle, current_thread->pid);
 }
 
 static void cpu_stats_log_fn(void *item)

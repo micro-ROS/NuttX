@@ -18,7 +18,7 @@ ifeq ($(CONFIG_ENABLE_TRACING), y)
 CSRCS += utils.c
 endif
 
-ifeq ($(CTF_TRACE_USE_CTF),y)
+ifeq ($(CONFIG_TRACE_USE_CTF),y)
 CSRCS += tracing_core.c tracing_buffer.c \
 	 tracing_format_common.c \
          ctf/ctf_top.c
