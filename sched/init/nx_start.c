@@ -849,12 +849,12 @@ void nx_start(void)
   /** Late initilialisation because this needs the whole application to be
    * runinng
    */
-#ifdef CONFIG_ENABLE_CTF_TRACING
+#ifdef CONFIG_TRACE_USE_CTF
   tracing_init();
-#endif // CONFIG_CTF_TRACE_CPU_USAGE
-#ifdef CONFIG_CTF_TRACE_CPU_USAGE
+#endif // CONFIG_TRACE_USE_CTF
+#ifdef CONFIG_TRACE_USE_NOCTF
   cpu_stats_log_init();
-#endif // CONFIG_CTF_TRACE_CPU_USAGE
+#endif // CONFIG_TRACE_USE_NOCTF
 
   /* The IDLE Loop **********************************************************/
   /* When control is return to this point, the system is idle. */
@@ -867,6 +867,8 @@ void nx_start(void)
        * because they could not be freed in that execution context (for
        * example, if the memory was freed from an interrupt handler).
        */
+#ifdef CONFIG_TRACING
+#endif 
 
 #ifndef CONFIG_SCHED_WORKQUEUE
       /* We must have exclusive access to the memory manager to do this

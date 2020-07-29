@@ -3,22 +3,33 @@
 # Copyright (c) 2015 Wind River Systems, Inc.
 # SPDX-License-Identifier: Apache-2.0
 
-config ENABLE_CTF_TRACING
-	bool "Enabling CTF Tracing"
+config ENABLE_TRACING
+	bool "Enabling Tracing"
 	help
 	  Enable system tracing. This requires a backend such as SEGGER
 	  Systemview to be enabled as well.
 
-if ENABLE_CTF_TRACING
+if ENABLE_TRACING
 
-config CTF_TRACE_CPU_USAGE
-	bool "CPU Usage tracing"
+choice
+	prompt "Type of Tracing"
+	default TRACE_USE_NOCTF
+
+config TRACE_USE_NOCTF
+	bool "Print CPU/Memory Usage tracing in console"
 	select SCHED_LPWORK
 	help
 	   Enable tracing of the CPU usage.
 
+config CTF_TRACE_USE_CTF
+	bool "Use CTF Tracing"
+	help
+	   Enable tracing of the CPU usage.
+endchoice
+
 choice
 	prompt "Tracing backend"
+	depends on CTF_TRACE_USE_CTF
 	default CTF_BACKEND_TRACING_SERIAL
 
 config CTF_BACKEND_TRACING_SERIAL
@@ -35,9 +46,11 @@ endchoice
 
 config CTF_ASYNC
 	bool "Use Async thread"
+	depends on CTF_TRACE_USE_CTF
 
 config CTF_RING_BUFFER_SIZE
 	int "Data ring buffer size"
+	depends on CTF_TRACE_USE_CTF
 	range 32 65536
 	default 256	
 endif

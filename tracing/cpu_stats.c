@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <tracing_cpu_stats.h>
+#include <nuttx/tracing/tracing_cpu_stats.h>
 #include <stdio.h>
 
 enum cpu_state {
@@ -161,12 +161,12 @@ static void cpu_stats_log_fn(void *item)
 {
 	cpu_stats_display();
 	cpu_stats_reset_counters();
-	work_queue(LPWORK, &cpu_stats_log, cpu_stats_log_fn, NULL, 0);
+	work_queue(LPWORK, &cpu_stats_log, cpu_stats_log_fn, NULL, 500);
 }
 
 int cpu_stats_log_init(void)
 {
-	work_queue(LPWORK, &cpu_stats_log, cpu_stats_log_fn, NULL, 0);
+	work_queue(LPWORK, &cpu_stats_log, cpu_stats_log_fn, NULL, 500);
 
 #if 0
 struct work_s

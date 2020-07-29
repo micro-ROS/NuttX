@@ -105,7 +105,7 @@ LIBEXT = .a
 EXEEXT =
 LDFLAGS += --verbose
 
-ifeq ($(CONFIG_ENABLE_CTF_TRACING), y)
+ifeq ($(CONFIG_TRACE_USE_CTF), y)
 	SC_OBJ = ${shell find $(TOPDIR)/tracing/backends/ -iname "*.o"}
 endif
 

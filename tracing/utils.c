@@ -1,4 +1,4 @@
-#include <ctf_common.h>
+#include <nuttx/tracing/ctf_common.h>
 
 inline int irq_lock(void)
 {

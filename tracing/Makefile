@@ -14,25 +14,30 @@ VPATH := .
 
 CFLAGS += -O0 -Wall -I./include -std=gnu99
 
+ifeq ($(CONFIG_ENABLE_TRACING), y)
+CSRCS += utils.c
+endif
 
-ifeq ($(CONFIG_ENABLE_CTF_TRACING),y)
+ifeq ($(CTF_TRACE_USE_CTF),y)
 CSRCS += tracing_core.c tracing_buffer.c \
 	 tracing_format_common.c \
-	 ctf/ctf_top.c utils.c
+         ctf/ctf_top.c
 endif
 
 ifeq ($(CONFIG_CTF_BACKEND_TRACING_SERIAL),y)
 CSRCS +=  backends/tracing_backend_uart.c
 endif
 
-ifeq ($(CONFIG_CTF_TRACE_CPU_USAGE),y)
-CSRCS +=  cpu_stats.c
+ifeq ($(CONFIG_TRACE_USE_NOCTF),y)
+CSRCS += cpu_stats.c
 endif
 
-ifeq ($(CONFIG_CTF_ASYNC), y)
+ifeq ($(CONFIG_CTF_ASYNC),y)
 CSRCS += tracing_format_async.c
 else
+ifeq ($(CONFIG_TRACE_USE_CTF),y)
 CSRCS += tracing_format_sync.c
+endif
 endif
 
 AOBJS = $(ASRCS:.S=$(OBJEXT))
@@ -41,7 +46,7 @@ COBJS = $(CSRCS:.c=$(OBJEXT))
 SRCS = $(ASRCS) $(CSRCS)
 OBJS = $(AOBJS) $(COBJS)
 
-BIN ?= libctftracing$(LIBEXT)
+BIN ?= libtracing$(LIBEXT)
 
 all: $(BIN)
 .PHONY:  depend clean distclean

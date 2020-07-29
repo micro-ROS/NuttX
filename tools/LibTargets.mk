@@ -124,10 +124,10 @@ audio$(DELIM)libaudio$(LIBEXT): context
 staging$(DELIM)libaudio$(LIBEXT): audio$(DELIM)libaudio$(LIBEXT)
 	$(Q) $(call INSTALL_LIB,$<,$@)
 
-tracing$(DELIM)libctftracing$(LIBEXT): context
-	$(Q) $(MAKE) -C tracing TOPDIR="$(TOPDIR)" libctftracing$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+tracing$(DELIM)libtracing$(LIBEXT): context
+	$(Q) $(MAKE) -C tracing TOPDIR="$(TOPDIR)" libtracing$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
-staging$(DELIM)libctftracing$(LIBEXT): tracing$(DELIM)libctftracing$(LIBEXT)
+staging$(DELIM)libtracing$(LIBEXT): tracing$(DELIM)libtracing$(LIBEXT)
 	$(Q) $(call INSTALL_LIB,$<,$@)
 
 wireless$(DELIM)libwireless$(LIBEXT): context

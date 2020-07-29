@@ -4,6 +4,46 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#ifndef _TRACE_CTF_H
+#define _TRACE_CTF_H
+
+
+#if defined(CONFIG_CTF_TRACE_LOCAL_USAGE)
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+void sys_trace_thread_switched_out(void);
+void sys_trace_thread_switched_in(void);
+void sys_trace_thread_priority_set(struct k_thread *thread);
+void sys_trace_thread_create(struct k_thread *thread);
+void sys_trace_thread_abort(struct k_thread *thread);
+void sys_trace_thread_suspend(struct k_thread *thread);
+void sys_trace_thread_resume(struct k_thread *thread);
+void sys_trace_thread_ready(struct k_thread *thread);
+void sys_trace_thread_pend(struct k_thread *thread);
+void sys_trace_thread_info(struct k_thread *thread);
+void sys_trace_thread_name_set(struct k_thread *thread);
+void sys_trace_isr_enter(void);
+void sys_trace_isr_exit(void);
+void sys_trace_isr_exit_to_scheduler(void);
+void sys_trace_idle(void);
+void sys_trace_void(unsigned int id);
+void sys_trace_end_call(unsigned int id);
+
+#ifdef __cplusplus
+}
+#endif
+
+#elif defined(CONFIG_CTF_TRACE_USE_CTF)
+/*
+ * Copyright (c) 2018 Oticon A/S
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #ifndef SUBSYS_DEBUG_TRACING_CTF_TOP_H
 #define SUBSYS_DEBUG_TRACING_CTF_TOP_H
 
@@ -241,4 +281,26 @@ static inline void ctf_top_end_call(u32_t id)
 		);
 }
 
-#endif /* SUBSYS_DEBUG_TRACING_CTF_TOP_H */
+#else
+
+#define sys_trace_thread_switched_out();
+#define sys_trace_thread_switched_in();
+#define sys_trace_thread_priority_set(x);
+#define sys_trace_thread_create(x);
+#define sys_trace_thread_abort(x);
+#define sys_trace_thread_suspend(x);
+#define sys_trace_thread_resume(x);
+#define sys_trace_thread_ready(x);
+#define sys_trace_thread_pend(x);
+#define sys_trace_thread_info(x);
+#define sys_trace_thread_name_set(x);
+#define sys_trace_isr_enter();
+#define sys_trace_isr_exit();
+#define sys_trace_isr_exit_to_scheduler();
+#define sys_trace_idle();
+#define sys_trace_(x);
+#define sys_trace_end_call(x);
+
+#endif /* CONFIG_CTF_TRACE_USE_CTF */
+
+#endif /* _TRACE_CTF_H */
