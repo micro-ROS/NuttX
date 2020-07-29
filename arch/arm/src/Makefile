@@ -93,6 +93,13 @@ COBJS = $(CSRCS:.c=$(OBJEXT))
 SRCS = $(ASRCS) $(CSRCS)
 OBJS = $(AOBJS) $(COBJS)
 
+ifeq ($(CONFIG_ENABLE_TRACING),y)
+ifeq ($(CONFIG_SCHED_INSTRUMENTATION),y)
+  CSRCS += up_schednote.c
+endif
+endif
+
+
 # User-mode objects
 
 UASRCS = $(CHIP_UASRCS) $(CMN_UASRCS)

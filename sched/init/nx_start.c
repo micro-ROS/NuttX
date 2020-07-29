@@ -891,7 +891,11 @@ void nx_start(void)
 #endif
 
       /* Perform any processor-specific idle state operations */
-
       up_idle();
+#if defined(CONFIG_SCHED_INSTRUMENTATION) && \
+      defined(CONFIG_ENABLE_TRACING)
+      sys_trace_idle();
+
+#endif
     }
 }
