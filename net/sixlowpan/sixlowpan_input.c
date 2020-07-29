@@ -729,6 +729,7 @@ int sixlowpan_input(FAR struct radio_driver_s *radio,
 
   /* Verify that an frame has been provided. */
 
+  /* TOCLEAN */
   while (framelist != NULL)
     {
       FAR struct iob_s *iob;
@@ -830,6 +831,7 @@ int sixlowpan_input(FAR struct radio_driver_s *radio,
                       case IP_PROTO_ICMP6:
                         {
                           hdrlen = IPv6_HDRLEN + ICMPv6_HDRLEN;
+			  printf("ICMP6 PACKET &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
                         }
                         break;
 #endif

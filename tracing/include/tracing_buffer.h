@@ -8,7 +8,7 @@
 #define _TRACE_BUFFER_H
 
 #include <stdbool.h>
-#include <ctf_common.h>
+#include <nuttx/tracing/ctf_common.h>
 //#include <zephyr/types.h>
 
 #ifdef __cplusplus

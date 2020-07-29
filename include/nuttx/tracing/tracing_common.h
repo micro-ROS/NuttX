@@ -147,17 +147,17 @@ void tracing_backend_output(
  */
 struct tracing_backend *tracing_backend_get(char *name);
 
-#ifdef CONFIG_CTF_TRACE_CPU_USAGE
+#ifdef CONFIG_TRACE_USE_NOCTF
 int cpu_stats_log_init(void);
-#else //CONFIG_CTF_TRACE_CPU_USAGE
+#else //CONFIG_TRACE_USE_NOCTF
 #define cpu_stats_log_init()
-#endif //CONFIG_CTF_TRACE_CPU_USAGE
+#endif //CONFIG_TRACE_USE_NOCTF
 
-#ifdef CONFIG_ENABLE_CTF_TRACING
+#ifdef CONFIG_TRACE_USE_CTF
 int tracing_init(void);
-#else //CONFIG_ENABLE_CTF_TRACING
+#else //CONFIG_TRACE_USE_CTF
 #define tracing_init()
-#endif //CONFIG_ENABLE_CTF_TRACING
+#endif //CONFIG_TRACE_USE_CTF
 
 #ifdef __cplusplus
 }
