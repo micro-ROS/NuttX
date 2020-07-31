@@ -212,6 +212,14 @@
 #define GPIO_MRF24J40_RST  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|\
                             GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN15)/*PG15/D9*/
 
+
+/* GPIO pins used by the GPIO Subsystem */
+
+#define BOARD_NGPIOOUT    2 /* Amount of GPIO Output pins */
+
+#define GPIO_OUT1         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN7)
+#define GPIO_OUT2         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN6)
+
 /* LAN8710 works with LAN8720 driver
  *
  * ---------- ------------- ------------
