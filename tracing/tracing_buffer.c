@@ -5,6 +5,7 @@
  */
 
 #include <tracing_buffer.h>
+#include <nuttx/config.h>
 #include <string.h>
 
 /**
@@ -314,11 +315,13 @@ static u32_t ring_buf_get(struct ring_buf *buf, u8_t *data, u32_t size);
  * @}
  */
 
-
+#ifndef CONFIG_CTF_RING_CMD_BUFFER_SIZE
+#define CONFIG_CTF_RING_CMD_BUFFER_SIZE 1
+#endif //CONFIG_CTF_RING_CMD_BUFFER_SIZE
 
 static struct ring_buf tracing_ring_buf;
 static u8_t tracing_buffer[CONFIG_CTF_RING_BUFFER_SIZE + 1];
-static u8_t tracing_cmd_buffer[CONFIG_CTF_RING_BUFFER_SIZE];
+static u8_t tracing_cmd_buffer[CONFIG_CTF_RING_CMD_BUFFER_SIZE];
 
 u32_t tracing_cmd_buffer_alloc(u8_t **data)
 {

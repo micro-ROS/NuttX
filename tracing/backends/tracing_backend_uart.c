@@ -4,19 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <errno.h>
-//#include <ctype.h>
-//#include <kernel.h>
-//#include <device.h>
-//#include <drivers/uart.h>
-//#include <sys/__assert.h>
+#include <nuttx/config.h>
 
 #include <tracing_core.h>
 #include <tracing_buffer.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 
+#define OPEN_MODE  (S_IROTH | S_IRGRP | S_IRUSR | S_IWUSR)
 #define CONFIG_TRACING_BACKEND_UART_NAME "/dev/ttyS0"
-int g_fd_uart = -1;
+
+#define USART3_SR	0x40004800
+#define USART3_DR	0x40004804
+
+FAR struct file g_backend_uart;
+FAR int g_error_open = 0;
 
 #ifdef CONFIG_TRACING_HANDLE_HOST_CMD
 // TODO Not for now?
@@ -64,19 +66,25 @@ static void tracing_backend_uart_output(
 		const struct tracing_backend *backend,
 		u8_t *data, u32_t length)
 {
-	//for (u32_t i = 0; i < length; i++) {
-	// TOOD MAYBE use internal primitive?
-	write(g_fd_uart, data, length);
-	//}
+	volatile uint32_t *uart_st = (volatile uint32_t *) USART3_SR;
+	volatile uint32_t *uart_dt = (volatile uint32_t *) USART3_DR;
+
+	for (uint32_t i = 0 ; i < length; i++) {
+		while(!(*uart_st & (1 << 7))) {asm("nop");}
+		*uart_dt = data[i];
+	}
 }
 
 static void tracing_backend_uart_init(void)
 {
-	g_fd_uart = open(CONFIG_TRACING_BACKEND_UART_NAME, O_WRONLY);
-	//__ASSERT(g_fd_uart >= 0, "uart backend not found\n");
+  	int ret = file_open(&g_backend_uart, CONFIG_TRACING_BACKEND_UART_NAME,
+			O_RDWR, OPEN_MODE);
+	if (ret) {
+		g_error_open = 1;
+		return;
+	}
 
 #ifdef CONFIG_TRACING_HANDLE_HOST_CMD
-// TODO Not for now?
 	uart_irq_rx_disable(dev);
 	uart_irq_tx_disable(dev);
 
@@ -97,15 +105,4 @@ static const struct tracing_backend_api tracing_backend_uart_api = {
 	.output  = tracing_backend_uart_output
 };
 
-// TODO MOVE IT
-#if 1
 TRACING_BACKEND_DEFINE(tracing_backend_uart, tracing_backend_uart_api);
-#endif
-
-#if 0
-const struct tracing_backend uart_backend __attribute__((section("._tracing_backend"))) __used = {
-		.name = "tracing_backend_uart",
-		.api = &tracing_backend_uart_api,
-} ;
-
-#endif

@@ -12,5 +12,5 @@ inline void irq_unlock(int key)
 
 inline bool z_is_idle_thread_object(struct tcb_s *thread)
 {
-	return (0 == thread->pid);
+	return (thread->pid < 4);
 }
