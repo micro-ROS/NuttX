@@ -12,7 +12,7 @@ VPATH := .
 #CXXFLAGS := ${CROSS_FLAGS} -fno-omit-frame-pointer -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wunused -Wuninitialized -Wmissing-declarations -std=c11 -mpoke-function-name -fno-omit-frame-pointer
 #CFLAGS += -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wunused -Wuninitialized -Wmissing-declarations -mpoke-function-name -funwind-tables -fno-omit-frame-pointer
 
-CFLAGS += -O0 -Wall -I./include -std=gnu99
+CFLAGS += -O0 -g -Wall -I./include -std=gnu99
 
 ifeq ($(CONFIG_ENABLE_TRACING), y)
 CSRCS += utils.c
@@ -32,7 +32,7 @@ ifeq ($(CONFIG_TRACE_USE_NOCTF),y)
 CSRCS += cpu_stats.c
 endif
 
-ifeq ($(CONFIG_CTF_ASYNC),y)
+ifeq ($(CONFIG_ASYNC_CTF_TRACING),y)
 CSRCS += tracing_format_async.c
 else
 ifeq ($(CONFIG_TRACE_USE_CTF),y)

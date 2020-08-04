@@ -8,6 +8,7 @@
 #include <tracing_buffer.h>
 #include <tracing_format_common.h>
 
+
 static int str_put(int c, void *ctx)
 {
 	tracing_ctx_t *str_ctx = (tracing_ctx_t *)ctx;
@@ -31,12 +32,15 @@ static int str_put(int c, void *ctx)
 bool tracing_format_string_put(const char *str, va_list args)
 {
 	tracing_ctx_t str_ctx = {0};
+	char output[256];
+	int out_sz = vsnprintf(output, sizeof(output-1), str, args);
 
-#if !defined(CONFIG_NEWLIB_LIBC) && !defined(CONFIG_ARCH_POSIX)
-	(void)z_prf(str_put, (void *)&str_ctx, (char *)str, args);
-#else
-	z_vprintk(str_put, (void *)&str_ctx, str, args);
-#endif
+	if (out_sz <= 0) {
+		return false;
+	}
+	for (unsigned int i = 0; i < out_sz; i++) {
+		str_put((int) output[i], (void *)&str_ctx);
+	}
 
 	if (str_ctx.status == 0) {
 		tracing_buffer_put_finish(str_ctx.length);
