@@ -136,4 +136,8 @@ ifeq ($(CONFIG_DEV_GPIO),y)
 CSRCS += stm32_gpio.c
 endif
 
+ifeq ($(CONFIG_BOARDCTL_RESET),y)
+CSRCS += stm32_reset.c
+endif
+
 include $(TOPDIR)/configs/Board.mk
