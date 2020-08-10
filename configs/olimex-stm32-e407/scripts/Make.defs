@@ -106,7 +106,7 @@ EXEEXT =
 LDFLAGS += --verbose
 
 ifeq ($(CONFIG_TRACE_USE_CTF), y)
-	SC_OBJ = ${shell find $(TOPDIR)/tracing/backends/ -iname "*.o"}
+	SC_OBJ = ${shell find $(TOPDIR)/tracing/backends/ -iname "*.o"} -lfs
 endif
 
 

@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2018 Oticon A/S
- *
- * SPDX-License-Identifier: Apache-2.0
- */
+* Copyright (c) 2018 Oticon A/S
+*
+* SPDX-License-Identifier: Apache-2.0
+*/
 
 #include <stddef.h>
 #include <string.h>
@@ -11,12 +11,8 @@
 #include <nuttx/tracing/tracing_format.h>
 #include <nuttx/tracing/tracing_probes.h>
 #include <nuttx/sched.h>
-/*
- * Copyright (c) 2018 Oticon A/S
- *
- * SPDX-License-Identifier: Apache-2.0
- */
 
+#define CPU_0 0
 
 /* Limit strings to 20 bytes to optimize bandwidth */
 #define CTF_MAX_STRING_LEN 20
@@ -73,7 +69,7 @@
 
 typedef enum {
 	CTF_EVENT_THREAD_SWITCHED_OUT   =  0x10,
-	CTF_EVENT_THREAD_SWITCHED_IN    =  0x11,
+	CTF_EVENT_THREAD_SWITCHED_IN    =  1188,
 	CTF_EVENT_THREAD_PRIORITY_SET   =  0x12,
 	CTF_EVENT_THREAD_CREATE         =  0x13,
 	CTF_EVENT_THREAD_ABORT          =  0x14,
@@ -88,7 +84,7 @@ typedef enum {
 	CTF_EVENT_ISR_EXIT_TO_SCHEDULER =  0x22,
 	CTF_EVENT_IDLE                  =  0x30,
 	CTF_EVENT_ID_START_CALL         =  0x41,
-	CTF_EVENT_ID_END_CALL           =  0x42
+	CTF_EVENT_ID_END_CALL           =  0x42,
 } ctf_event_t;
 
 
@@ -99,17 +95,24 @@ typedef struct {
 
 static  void ctf_top_thread_switched_out(u32_t thread_id)
 {
+	u8_t cpu = 1;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_SWITCHED_OUT),
+		cpu,
 		thread_id
 		);
 }
 
 static  void ctf_top_thread_switched_in(u32_t thread_id)
 {
+	const char thread_name[20] = "Switching_Thread";
+	uint32_t prio = 100;
+
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_SWITCHED_IN),
-		thread_id
+		thread_name,
+		thread_id,
+		prio	
 		);
 }
 
@@ -129,7 +132,6 @@ static  void ctf_top_thread_create(
 	)
 {
 
-	//return ;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_CREATE),
 		thread_id,
@@ -236,13 +238,14 @@ static  void ctf_top_isr_exit_to_scheduler(void)
 
 static  void ctf_top_idle(void)
 {
-	//return ;
+	u8_t cpu = 1;
 	CTF_EVENT(
-		CTF_LITERAL(u8_t, CTF_EVENT_IDLE)
+		CTF_LITERAL(u8_t, CTF_EVENT_IDLE),
+		cpu
 		);
 }
 
-static  void ctf_top_void(u32_t id)
+static void ctf_top_void(u32_t id)
 {
 	//return ;
 	CTF_EVENT(
@@ -251,7 +254,7 @@ static  void ctf_top_void(u32_t id)
 		);
 }
 
-static  void ctf_top_end_call(u32_t id)
+static void ctf_top_end_call(u32_t id)
 {
 	//return ;
 	CTF_EVENT(

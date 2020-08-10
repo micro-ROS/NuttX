@@ -93,6 +93,10 @@ void cpu_stats_reset_counters(void)
 	irq_unlock(key);
 }
 
+void sys_trace_thread_switched(struct tcb_s *prev, struct tcb_s *next)
+{
+}
+
 void sys_trace_thread_switched_in(struct tcb_s *thread)
 {
 	int key = irq_lock();
