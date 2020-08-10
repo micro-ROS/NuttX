@@ -18,7 +18,9 @@
 #define USART3_DR	0x40004804
 
 FAR struct file g_backend_uart;
+FAR bool is_first = true;
 FAR int g_error_open = 0;
+static const char starter[] = {0xbe, 0xbe, 0xde, 0xad};
 
 #ifdef CONFIG_TRACING_HANDLE_HOST_CMD
 // TODO Not for now?
@@ -62,9 +64,7 @@ static void uart_isr(struct device *dev)
 }
 #endif
 
-static void tracing_backend_uart_output(
-		const struct tracing_backend *backend,
-		u8_t *data, u32_t length)
+static void raw_writing(u8_t *data, u32_t length)
 {
 	volatile uint32_t *uart_st = (volatile uint32_t *) USART3_SR;
 	volatile uint32_t *uart_dt = (volatile uint32_t *) USART3_DR;
@@ -73,6 +73,19 @@ static void tracing_backend_uart_output(
 		while(!(*uart_st & (1 << 7))) {asm("nop");}
 		*uart_dt = data[i];
 	}
+}
+
+static void tracing_backend_uart_output(
+		const struct tracing_backend *backend,
+		u8_t *data, u32_t length)
+{
+
+	if (is_first) {
+		raw_writing(starter, sizeof(starter));
+		is_first = false;
+	}
+
+	raw_writing(data, length);
 }
 
 static void tracing_backend_uart_init(void)

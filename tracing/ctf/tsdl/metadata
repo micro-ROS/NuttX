@@ -29,21 +29,17 @@ stream {
 	event.header := struct event_header;
 };
 
+
 event {
-	name = thread_switched_out;
-	id = 0x10;
-	fields := struct {
-		uint32_t thread_id;
+	name = sched_switch_in;
+	id = 1189;
+fields := struct {
+		integer { size = 8; align = 8; signed = 1; encoding = ASCII; base = 10; } comm[16];
+		integer { size = 32; align = 8; signed = 1; encoding = none; base = 10; } tid;
+		integer { size = 32; align = 8; signed = 1; encoding = none; base = 10; } prio;
 	};
 };
 
-event {
-	name = thread_switched_in;
-	id = 0x11;
-	fields := struct {
-		uint32_t thread_id;
-	};
-};
 
 event {
 	name = thread_priority_set;
@@ -140,6 +136,9 @@ event {
 event {
 	name = idle;
 	id = 0x30;
+	fields := struct {
+		uint8_t cpu_id;
+	};
 };
 
 event {
