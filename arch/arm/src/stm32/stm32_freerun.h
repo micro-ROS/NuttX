@@ -104,7 +104,7 @@ extern "C"
  *   freerun    Caller allocated instance of the freerun state structure
  *   chan       Timer counter channel to be used.
  *   resolution The required resolution of the timer in units of
- *              microseconds.  NOTE that the range is restricted to the
+ *              nanoeseconds.  NOTE that the range is restricted to the
  *              range of uint16_t (excluding zero).
  *
  * Returned Value:
@@ -114,7 +114,7 @@ extern "C"
  ****************************************************************************/
 
 int stm32_freerun_initialize(struct stm32_freerun_s *freerun, int chan,
-                             uint16_t resolution);
+                             uint32_t resolution);
 
 /****************************************************************************
  * Name: stm32_freerun_counter

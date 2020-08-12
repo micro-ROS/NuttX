@@ -111,17 +111,17 @@ static int stm32_freerun_handler(int irq, void *context, void *arg)
  ****************************************************************************/
 
 int stm32_freerun_initialize(struct stm32_freerun_s *freerun, int chan,
-                             uint16_t resolution)
+                             uint32_t resolution)
 {
-  uint32_t frequency;
+  uint64_t frequency;
 
-  tmrinfo("chan=%d resolution=%d usec\n", chan, resolution);
+  tmrinfo("chan=%d resolution=%d nanosec\n", chan, resolution);
   DEBUGASSERT(freerun != NULL && resolution > 0);
 
   /* Get the TC frequency the corresponds to the requested resolution */
 
-  frequency = USEC_PER_SEC / (uint32_t)resolution;
-  freerun->frequency = frequency;
+  frequency = (uint64_t) NSEC_PER_SEC / (uint64_t)resolution;
+  freerun->frequency = (uint32_t)frequency;
 
   freerun->tch = stm32_tim_init(chan);
   if (!freerun->tch)
@@ -192,7 +192,7 @@ int stm32_freerun_initialize(struct stm32_freerun_s *freerun, int chan,
 int stm32_freerun_counter(struct stm32_freerun_s *freerun,
                           struct timespec *ts)
 {
-  uint64_t usec;
+  uint64_t nsec;
   uint32_t counter;
   uint32_t verify;
   uint32_t overflow;
@@ -246,21 +246,21 @@ int stm32_freerun_counter(struct stm32_freerun_s *freerun,
    *
    *   frequency = ticks / second
    *   seconds   = ticks * frequency
-   *   usecs     = (ticks * USEC_PER_SEC) / frequency;
+   *   nsecs     = (ticks * NSEC_PER_SEC) / frequency;
    */
 
-  usec = ((((uint64_t)overflow << freerun->width) +
-            (uint64_t)counter) * USEC_PER_SEC) /
+  nsec = ((((uint64_t)overflow << freerun->width) +
+            (uint64_t)counter) * NSEC_PER_SEC) /
          freerun->frequency;
 
   /* And return the value of the timer */
 
-  sec         = (uint32_t)(usec / USEC_PER_SEC);
+  sec         = (uint32_t)(nsec / NSEC_PER_SEC);
   ts->tv_sec  = sec;
-  ts->tv_nsec = (usec - (sec * USEC_PER_SEC)) * NSEC_PER_USEC;
+  ts->tv_nsec = (nsec - (sec * NSEC_PER_SEC)) * NSEC_PER_USEC;
 
-  tmrinfo("usec=%llu ts=(%u, %lu)\n",
-          usec, (unsigned long)ts->tv_sec, (unsigned long)ts->tv_nsec);
+  tmrinfo("nsec=%llu ts=(%u, %lu)\n",
+          nsec, (unsigned long)ts->tv_sec, (unsigned long)ts->tv_nsec);
 
   return OK;
 }
