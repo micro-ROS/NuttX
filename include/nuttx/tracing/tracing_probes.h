@@ -47,22 +47,76 @@ void cpu_stats_reset_counters(void);
 #define sys_trace_void(id)
 #define sys_trace_end_call(id)
 
+/** Send/recv packet (rather used for wireshark later?) network/serial/usb interface */
+#define sys_trace_packet_sent(interface, buf, size)
+#define sys_trace_packet_rcvd(interface, buf, size)
+
+/** Send/recv latency network/serial/usb interface */
+#define sys_trace_latency_start(interface, buf, size)
+#define sys_trace_latency_end(interface, buf, size)
+
+/** Send/recv bandwitdh used */
+#define sys_trace_bw_up(interface, size)
+#define sys_trace_bw_down(interface, size)
+
+/** Function stack pointer usage */
+#define sys_trace_fenter_stack_usage(thread, func, size)
+
+/** Function calls tracing */
+#define sys_trace_fenter(thread, fn)
+
+/** Function calls tracing specific */
+#define sys_trace_fenter_timer(thread)
+#define sys_trace_fexit_timer(thread)
+
 #ifdef __cplusplus
 }
 #endif
 
 #elif defined(CONFIG_TRACE_USE_CTF)
 
+/** Send/recv packet (rather used for wireshark later?) network/serial/usb interface */
+void sys_trace_packet_sent(const char *interface, const char *buf, uint32_t size);
+void sys_trace_packet_rcvd(const char *interface, const char *buf, uint32_t size);
+
+/** Send/recv latency network/serial/usb interface */
+void sys_trace_latency_start(const char *interface, const char *buf, uint32_t size);
+void sys_trace_latency_end(const char *interface, const char *buf, uint32_t size);
+
+/** Send/recv bandwitdh used */
+void sys_trace_bw_up(const char *interface, uint32_t size);
+void sys_trace_bw_down(const char *interface, uint32_t size);
+
+/** Thread entering/exiting etc */
 void sys_trace_thread_abort(struct tcb_s *thread);
 void sys_trace_thread_suspend(struct tcb_s *thread);
 void sys_trace_thread_switched(struct tcb_s *prev, struct tcb_s *next);
 void sys_trace_thread_switched_in(struct tcb_s *thread);
 void sys_trace_thread_switched_out(struct tcb_s *thread);
+
+/** Scheduler realtimeness */
+void sys_trace_thread_preempt_start(struct tcb_s *thread_old);
+void sys_trace_thread_preempt_stop(struct tcb_s *thread_new);
+
+/** Function IRQ entering realtimness */
 void sys_trace_isr_enter(void);
 void sys_trace_isr_exit(void);
+
+/** Maybe useless */
 void sys_trace_idle(void);
+
 void sys_trace_void(unsigned int id);
 void sys_trace_end_call(unsigned int id);
+
+/** Function stack pointer usage */
+void sys_trace_fenter_stack_usage(struct tcb_s *thread, void* func, uint32_t size);
+
+/** Function calls tracing */
+void sys_trace_fenter(struct tcb_s *thread, void *fn);
+
+/** Function calls tracing specific */
+void sys_trace_fenter_timer(struct tcb_s *thread);
+void sys_trace_fexit_timer(struct tcb_s *thread);
 
 #else
 
@@ -84,6 +138,27 @@ void sys_trace_end_call(unsigned int id);
 #define sys_trace_(x)
 #define sys_trace_end_call(x)
 
+/** Send/recv packet (rather used for wireshark later?) network/serial/usb interface */
+#define sys_trace_packet_sent(interface, buf, size)
+#define sys_trace_packet_rcvd(interface, buf, size)
+
+/** Send/recv latency network/serial/usb interface */
+#define sys_trace_latency_start(interface, buf, size)
+#define sys_trace_latency_end(interface, buf, size)
+
+/** Send/recv bandwitdh used */
+#define sys_trace_bw_up(interface, size)
+#define sys_trace_bw_down(interface, size)
+
+/** Function stack pointer usage */
+#define sys_trace_fenter_stack_usage(thread, func, size)
+
+/** Function calls tracing */
+#define sys_trace_fenter(thread, fn)
+
+/** Function calls tracing specific */
+#define sys_trace_fenter_timer(thread)
+#define sys_trace_fexit_timer(thread)
 #endif /* CONFIG_CTF_TRACE_USE_CTF */
 
 #endif /* __TRRACING_PROBES_H__ */

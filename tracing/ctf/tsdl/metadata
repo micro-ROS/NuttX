@@ -14,8 +14,22 @@ typealias enum : uint32_t {
 	SEMA_TAKE = 38
 } := call_id;
 
+clock {
+    name = cycle_counter_sync;
+    uuid = "62189bee-96dc-11e0-91a8-cfa3d89f3923";
+    description = "Cycle counter synchronized across CPUs";
+    freq = 1000000000;           /* frequency, in Hz */
+    /* precision in seconds is: 1000 * (1/freq) */
+    precision = 100;
+    /*
+     * clock value offset from Epoch is:
+     * offset_s + (offset * (1/freq))
+     */
+    absolute = TRUE;
+};
+
 struct event_header {
-	uint32_t timestamp;
+	uint64_t timestamp;
 	uint8_t id;
 };
 

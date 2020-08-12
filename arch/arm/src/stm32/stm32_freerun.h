@@ -69,7 +69,7 @@ struct stm32_freerun_s
   uint32_t frequency;
 
 #ifndef CONFIG_CLOCK_TIMEKEEPING
-  uint32_t overflow;               /* Timer counter overflow */
+  volatile uint32_t overflow;               /* Timer counter overflow */
 #endif
 
 #ifdef CONFIG_CLOCK_TIMEKEEPING
