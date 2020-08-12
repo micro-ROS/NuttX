@@ -43,18 +43,11 @@
 	tracing_format_raw_data(epacket, sizeof(epacket));		    \
 }
 
-#if 1
 #define CTF_EVENT(...)							    \
 	{								    \
-		const u32_t tstamp = g_system_timer;			    \
+		const u64_t tstamp = tracing_get_counter_value();	    \
 		CTF_GATHER_FIELDS(tstamp, __VA_ARGS__)			    \
 	}
-#else
-#define CTF_EVENT(...)							    \
-	{								    \
-		CTF_GATHER_FIELDS(__VA_ARGS__)				    \
-	}
-#endif
 
 /* Anonymous compound literal with 1 member. Legal since C99.
  * This permits us to take the address of literals, like so:
@@ -238,11 +231,13 @@ static  void ctf_top_isr_exit_to_scheduler(void)
 
 static  void ctf_top_idle(void)
 {
+#if 0
 	u8_t cpu = 1;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_IDLE),
 		cpu
 		);
+#endif
 }
 
 static void ctf_top_void(u32_t id)
