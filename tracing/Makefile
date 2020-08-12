@@ -15,7 +15,7 @@ VPATH := .
 # TODO Find a way to make it cleaner this forces the board implementation here
 # and it should use an abstraction
 
-CFLAGS += -O0 -g -Wall -I./include -std=gnu99 -I$(TOPDIR)/arch/arm/src/stm32/
+CFLAGS += -Os -g -Wall -I./include -std=gnu99 -I$(TOPDIR)/arch/arm/src/stm32/
 
 ifeq ($(CONFIG_ENABLE_TRACING), y)
 CSRCS += utils.c
