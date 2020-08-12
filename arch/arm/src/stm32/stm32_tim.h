@@ -92,6 +92,7 @@ extern "C"
 struct stm32_tim_dev_s
 {
   struct stm32_tim_ops_s *ops;
+  uint32_t adjusted_freq;
 };
 
 /* TIM Modes of Operation */

@@ -132,6 +132,9 @@ int stm32_freerun_initialize(struct stm32_freerun_s *freerun, int chan,
 
   STM32_TIM_SETCLOCK(freerun->tch, frequency);
 
+  /** Re-adapt the frequency to match the needs */
+  freerun->frequency = freerun->tch->adjusted_freq;
+
   /* Initialize the remaining fields in the state structure and return
    * success.
    */
@@ -196,10 +199,11 @@ int stm32_freerun_counter(struct stm32_freerun_s *freerun,
   uint32_t counter;
   uint32_t verify;
   uint32_t overflow;
-  uint32_t sec;
+  uint64_t sec;
   int pending;
   irqstate_t flags;
 
+  flags    = enter_critical_section();
   DEBUGASSERT(freerun && freerun->tch && ts);
 
   /* Temporarily disable the overflow counter.  NOTE that we have to be
@@ -208,7 +212,6 @@ int stm32_freerun_counter(struct stm32_freerun_s *freerun,
    * be lost.
    */
 
-  flags    = enter_critical_section();
 
   overflow = freerun->overflow;
   counter  = STM32_TIM_GETCOUNTER(freerun->tch);
@@ -235,33 +238,26 @@ int stm32_freerun_counter(struct stm32_freerun_s *freerun,
       freerun->overflow = overflow;
     }
 
-  leave_critical_section(flags);
 
   tmrinfo("counter=%lu (%lu) overflow=%lu, pending=%i\n",
          (unsigned long)counter,  (unsigned long)verify,
          (unsigned long)overflow, pending);
   tmrinfo("frequency=%u\n", freerun->frequency);
 
-  /* Convert the whole thing to units of microseconds.
-   *
-   *   frequency = ticks / second
-   *   seconds   = ticks * frequency
-   *   nsecs     = (ticks * NSEC_PER_SEC) / frequency;
-   */
-
-  nsec = ((((uint64_t)overflow << freerun->width) +
-            (uint64_t)counter) * NSEC_PER_SEC) /
-         freerun->frequency;
+  nsec = (uint64_t)overflow << freerun->width;
+  nsec +=  (uint64_t)counter;
+  nsec = (nsec * NSEC_PER_SEC) / freerun->frequency;
 
   /* And return the value of the timer */
 
-  sec         = (uint32_t)(nsec / NSEC_PER_SEC);
+  sec         = (uint64_t)(nsec / NSEC_PER_SEC);
   ts->tv_sec  = sec;
-  ts->tv_nsec = (nsec - (sec * NSEC_PER_SEC)) * NSEC_PER_USEC;
+  ts->tv_nsec = nsec % NSEC_PER_SEC;
 
   tmrinfo("nsec=%llu ts=(%u, %lu)\n",
           nsec, (unsigned long)ts->tv_sec, (unsigned long)ts->tv_nsec);
 
+  leave_critical_section(flags);
   return OK;
 }
 

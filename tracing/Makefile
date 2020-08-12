@@ -12,7 +12,10 @@ VPATH := .
 #CXXFLAGS := ${CROSS_FLAGS} -fno-omit-frame-pointer -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wunused -Wuninitialized -Wmissing-declarations -std=c11 -mpoke-function-name -fno-omit-frame-pointer
 #CFLAGS += -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wunused -Wuninitialized -Wmissing-declarations -mpoke-function-name -funwind-tables -fno-omit-frame-pointer
 
-CFLAGS += -O0 -g -Wall -I./include -std=gnu99
+# TODO Find a way to make it cleaner this forces the board implementation here
+# and it should use an abstraction
+
+CFLAGS += -O0 -g -Wall -I./include -std=gnu99 -I$(TOPDIR)/arch/arm/src/stm32/
 
 ifeq ($(CONFIG_ENABLE_TRACING), y)
 CSRCS += utils.c
@@ -45,6 +48,8 @@ COBJS = $(CSRCS:.c=$(OBJEXT))
 
 SRCS = $(ASRCS) $(CSRCS)
 OBJS = $(AOBJS) $(COBJS)
+
+CFLAGS += -finstrument-functions-exclude-file-list="$(CSRCS)"
 
 BIN ?= libtracing$(LIBEXT)
 

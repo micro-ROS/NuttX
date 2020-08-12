@@ -12,6 +12,33 @@ config ENABLE_TRACING
 
 if ENABLE_TRACING
 
+choice 
+	prompt "Type of timer used"
+	default TRACE_TIMESTAMP_REFERENCE_SYSTICK_TIMER
+
+config TRACE_TIMESTAMP_REFERENCE_SYSTICK_TIMER
+	bool "Use the system tick to get the timer information"
+config TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER
+	bool "Use a specific timer board defined"
+	help
+	  The timer should be large enough to avoid ISR count.
+endchoice
+
+if TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER
+config TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER_RES_US
+	int "Resolution of the timer in nano-seconds"
+	range 12 10000
+	default 100
+	help
+	  The delta increment that should be set for the ISR.
+	  currently it is using the timer 2
+
+config TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER_ID
+	int "Counter low-level ID"
+	range 1 10
+	default 2
+endif
+
 choice
 	prompt "Type of Tracing"
 	default TRACE_USE_NOCTF
@@ -119,5 +146,9 @@ if ASYNC_CTF_TRACING
 		range 32 65536
 		default 256	
 endif
+
+#menu "Tracing elements"
+#source "tracing_element/Kconfig"
+#endmenu
 
 endif

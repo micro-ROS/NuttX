@@ -29,6 +29,13 @@
 #define TRACING_BACKEND_NAME ""
 #endif
 
+/** Here set up the timer, we rathe ruse 32 bit to avoid to manu interrupt */
+#if defined(CONFIG_TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER)
+#include <time.h>
+#include <stm32_freerun.h>
+struct stm32_freerun_s g_freerun;
+#endif // CONFIG_TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER
+
 enum tracing_state {
 	TRACING_DISABLE = 0,
 	TRACING_ENABLE
@@ -80,11 +87,47 @@ static void tracing_set_state(enum tracing_state state)
 	atomic_set(&tracing_state, state);
 }
 
+/**
+ * @brief This function will init and start the timer 
+ * */
+static int32_t tracing_init_timer(void)
+{
+#ifdef CONFIG_TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER
+	/** 
+	 * We are using the stnm32f4xx timer 2 which correspond to the criteria
+	 * of 32 bit timer.
+	 */
+	return stm32_freerun_initialize(&g_freerun, 
+			CONFIG_TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER_ID, 
+			CONFIG_TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER_RES_US);
+	/* Print the timer status */
+
+#endif //CONFIG_TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER
+}
+
+uint64_t tracing_get_counter_value(void)
+{
+#ifdef CONFIG_TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER
+	struct timespec time;
+
+	if (!is_tracing_enabled() || is_tracing_thread()) {
+		return 0;
+	}
+
+	stm32_freerun_counter(&g_freerun, &time);
+	return time.tv_nsec + (uint64_t)time.tv_sec * NSEC_PER_SEC;
+#elif TRACE_TIMESTAMP_REFERENCE_SYSTICK_TIMER
+	return g_system_timer;
+#else
+#error "No Counter selected"
+#endif //TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER
+}
+
 int tracing_init(void)
 {
-	//ARG_UNUSED(arg);;
-	//
+	/** Init the internal ring buffer */
 	tracing_buffer_init();
+
 	nxsem_init(&tracing_thread_sem, 0, 1);
   	nxsem_setprotocol(&tracing_thread_sem, SEM_PRIO_NONE);
 
@@ -96,32 +139,32 @@ int tracing_init(void)
 
 	atomic_set(&tracing_packet_drop_num, 0);
 
-	
-
 #ifdef CONFIG_ASYNC_CTF_TRACING
 	memset(&tracing_trigger_flush, 0, sizeof(struct work_s));
 	tracing_task_pid = kthread_create(CONFIG_ASYNC_THREAD_CTF_NAME,
-		       	180,
+		       	100,
 			CONFIG_ASYNC_THREAD_CTF_STACK,
-			(main_t) tracing_thread_func, (FAR char * const) NULL);
+			(main_t) tracing_thread_func, (FAR char * const *) NULL);
 #endif
+	/** start tracing */
+	if (tracing_init_timer()) {
+		/** Werror while tracing do not init the trace module*/	
+		return -1;
+	}
 
 	tracing_set_state(TRACING_ENABLE);
 	return 0;
 }
-
-SYS_INIT(tracing_init, APPLICATION, 0);
 
 #ifdef CONFIG_ASYNC_CTF_TRACING
 void tracing_trigger_output(bool before_put_is_empty)
 {
 	if (before_put_is_empty) {
 		work_queue(LPWORK,
-			       	&tracing_trigger_flush,
-			       	tracing_thread_timer_expiry_fn, 
-				NULL, 
-				100);
-
+			   &tracing_trigger_flush,
+			   tracing_thread_timer_expiry_fn,
+			   NULL,
+			   100);
 	}
 }
 

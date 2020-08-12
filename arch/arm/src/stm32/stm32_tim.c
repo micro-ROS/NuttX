@@ -867,6 +867,7 @@ static int stm32_tim_setclock(FAR struct stm32_tim_dev_s *dev, uint32_t freq)
    */
 
   prescaler = freqin / freq;
+  dev->adjusted_freq = freqin / prescaler;
 
   /* We need to decrement value for '1', but only, if that will not to
    * cause underflow.
