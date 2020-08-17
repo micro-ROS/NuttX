@@ -137,6 +137,7 @@ void irq_dispatch(int irq, FAR void *context)
   xcpt_t vector = irq_unexpected_isr;
   FAR void *arg = NULL;
   unsigned int ndx = irq;
+  sys_trace_isr_enter((uint32_t) irq);
 
 #if NR_IRQS > 0
   if ((unsigned)irq < NR_IRQS)
@@ -180,5 +181,6 @@ void irq_dispatch(int irq, FAR void *context)
    * assertion logic for reporting crashes.
    */
 
+  sys_trace_isr_exit((uint32_t) irq);
   g_running_tasks[this_cpu()] = this_task();
 }
