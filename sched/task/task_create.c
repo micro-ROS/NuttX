@@ -172,6 +172,8 @@ static int nxthread_create(FAR const char *name, uint8_t ttype,
       goto errout_with_tcb;
     }
 
+  /** Tracing */
+  sys_trace_thread_create((FAR struct tcb_s *)tcb);
   return pid;
 
 errout_with_tcb:
