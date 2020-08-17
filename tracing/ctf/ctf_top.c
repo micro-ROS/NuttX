@@ -62,7 +62,7 @@
 
 typedef enum {
 	CTF_EVENT_THREAD_SWITCHED_OUT   =  0x10,
-	CTF_EVENT_THREAD_SWITCHED_IN    =  1188,
+	CTF_EVENT_THREAD_SWITCHED_IN    =  0x11,
 	CTF_EVENT_THREAD_PRIORITY_SET   =  0x12,
 	CTF_EVENT_THREAD_CREATE         =  0x13,
 	CTF_EVENT_THREAD_ABORT          =  0x14,
@@ -88,24 +88,18 @@ typedef struct {
 
 static  void ctf_top_thread_switched_out(u32_t thread_id)
 {
-	u8_t cpu = 1;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_SWITCHED_OUT),
-		cpu,
 		thread_id
 		);
 }
 
 static  void ctf_top_thread_switched_in(u32_t thread_id)
 {
-	const char thread_name[20] = "Switching_Thread";
-	uint32_t prio = 100;
 
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_SWITCHED_IN),
-		thread_name,
-		thread_id,
-		prio	
+		thread_id
 		);
 }
 
@@ -130,11 +124,11 @@ static  void ctf_top_thread_create(
 		thread_id,
 		name
 		);
+	//	prio
 }
 
 static  void ctf_top_thread_abort(u32_t thread_id)
 {
-	//return ;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_ABORT),
 		thread_id
@@ -143,7 +137,6 @@ static  void ctf_top_thread_abort(u32_t thread_id)
 
 static  void ctf_top_thread_suspend(u32_t thread_id)
 {
-	//return ;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_SUSPEND),
 		thread_id
@@ -152,7 +145,6 @@ static  void ctf_top_thread_suspend(u32_t thread_id)
 
 static  void ctf_top_thread_resume(u32_t thread_id)
 {
-	//return ;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_RESUME),
 		thread_id
@@ -161,7 +153,6 @@ static  void ctf_top_thread_resume(u32_t thread_id)
 
 static  void ctf_top_thread_ready(u32_t thread_id)
 {
-	//return ;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_READY),
 		thread_id
@@ -170,7 +161,6 @@ static  void ctf_top_thread_ready(u32_t thread_id)
 
 static  void ctf_top_thread_pend(u32_t thread_id)
 {
-	//return ;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_PENDING),
 		thread_id
@@ -183,7 +173,6 @@ static  void ctf_top_thread_info(
 	u32_t stack_size
 	)
 {
-	//return ;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_INFO),
 		thread_id,
@@ -197,7 +186,6 @@ static  void ctf_top_thread_name_set(
 	ctf_bounded_string_t name
 	)
 {
-	//return ;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_NAME_SET),
 		thread_id,
@@ -205,25 +193,24 @@ static  void ctf_top_thread_name_set(
 		);
 }
 
-static  void ctf_top_isr_enter(void)
+static  void ctf_top_isr_enter(uint32_t isr_id)
 {
-	//return ;
 	CTF_EVENT(
-		CTF_LITERAL(u8_t, CTF_EVENT_ISR_ENTER)
+		CTF_LITERAL(u8_t, CTF_EVENT_ISR_ENTER),
+		isr_id
 		);
 }
 
-static  void ctf_top_isr_exit(void)
+static  void ctf_top_isr_exit(uint32_t isr_id)
 {
-	//return ;
 	CTF_EVENT(
-		CTF_LITERAL(u8_t, CTF_EVENT_ISR_EXIT)
+		CTF_LITERAL(u8_t, CTF_EVENT_ISR_EXIT),
+		isr_id
 		);
 }
 
 static  void ctf_top_isr_exit_to_scheduler(void)
 {
-	//return ;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_ISR_EXIT_TO_SCHEDULER)
 		);
@@ -231,18 +218,15 @@ static  void ctf_top_isr_exit_to_scheduler(void)
 
 static  void ctf_top_idle(void)
 {
-#if 0
 	u8_t cpu = 1;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_IDLE),
 		cpu
 		);
-#endif
 }
 
 static void ctf_top_void(u32_t id)
 {
-	//return ;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_ID_START_CALL),
 		id
@@ -251,7 +235,6 @@ static void ctf_top_void(u32_t id)
 
 static void ctf_top_end_call(u32_t id)
 {
-	//return ;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_ID_END_CALL),
 		id
@@ -282,18 +265,16 @@ void sys_trace_thread_create(struct tcb_s *thread)
 	const char *tname = thread->name;
 
 	if (tname != NULL) {
-		strncpy(name.buf, tname, sizeof(name.buf));
+		strncpy(name.buf, tname, sizeof(name.buf) - 1);
 		/* strncpy may not always null-terminate */
 		name.buf[sizeof(name.buf) - 1] = 0;
 	}
 #endif
-
 	ctf_top_thread_create(
 		(u32_t)thread->pid,
 		thread->init_priority,
 		name
 		);
-
 #if defined(CONFIG_THREAD_STACK_INFO)
 	ctf_top_thread_info(
 		(u32_t)thread->pid,
@@ -355,14 +336,14 @@ void sys_trace_thread_name_set(struct tcb_s *thread)
 #endif
 }
 
-void sys_trace_isr_enter(void)
+void sys_trace_isr_enter(uint32_t isr_id)
 {
-	ctf_top_isr_enter();
+	ctf_top_isr_enter(isr_id);
 }
 
-void sys_trace_isr_exit(void)
+void sys_trace_isr_exit(uint32_t isr_id)
 {
-	ctf_top_isr_exit();
+	ctf_top_isr_exit(isr_id);
 }
 
 void sys_trace_isr_exit_to_scheduler(void)
@@ -372,7 +353,9 @@ void sys_trace_isr_exit_to_scheduler(void)
 
 void sys_trace_idle(void)
 {
+#ifdef TRACE_FUNCTIONS_CPU_USAGE
 	ctf_top_idle();
+#endif // TRACE_FUNCTIONS_CPU_USAGE
 }
 
 void sys_trace_void(unsigned int id)

@@ -43,17 +43,21 @@ stream {
 	event.header := struct event_header;
 };
 
-
 event {
-	name = sched_switch_in;
-	id = 1189;
-fields := struct {
-		integer { size = 8; align = 8; signed = 1; encoding = ASCII; base = 10; } comm[16];
-		integer { size = 32; align = 8; signed = 1; encoding = none; base = 10; } tid;
-		integer { size = 32; align = 8; signed = 1; encoding = none; base = 10; } prio;
+	name = thread_switched_out;
+	id = 0x10;
+	fields := struct {
+		uint32_t thread_id;
 	};
 };
 
+event {
+	name = thread_switched_in;
+	id = 0x11;
+	fields := struct {
+		uint32_t thread_id;
+	};
+};
 
 event {
 	name = thread_priority_set;
@@ -70,7 +74,7 @@ event {
 	id = 0x13;
 	fields := struct {
 		uint32_t thread_id;
-		ctf_bounded_string_t name[20];
+ 		ctf_bounded_string_t name[20]; 
 	};
 };
 
@@ -97,6 +101,7 @@ event {
 		uint32_t thread_id;
 	};
 };
+
 event {
         name = thread_ready;
         id = 0x17;
@@ -135,11 +140,17 @@ event {
 event {
 	name = isr_enter;
 	id = 0x20;
+	fields := struct {
+		uint32_t irq;
+	};
 };
 
 event {
 	name = isr_exit;
 	id = 0x21;
+	fields := struct {
+		uint32_t irq;
+	};
 };
 
 event {

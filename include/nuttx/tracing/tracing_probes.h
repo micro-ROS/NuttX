@@ -24,15 +24,16 @@ struct cpu_stats {
 
 void sys_trace_thread_switched_in(struct tcb_s *thread);
 void sys_trace_thread_switched_out(struct tcb_s *thread);
-void sys_trace_isr_enter(void);
-void sys_trace_isr_exit(void);
 void sys_trace_idle(void);
 
 void cpu_stats_get_ns(struct cpu_stats *cpu_stats_ns);
-u32_t cpu_stats_non_idle_and_sched_get_percent(void);
 void cpu_stats_reset_counters(void);
 
 #define sys_trace_isr_exit_to_scheduler()
+#define sys_trace_isr_enter(x)
+#define sys_trace_isr_exit(x)
+
+#define cpu_stats_non_idle_and_sched_get_percent(x)
 
 #define sys_trace_thread_priority_set(thread)
 #define sys_trace_thread_info(thread)
@@ -99,8 +100,8 @@ void sys_trace_thread_preempt_start(struct tcb_s *thread_old);
 void sys_trace_thread_preempt_stop(struct tcb_s *thread_new);
 
 /** Function IRQ entering realtimness */
-void sys_trace_isr_enter(void);
-void sys_trace_isr_exit(void);
+void sys_trace_isr_enter(uint32_t isr_id);
+void sys_trace_isr_exit(uint32_t isr_id);
 
 /** Maybe useless */
 void sys_trace_idle(void);
@@ -131,8 +132,8 @@ void sys_trace_fexit_timer(struct tcb_s *thread);
 #define sys_trace_thread_pend(x)
 #define sys_trace_thread_info(x)
 #define sys_trace_thread_name_set(x)
-#define sys_trace_isr_enter()
-#define sys_trace_isr_exit()
+#define sys_trace_isr_enter(x)
+#define sys_trace_isr_exit(x)
 #define sys_trace_isr_exit_to_scheduler()
 #define sys_trace_idle()
 #define sys_trace_(x)
