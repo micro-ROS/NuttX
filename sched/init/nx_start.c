@@ -835,6 +835,10 @@ void nx_start(void)
 
   sched_note_start(&g_idletcb[0].cmn);
 
+#ifdef CONFIG_TRACE_USE_CTF
+  tracing_init();
+#endif // CONFIG_TRACE_USE_CTF
+
   /* Create initial tasks and bring-up the system */
 
   DEBUGVERIFY(nx_bringup());
@@ -846,9 +850,6 @@ void nx_start(void)
 
 #endif /* CONFIG_SMP */
 
-#ifdef CONFIG_TRACE_USE_CTF
-  tracing_init();
-#endif // CONFIG_TRACE_USE_CTF
   /* Start the Tracing ******************************************************/
   /** Late initilialisation because this needs the whole application to be
    * runinng
