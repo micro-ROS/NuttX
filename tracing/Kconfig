@@ -79,7 +79,19 @@ config TRACE_CTF_COM_PACKETS
 	   performance a lot. 
 
 config TRACE_CTF_FUNCTIONS_USAGE
-	bool "function usage info"
+	bool "Function usage info"
+
+if TRACE_CTF_FUNCTIONS_USAGE
+	config TRACE_CTF_FUNCTIONS_USAGE_EXCL_PATH 
+	string "Instrumentation exlucing path"
+	help 
+	  Comma separated list of source file path to not instrument
+
+	config TRACE_CTF_FUNCTIONS_USAGE_EXCL_FUNC
+	string "Instrumentation exlucing function"
+	help 
+	  Comma separated list of function to not instrument
+endif
 
 config TRACE_CTF_IRQ
 	bool "Trace the IRQ calls"
