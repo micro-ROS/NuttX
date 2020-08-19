@@ -18,6 +18,7 @@ choice
 
 config TRACE_TIMESTAMP_REFERENCE_SYSTICK_TIMER
 	bool "Use the system tick to get the timer information"
+
 config TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER
 	bool "Use a specific timer board defined"
 	help
@@ -53,6 +54,37 @@ config TRACE_USE_CTF
 	help
 	   Enable tracing of the CPU usage.
 endchoice
+
+if TRACE_USE_CTF
+
+config TRACE_CTF_CPU_USAGE
+	bool "CPU usage info per threads"
+
+config TRACE_CTF_SCHEDULER_INFO
+	bool "Scheduler usage info"
+	
+config TRACE_CTF_MEMORY_STATIC_INFO
+	bool "Stack usage info and allocation"
+
+config TRACE_CTF_MEMORY_DYNAMIC_INFO
+	bool "Dynamic allocation usage info"
+
+config TRACE_CTF_COM_USAGE
+	bool "Communication usage info bw"
+
+config TRACE_CTF_COM_PACKETS
+	bool "Communication packet dump info"
+	help
+	  To use with caution, it can block hence reduce
+	   performance a lot. 
+
+config TRACE_CTF_FUNCTIONS_USAGE
+	bool "function usage info"
+
+config TRACE_CTF_IRQ
+	bool "Trace the IRQ calls"
+
+endif
 
 
 choice

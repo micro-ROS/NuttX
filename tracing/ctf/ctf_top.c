@@ -77,9 +77,29 @@ typedef enum {
 	CTF_EVENT_ISR_EXIT_TO_SCHEDULER =  0x22,
 	CTF_EVENT_IDLE                  =  0x30,
 	CTF_EVENT_ID_START_CALL         =  0x41,
-	CTF_EVENT_ID_END_CALL           =  0x42,
+	CTF_EVENT_ID_STACK_USAGE        =  0x50,
+	CTF_EVENT_ID_FUNC_USAGE         =  0x51,
+	CTF_EVENT_ID_HEAP_ALLOC         =  0x60,
+	CTF_EVENT_ID_HEAP_FREE          =  0x61,
+	CTF_EVENT_ID_COM_START          =  0x70,
+	CTF_EVENT_ID_COM_FINISH         =  0x71,
+	CTF_EVENT_ID_COM_RECV_PKT       =  0x72,
+	CTF_EVENT_ID_COM_SEND_PKT       =  0x73,
+	CTF_EVENT_ID_CTF_TIMER_START    =  0xA0,
+	CTF_EVENT_ID_CTF_TIMER_STOP     =  0xA1,
+	CTF_EVENT_ID_CTF_MANTIMER_START =  0xA2,
 } ctf_event_t;
 
+typedef enum {
+	FUNCTION_ENTER = 0U,
+	FUNCTION_EXIT = 1U,
+} func_usage_t;
+
+
+typedef enum {
+	COM_TX = 0U,
+	COM_RX = 1U
+} com_start_end_src_t;
 
 typedef struct {
 	char buf[CTF_MAX_STRING_LEN];
@@ -195,34 +215,46 @@ static  void ctf_top_thread_name_set(
 
 static  void ctf_top_isr_enter(uint32_t isr_id)
 {
+#ifdef CONFIG_TRACE_CTF_IRQ
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_ISR_ENTER),
 		isr_id
 		);
+#else
+	(void)isr_id;
+#endif //CONFIG_TRACE_CTF_IRQ
 }
 
 static  void ctf_top_isr_exit(uint32_t isr_id)
 {
+#ifdef CONFIG_TRACE_CTF_IRQ
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_ISR_EXIT),
 		isr_id
 		);
+#else
+	(void)isr_id;
+#endif //CONFIG_TRACE_CTF_IRQ
 }
 
 static  void ctf_top_isr_exit_to_scheduler(void)
 {
+#if 0
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_ISR_EXIT_TO_SCHEDULER)
 		);
+#endif
 }
 
 static  void ctf_top_idle(void)
 {
+#ifdef CONFIG_TRACE_FUNCTIONS_CPU_USAGE
 	u8_t cpu = 1;
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_IDLE),
 		cpu
 		);
+#endif // CONFIG_TRACE_FUNCTIONS_CPU_USAGE
 }
 
 static void ctf_top_void(u32_t id)
@@ -235,10 +267,184 @@ static void ctf_top_void(u32_t id)
 
 static void ctf_top_end_call(u32_t id)
 {
+#if 0
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_ID_END_CALL),
 		id
 		);
+#endif
+}
+
+static void ctf_top_malloc(void *ptr, uint32_t size)
+{
+#ifdef CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
+	struct tcb_s *proc = sched_self();
+	uint32_t pid = 0;
+
+	if (proc) {
+		pid = proc->pid;
+	}
+
+	CTF_EVENT(
+		CTF_LITERAL(u8_t, CTF_EVENT_ID_HEAP_ALLOC),
+		pid,
+		ptr,
+		size
+		);
+#else
+	(void)ptr;
+	(void)size;
+#endif // CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
+}
+
+static void ctf_top_free(void *ptr)
+{
+#ifdef CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
+	struct tcb_s *proc = sched_self();
+	uint32_t pid = 0;
+
+	if (proc) {
+		pid = proc->pid;
+	}
+
+	CTF_EVENT(
+		CTF_LITERAL(u8_t, CTF_EVENT_ID_HEAP_FREE),
+		pid,
+		ptr
+		);
+#else
+	(void) ptr;
+#endif //CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
+}
+
+static void ctf_top_func_usage(void *func, func_usage_t fe)
+{
+#ifdef CONFIG_TRACE_CTF_FUNCTIONS_USAGE
+	struct tcb_s *proc = sched_self();
+	uint32_t pid = 0;
+
+	if (proc) {
+		pid = proc->pid;
+	}
+
+	CTF_EVENT(
+		CTF_LITERAL(u8_t, CTF_EVENT_ID_FUNC_USAGE),
+		pid, func, fe
+		);
+#else
+	(void)func;
+	(void)fe;
+#endif
+}
+
+static void ctf_top_stack_usage(void *func, uint32_t size)
+{
+
+#ifdef CONFIG_TRACE_CTF_MEMORY_STATIC_INFO
+	struct tcb_s *proc = sched_self();
+	uint32_t pid = 0;
+
+	if (proc) {
+		pid = proc->pid;
+	}
+
+	CTF_EVENT(
+		CTF_LITERAL(u8_t, CTF_EVENT_ID_STACK_USAGE),
+		pid, func, size 
+		);
+#else
+	(void)func;
+	(void)size;
+#endif //CONFIG_TRACE_CTF_MEMORY_STATIC_INFO
+}
+
+static void ctf_top_com_pkt_tx(const char *iface, const uint8_t *pkt,
+	       	uint32_t pkt_size)
+{
+#ifdef CONFIG_TRACE_CTF_COM_PACKETS
+	uint8_t packet[64] = { 0 };
+	uint32_t size = pkt_size < sizeof(packet) ? pkt_size : sizeof(packet);
+	ctf_bounded_string_t name = { "unk_if" };
+
+	if (pkt != NULL) {
+		memcpy(packet, pkt, size);
+	}
+
+	if (iface != NULL) {
+		strncpy(name.buf, iface, sizeof(name.buf));
+		/* strncpy may not always null-terminate */
+		name.buf[sizeof(name.buf) - 1] = 0;
+	}
+
+	CTF_EVENT(
+		CTF_LITERAL(u8_t, CTF_EVENT_ID_COM_SEND_PKT),
+		 name, pkt, size 
+		);
+#else
+	(void) iface;
+	(void) pkt;
+	(void) pkt_size;
+#endif// CONFIG_TRACE_CTF_COM_PACKETS
+
+}
+
+static void ctf_top_com_pkt_rx(const char *iface, const uint8_t *pkt, 
+	       	uint32_t pkt_size)
+{
+#ifdef CONFIG_TRACE_CTF_COM_PACKETS
+	uint8_t packet[64] = { 0 };
+	uint32_t size = pkt_size < sizeof(packet) ? pkt_size : sizeof(packet);
+	ctf_bounded_string_t name = { "unk_if" };
+
+	if (pkt != NULL) {
+		memcpy(packet, pkt, size);
+	}
+
+
+	if (iface != NULL) {
+		strncpy(name.buf, iface, sizeof(name.buf));
+		/* strncpy may not always null-terminate */
+		name.buf[sizeof(name.buf) - 1] = 0;
+	}
+
+	CTF_EVENT(
+		CTF_LITERAL(u8_t, CTF_EVENT_ID_COM_RECV_PKT),
+		 name, pkt, size 
+		);
+#else
+	(void) iface;
+	(void) pkt;
+	(void) pkt_size;
+#endif// CONFIG_TRACE_CTF_COM_PACKETS
+}
+
+static void ctf_top_com_usage(const char *iface, uint32_t pkt_size, 
+		com_start_end_src_t src, uint8_t is_start)
+{
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+	ctf_bounded_string_t name = { "unkfac" };
+
+	if (iface != NULL) {
+		strncpy(name.buf, iface, sizeof(name.buf));
+		/* strncpy may not always null-terminate */
+		name.buf[sizeof(name.buf) - 1] = 0;
+	}
+
+	if (is_start) { 
+		CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_COM_START),
+				name, pkt_size, src	
+			 );
+	} else {
+		CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_COM_FINISH),
+				name, src	
+			 );
+	}
+#else
+	(void) iface;	
+	(void) pkt_size;	
+	(void) src;	
+	(void) is_start;	
+#endif //CONFIG_TRACE_CTF_COM_USAGE
 }
 
 void sys_trace_thread_switched_out(struct tcb_s *thread)
@@ -353,17 +559,50 @@ void sys_trace_isr_exit_to_scheduler(void)
 
 void sys_trace_idle(void)
 {
-#ifdef TRACE_FUNCTIONS_CPU_USAGE
 	ctf_top_idle();
-#endif // TRACE_FUNCTIONS_CPU_USAGE
 }
 
-void sys_trace_void(unsigned int id)
-{
-	ctf_top_void(id);
+// Malloc calls
+void sys_trace_memory_dynamic_allocate(void *ptr, uint32_t size)
+{ 
+	ctf_top_malloc(ptr, size);
 }
 
-void sys_trace_end_call(unsigned int id)
+void sys_trace_memory_dynamic_free(void *ptr)
+{ 
+	ctf_top_free(ptr);
+}
+
+void sys_trace_func_usage_enter(void *func)
+{ 
+	ctf_top_func_usage(func, FUNCTION_ENTER);
+}
+
+void sys_trace_func_usage_exit(void *func)
+{ 
+	ctf_top_func_usage(func, FUNCTION_EXIT);
+}
+
+void sys_trace_memory_static_alloc(void *func, uint32_t size)
+{ 
+	ctf_top_stack_usage(func, size);
+}
+
+void sys_trace_com_start(const char *iface, uint32_t pkt_size, uint8_t is_rx)
 {
-	ctf_top_end_call(id);
+	ctf_top_com_usage(iface, pkt_size, (com_start_end_src_t)is_rx, 1);
+}
+
+void sys_trace_com_finish(const char *iface, uint8_t is_rx)
+{
+	ctf_top_com_usage(iface, 0, (com_start_end_src_t)is_rx, 0);
+}
+
+void sys_trace_com_pkt(const char *iface, uint8_t *pkt, uint32_t pkt_size, uint8_t is_rx)
+{
+	if (is_rx) {
+		ctf_top_com_pkt_tx(iface, pkt, pkt_size);
+	} else {
+		ctf_top_com_pkt_rx(iface, pkt, pkt_size);
+	}
 }

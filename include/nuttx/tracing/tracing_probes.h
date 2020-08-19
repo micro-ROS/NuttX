@@ -81,12 +81,9 @@ void sys_trace_packet_sent(const char *interface, const char *buf, uint32_t size
 void sys_trace_packet_rcvd(const char *interface, const char *buf, uint32_t size);
 
 /** Send/recv latency network/serial/usb interface */
-void sys_trace_latency_start(const char *interface, const char *buf, uint32_t size);
-void sys_trace_latency_end(const char *interface, const char *buf, uint32_t size);
-
-/** Send/recv bandwitdh used */
-void sys_trace_bw_up(const char *interface, uint32_t size);
-void sys_trace_bw_down(const char *interface, uint32_t size);
+void sys_trace_com_pkt(const char *iface, uint8_t *pkt, uint32_t pkt_size, uint8_t is_rx);
+void sys_trace_com_start(const char *iface, uint32_t pkt_size, uint8_t is_rx);
+void sys_trace_com_finish(const char *iface, uint8_t is_rx);
 
 /** Thread entering/exiting etc */
 void sys_trace_thread_abort(struct tcb_s *thread);
@@ -109,15 +106,16 @@ void sys_trace_idle(void);
 void sys_trace_void(unsigned int id);
 void sys_trace_end_call(unsigned int id);
 
-/** Function stack pointer usage */
-void sys_trace_fenter_stack_usage(struct tcb_s *thread, void* func, uint32_t size);
+
+/** Function stack and heap usage */
+void sys_trace_memory_dynamic_free(void *ptr);
+void sys_trace_memory_dynamic_allocate(void *ptr, uint32_t size);
+void sys_trace_memory_static_alloc(void *func, uint32_t size);
 
 /** Function calls tracing */
-void sys_trace_fenter(struct tcb_s *thread, void *fn);
+void sys_trace_func_usage_enter(void *func);
+void sys_trace_func_usage_exit(void *func);
 
-/** Function calls tracing specific */
-void sys_trace_fenter_timer(struct tcb_s *thread);
-void sys_trace_fexit_timer(struct tcb_s *thread);
 
 #else
 
