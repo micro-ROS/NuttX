@@ -504,7 +504,6 @@ u32_t ring_buf_put(struct ring_buf *buf, const u8_t *data, u32_t size)
 	u8_t *dst;
 	u32_t partial_size;
 	u32_t total_size = 0U;
-	int err;
 
 	do {
 		partial_size = ring_buf_put_claim(buf, &dst, size);
@@ -514,7 +513,7 @@ u32_t ring_buf_put(struct ring_buf *buf, const u8_t *data, u32_t size)
 		data += partial_size;
 	} while (size && partial_size);
 
-	err = ring_buf_put_finish(buf, total_size);
+	ring_buf_put_finish(buf, total_size);
 
 	return total_size;
 }
@@ -561,7 +560,6 @@ u32_t ring_buf_get(struct ring_buf *buf, u8_t *data, u32_t size)
 	u8_t *src;
 	u32_t partial_size;
 	u32_t total_size = 0U;
-	int err;
 
 	do {
 		partial_size = ring_buf_get_claim(buf, &src, size);
@@ -571,6 +569,6 @@ u32_t ring_buf_get(struct ring_buf *buf, u8_t *data, u32_t size)
 		data += partial_size;
 	} while (size && partial_size);
 
-	err = ring_buf_get_finish(buf, total_size);
+	ring_buf_get_finish(buf, total_size);
 	return total_size;
 }
