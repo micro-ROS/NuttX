@@ -43,6 +43,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 #include <nuttx/random.h>
+#include <nuttx/tracing/tracing_probes.h>
 
 #include "irq/irq.h"
 #include "clock/clock.h"
