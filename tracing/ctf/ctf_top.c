@@ -339,7 +339,6 @@ static void ctf_top_func_usage(void *func, func_usage_t fe)
 
 static void ctf_top_stack_usage(void *func, uint32_t size)
 {
-
 #ifdef CONFIG_TRACE_CTF_MEMORY_STATIC_INFO
 	struct tcb_s *proc = sched_self();
 	uint32_t pid = 0;
