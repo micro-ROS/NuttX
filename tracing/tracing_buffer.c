@@ -47,7 +47,7 @@ struct ring_buf {
         u32_t mask;   /**< Modulo mask if size is a power of 2 */
 };
 
-static inline u32_t z_ring_buf_custom_space_get(u32_t size, u32_t head,
+static u32_t z_ring_buf_custom_space_get(u32_t size, u32_t head,
 		u32_t tail)
 {
 	if (tail < head) {
@@ -58,12 +58,12 @@ static inline u32_t z_ring_buf_custom_space_get(u32_t size, u32_t head,
 	return (size - tail) + head - 1;
 }
 
-static inline u32_t ring_buf_space_get(struct ring_buf *buf)
+static u32_t ring_buf_space_get(struct ring_buf *buf)
 {
         return z_ring_buf_custom_space_get(buf->size, buf->head, buf->tail);
 }
 
-static inline u32_t ring_buf_capacity_get(struct ring_buf *buf)
+static u32_t ring_buf_capacity_get(struct ring_buf *buf)
 {
 	/* One element is used to distinguish between empty and full
 	 * state. */
@@ -86,7 +86,7 @@ static inline u32_t ring_buf_capacity_get(struct ring_buf *buf)
  * @param data Ring buffer data area (u32_t data[size] or u8_t data[size] for
  *             bytes mode).
  */
-static inline void ring_buf_init(struct ring_buf *buf, u32_t size, void *data)
+static  void ring_buf_init(struct ring_buf *buf, u32_t size, void *data)
 {
         memset(buf, 0, sizeof(struct ring_buf));
         buf->size = size;
@@ -105,7 +105,7 @@ static inline void ring_buf_init(struct ring_buf *buf, u32_t size, void *data)
  *
  * @return 1 if the ring buffer is empty, or 0 if not.
  */
-static inline int ring_buf_is_empty(struct ring_buf *buf)
+static int ring_buf_is_empty(struct ring_buf *buf)
 {
         return (buf->head == buf->tail);
 }
@@ -115,7 +115,7 @@ static inline int ring_buf_is_empty(struct ring_buf *buf)
  *
  * @param buf Address of ring buffer.
  */
-static inline void ring_buf_reset(struct ring_buf *buf)
+static void ring_buf_reset(struct ring_buf *buf)
 {
         buf->head = 0;
         buf->tail = 0;
@@ -461,7 +461,7 @@ int ring_buf_item_get(struct ring_buf *buf, u16_t *type, u8_t *value,
  *
  * @return value % max.
  */
-static inline u32_t wrap(u32_t val, u32_t max)
+static u32_t wrap(u32_t val, u32_t max)
 {
 	return val >= max ? (val - max) : val;
 }

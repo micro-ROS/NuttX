@@ -54,26 +54,30 @@ void __cyg_profile_func_enter(void *this_fn, void *call_site)
 	}
 
 #ifdef CONFIG_TRACE_CTF_MEMORY_STATIC_INFO
+#if CONFIG_TRACE_STACK_USAGE_CALLS_CNT_SAMPLING > 0
 	static uint32_t call_count = 0;
+#endif
+
 	register void *sp asm ("sp");
 	uint32_t sp_ptr = (uint32_t)(uintptr_t) sp;
 	sp_ptr = ((uint32_t) (uintptr_t)thread->adj_stack_ptr) - sp_ptr;
-	if (sp_ptr > (thread->adj_stack_size << 3)) {
+	if (sp_ptr > (thread->adj_stack_size << 4)) {
 		// Probably the scheduler doing some work withou updating the 
 		// pid 
 		return;		
 	}
-#if 0
-	if  (!(++calls_cnt % CONFIG_TRACE_STACK_USAGE_CALLS_CNT_SAMPLING)) {
-		sys_trace_stack_usage(thread, this_fn, sp_ptr);
-	} 
-#endif
+
+	tracing_ctx[pid].is_tracing = true;
+#if CONFIG_TRACE_STACK_USAGE_CALLS_CNT_SAMPLING > 0
+	if  (!(++call_count % CONFIG_TRACE_STACK_USAGE_CALLS_CNT_SAMPLING)) {
+		sys_trace_memory_static_alloc(this_fn, sp_ptr);
+	} else
+#endif //CONFIG_TRACE_STACK_USAGE_CALLS_CNT_SAMPLING > 0
 	if (tracing_ctx[pid].reached_max < sp_ptr) {
-		tracing_ctx[pid].is_tracing = true;
 		sys_trace_memory_static_alloc(this_fn, sp_ptr);
 		tracing_ctx[pid].reached_max = sp_ptr;
-		tracing_ctx[pid].is_tracing = false;
 	}
+	tracing_ctx[pid].is_tracing = false;
 #endif // CONFIG_TRACE_CTF_MEMORY_STATIC_INFO
 }
 
