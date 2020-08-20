@@ -77,44 +77,45 @@ void cpu_stats_reset_counters(void);
 #elif defined(CONFIG_TRACE_USE_CTF)
 
 /** Send/recv packet (rather used for wireshark later?) network/serial/usb interface */
-void sys_trace_packet_sent(const char *interface, const char *buf, uint32_t size);
-void sys_trace_packet_rcvd(const char *interface, const char *buf, uint32_t size);
+void sys_trace_packet_sent(const char *interface, const char *buf, uint32_t size) __attribute__((no_instrument_function));
+void sys_trace_packet_rcvd(const char *interface, const char *buf, uint32_t size) __attribute__((no_instrument_function));
+
 
 /** Send/recv latency network/serial/usb interface */
-void sys_trace_com_pkt(const char *iface, uint8_t *pkt, uint32_t pkt_size, uint8_t is_rx);
-void sys_trace_com_start(const char *iface, uint32_t pkt_size, uint8_t is_rx);
-void sys_trace_com_finish(const char *iface, uint8_t is_rx);
+void sys_trace_com_pkt(const char *iface, uint8_t *pkt, uint32_t pkt_size, uint8_t is_rx) __attribute__((no_instrument_function));
+void sys_trace_com_start(const char *iface, uint32_t pkt_size, uint8_t is_rx) __attribute__((no_instrument_function));
+void sys_trace_com_finish(const char *iface, uint8_t is_rx) __attribute__((no_instrument_function));
 
 /** Thread entering/exiting etc */
-void sys_trace_thread_abort(struct tcb_s *thread);
-void sys_trace_thread_suspend(struct tcb_s *thread);
-void sys_trace_thread_switched(struct tcb_s *prev, struct tcb_s *next);
-void sys_trace_thread_switched_in(struct tcb_s *thread);
-void sys_trace_thread_switched_out(struct tcb_s *thread);
+void sys_trace_thread_abort(struct tcb_s *thread) __attribute__((no_instrument_function));
+void sys_trace_thread_suspend(struct tcb_s *thread) __attribute__((no_instrument_function));
+void sys_trace_thread_switched(struct tcb_s *prev, struct tcb_s *next) __attribute__((no_instrument_function));
+void sys_trace_thread_switched_in(struct tcb_s *thread) __attribute__((no_instrument_function));
+void sys_trace_thread_switched_out(struct tcb_s *thread) __attribute__((no_instrument_function));
 
 /** Scheduler realtimeness */
-void sys_trace_thread_preempt_start(struct tcb_s *thread_old);
-void sys_trace_thread_preempt_stop(struct tcb_s *thread_new);
+void sys_trace_thread_preempt_start(struct tcb_s *thread_old) __attribute__((no_instrument_function));
+void sys_trace_thread_preempt_stop(struct tcb_s *thread_new) __attribute__((no_instrument_function));
 
 /** Function IRQ entering realtimness */
-void sys_trace_isr_enter(uint32_t isr_id);
-void sys_trace_isr_exit(uint32_t isr_id);
+void sys_trace_isr_enter(uint32_t isr_id) __attribute__((no_instrument_function));
+void sys_trace_isr_exit(uint32_t isr_id) __attribute__((no_instrument_function));
 
 /** Maybe useless */
-void sys_trace_idle(void);
+void sys_trace_idle(void) __attribute__((no_instrument_function));
 
-void sys_trace_void(unsigned int id);
-void sys_trace_end_call(unsigned int id);
+void sys_trace_void(unsigned int id) __attribute__((no_instrument_function));
+void sys_trace_end_call(unsigned int id) __attribute__((no_instrument_function));
 
 
 /** Function stack and heap usage */
-void sys_trace_memory_dynamic_free(void *ptr);
-void sys_trace_memory_dynamic_allocate(void *ptr, uint32_t size);
-void sys_trace_memory_static_alloc(void *func, uint32_t size);
+void sys_trace_memory_dynamic_free(void *ptr) __attribute__((no_instrument_function));
+void sys_trace_memory_dynamic_allocate(void *ptr, uint32_t size) __attribute__((no_instrument_function));
+void sys_trace_memory_static_alloc(void *func, uint32_t size) __attribute__((no_instrument_function));
 
 /** Function calls tracing */
-void sys_trace_func_usage_enter(void *func);
-void sys_trace_func_usage_exit(void *func);
+void sys_trace_func_usage_enter(void *func) __attribute__((no_instrument_function));
+void sys_trace_func_usage_exit(void *func) __attribute__((no_instrument_function));
 
 
 #else
