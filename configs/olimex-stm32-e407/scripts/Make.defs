@@ -126,13 +126,13 @@ endif
 ifeq ($(CONFIG_TRACE_CTF_FUNCTIONS_USAGE),y)
   CFLAGS += -finstrument-functions
   CFLAGS += -finstrument-functions-exclude-function-list=libc,libxx,sched,task,arm,stm32,tracing,ctf,libatomic.c,atomic.h,up_,backtrace.c
-  CFLAGS += -finstrument-functions-exclude-file-list=$(TRACE_CTF_FUNCTIONS_USAGE_EXCL_PATH)
+  CFLAGS += -finstrument-functions-exclude-file-list=z_ring_buf_custom_space_get,$(TRACE_CTF_FUNCTIONS_USAGE_EXCL_PATH)
 endif
 
 ifeq ($(CONFIG_TRACE_CTF_MEMORY_STATIC_INFO),y)
   CFLAGS += -finstrument-functions
-  CFLAGS += -finstrument-functions-exclude-function-list=libc,libxx,sched,task,arm,stm32,tracing,ctf,libatomic.c,atomic.h,up_,backtrace.c,string/lib_
-  CFLAGS += -finstrument-functions-exclude-function-list=__atomic_load_n,atomic_get,atomic_set,exception_common
+  CFLAGS += -finstrument-functions-exclude-function-list=libc,libxx,sched,task,arm,stm32,tracing,ctf,libatomic.c,atomic.h,up_,backtrace.c,string/lib_,gnu,tracing_async.c,tracing_buffer.c
+  CFLAGS += -finstrument-functions-exclude-function-list=__atomic_load_n,atomic_get,atomic_set,exception_common,malloc,memcpy,memmove,z_ring_buf_custom_space_get
 endif
 
 
