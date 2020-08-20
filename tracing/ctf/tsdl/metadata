@@ -232,7 +232,7 @@ event {
 };
 
 event {
-	name = com_start:
+	name = com_start;
 	id = 0x70;
 	fields := struct {
 		ctf_bounded_string_t interface[8];
@@ -251,7 +251,7 @@ event {
 };
 
 event {
-	name = com_recv_pkt:
+	name = com_recv_pkt;
 	id = 0x72;
 	fields := struct {
 		ctf_bounded_string_t interface[8];
@@ -261,7 +261,7 @@ event {
 };
 
 event {
-	name = com_send_pkt:
+	name = com_send_pkt;
 	id = 0x73;
 	fields := struct {
 		ctf_bounded_string_t interface[8];
@@ -272,7 +272,7 @@ event {
 
 event {
 	name = ctf_timer_start ;
-	id = 0xA0
+	id = 0xA0;
 	fields := struct {
 		uint32_t id;
 	};
