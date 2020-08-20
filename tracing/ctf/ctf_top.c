@@ -108,28 +108,41 @@ typedef struct {
 
 static  void ctf_top_thread_switched_out(u32_t thread_id)
 {
+#ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_SWITCHED_OUT),
 		thread_id
 		);
+#else
+#endif //CONFIG_TRACE_CTF_SCHEDULER_INFO
 }
 
 static  void ctf_top_thread_switched_in(u32_t thread_id)
 {
-
+#ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_SWITCHED_IN),
 		thread_id
 		);
+#else
+	(void)thread_id;
+#endif //CONFIG_TRACE_CTF_SCHEDULER_INFO
 }
 
 static  void ctf_top_thread_priority_set(u32_t thread_id, s8_t prio)
 {
+
+#ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
+
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_PRIORITY_SET),
 		thread_id,
 		prio
 		);
+#else
+	(void)thread_id;
+	(void) prio;
+#endif //CONFIG_TRACE_CTF_SCHEDULER_INFO
 }
 
 static  void ctf_top_thread_create(
@@ -149,42 +162,62 @@ static  void ctf_top_thread_create(
 
 static  void ctf_top_thread_abort(u32_t thread_id)
 {
+#ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_ABORT),
 		thread_id
 		);
+#else
+	(void)thread_id;
+#endif //CONFIG_TRACE_CTF_SCHEDULER_INFO
 }
 
 static  void ctf_top_thread_suspend(u32_t thread_id)
 {
+#ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_SUSPEND),
 		thread_id
 		);
+#else
+	(void)thread_id;
+#endif //CONFIG_TRACE_CTF_SCHEDULER_INFO
 }
 
 static  void ctf_top_thread_resume(u32_t thread_id)
 {
+#ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_RESUME),
 		thread_id
 		);
+#else
+	(void)thread_id;
+#endif //CONFIG_TRACE_CTF_SCHEDULER_INFO
 }
 
 static  void ctf_top_thread_ready(u32_t thread_id)
 {
+#ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_READY),
 		thread_id
 		);
+#else
+	(void)thread_id;
+#endif //CONFIG_TRACE_CTF_SCHEDULER_INFO
 }
 
 static  void ctf_top_thread_pend(u32_t thread_id)
 {
+#ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_PENDING),
 		thread_id
 		);
+#else
+	(void)thread_id;
+#endif //CONFIG_TRACE_CTF_SCHEDULER_INFO
 }
 
 static  void ctf_top_thread_info(
@@ -206,11 +239,16 @@ static  void ctf_top_thread_name_set(
 	ctf_bounded_string_t name
 	)
 {
+#ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_NAME_SET),
 		thread_id,
 		name
 		);
+#else
+	(void)thread_id;
+	(void)name;
+#endif //CONFIG_TRACE_CTF_SCHEDULER_INFO
 }
 
 static  void ctf_top_isr_enter(uint32_t isr_id)
