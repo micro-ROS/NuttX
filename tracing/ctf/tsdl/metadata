@@ -197,7 +197,7 @@ event {
 	id = 0x50;
 	fields := struct {
 		uint32_t pid;
-		uint32_t func_ptr;
+		integer { size = 32; align = 8; signed = 0; encoding = none; base = 16; } func_ptr;
 		uint32_t usage_bytes;
 	};
 };
@@ -207,7 +207,7 @@ event {
 	id = 0x51;
 	fields := struct {
 		uint32_t pid;
-		uint32_t func_ptr;
+		integer { size = 32; align = 8; signed = 0; encoding = none; base = 16; } func_ptr;
 		function_exec fe;
 	};
 };
@@ -217,7 +217,7 @@ event {
 	id = 0x60;
 	fields := struct {
 		uint32_t pid;
-		uint32_t address;
+		integer { size = 32; align = 8; signed = 0; encoding = none; base = 16; } address;
 		uint32_t size;
 	};
 };
