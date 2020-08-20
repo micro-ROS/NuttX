@@ -142,7 +142,7 @@ int tracing_init(void)
 #ifdef CONFIG_ASYNC_CTF_TRACING
 	memset(&tracing_trigger_flush, 0, sizeof(struct work_s));
 	tracing_task_pid = kthread_create(CONFIG_ASYNC_THREAD_CTF_NAME,
-		       	100,
+			CONFIG_ASYNC_THREAD_CTF_PRIO,
 			CONFIG_ASYNC_THREAD_CTF_STACK,
 			(main_t) tracing_thread_func, (FAR char * const *) NULL);
 #endif

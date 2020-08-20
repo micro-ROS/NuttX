@@ -65,6 +65,26 @@ config TRACE_CTF_SCHEDULER_INFO
 	
 config TRACE_CTF_MEMORY_STATIC_INFO
 	bool "Stack usage info and allocation"
+if TRACE_CTF_MEMORY_STATIC_INFO
+	config TRACE_CTF_APPLICATION
+	bool "Trace the applications stack usage"
+        help
+	  This Allows to trace the application
+          Can be used in combination with TRACE_CTF_RTOS
+
+	config TRACE_CTF_RTOS
+	bool "Trace the RTOS stack usage"
+        help
+	  This Allows to trace the RTOS.
+          Can be used in combination with TRACE_CTF_APPLICATION
+
+	config TRACE_STACK_USAGE_CALLS_CNT_SAMPLING
+	int "Static sampling"
+	range 0 65535
+	default 10
+        help
+	  This allows the trace to be <<polled>> every n calls
+endif
 
 config TRACE_CTF_MEMORY_DYNAMIC_INFO
 	bool "Dynamic allocation usage info"
