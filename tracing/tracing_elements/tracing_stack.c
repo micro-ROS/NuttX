@@ -84,7 +84,7 @@ void __cyg_profile_func_enter(void *this_fn, void *call_site)
 	}
 #endif // CONFIG_TRACE_CTF_MEMORY_STATIC_INFO
 #ifdef CONFIG_TRACE_CTF_FUNCTIONS_USAGE
-	sys_trace_func_usage_exit(this_fn);
+	sys_trace_func_usage_enter(this_fn);
 #endif // CONFIG_TRACE_CTF_FUNCTIONS_USAGE
 	tracing_ctx[pid].is_tracing_enter = false;
 }
@@ -123,5 +123,5 @@ void __cyg_profile_func_exit (void *this_fn,
 	tracing_ctx[pid].is_tracing_exit = true;
 	sys_trace_func_usage_exit(this_fn);
 	tracing_ctx[pid].is_tracing_exit = false;
-#endif
+#endif // CONFIG_TRACE_CTF_FUNCTIONS_USAGE
 }
