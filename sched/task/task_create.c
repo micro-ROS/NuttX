@@ -53,6 +53,9 @@
 #include "group/group.h"
 #include "task/task.h"
 
+#ifdef CONFIG_TRACE_USE_CTF
+#include <nuttx/tracing/tracing_probes.h>
+#endif //CONFIG_TRACE_USE_CTF
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
