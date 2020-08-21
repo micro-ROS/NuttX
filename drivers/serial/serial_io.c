@@ -46,6 +46,10 @@
 
 #include <nuttx/serial/serial.h>
 
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+#include <nuttx/tracing/tracing_probes.h>
+#endif
+
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
@@ -67,6 +71,11 @@ void uart_xmitchars(FAR uart_dev_t *dev)
 
   /* Send while we still have data in the TX buffer & room in the fifo */
 
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  uint32_t total_bytes = 0;
+  sys_trace_com_start("uart", 0);
+#endif //CONFIG_TRACE_CTF_COM_USAGE
+
   while (dev->xmit.head != dev->xmit.tail && uart_txready(dev))
     {
       /* Send the next byte */
@@ -81,6 +90,10 @@ void uart_xmitchars(FAR uart_dev_t *dev)
           dev->xmit.tail = 0;
         }
     }
+
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  sys_trace_com_finish("uart", nbytes, 0);
+#endif  //CONFIG_TRACE_CTF_COM_USAGE
 
   /* When all of the characters have been sent from the buffer disable the TX
    * interrupt.
@@ -129,6 +142,10 @@ void uart_recvchars(FAR uart_dev_t *dev)
   int signo = 0;
 #endif
   uint16_t nbytes = 0;
+
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  sys_trace_com_start("uart", 1);
+#endif //CONFIG_TRACE_CTF_COM_USAGE
 
   if (nexthead >= rxbuf->size)
     {
@@ -264,6 +281,9 @@ void uart_recvchars(FAR uart_dev_t *dev)
    * incoming data available.
    */
 
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  sys_trace_com_finish("uart", nbytes, 1);
+#endif //CONFIG_TRACE_CTF_COM_USAGE
   if (nbytes)
     {
       uart_datareceived(dev);
