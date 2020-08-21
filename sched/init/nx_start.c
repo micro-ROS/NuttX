@@ -64,7 +64,7 @@
 #include "wdog/wdog.h"
 #include "semaphore/semaphore.h"
 
-#ifdef CONFIG_CTF_TRACE_CPU_USAGE
+#ifdef  CONFIG_ENABLE_TRACING
 #include <nuttx/tracing/tracing_common.h>
 #endif //CONFIG_CTF_TRACE_CPU_USAGE
 
