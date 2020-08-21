@@ -39,6 +39,9 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+#include <nuttx/tracing/tracing_probes.h>
+#endif
 #if defined(CONFIG_NET) && defined(CONFIG_STM32_ETHMAC)
 
 #include <stdint.h>
@@ -654,6 +657,16 @@ struct stm32_ethmac_s
 
 static struct stm32_ethmac_s g_stm32ethmac[STM32_NETHERNET];
 
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+	static uint32_t tx_size[64];
+	static uint32_t tx_pos_start;
+	static uint32_t tx_pos_end;
+
+	static uint32_t rx_size[64];
+	static uint32_t rx_pos_start;
+	static uint32_t rx_pos_end;
+#endif  //CONFIG_TRACE_CTF_COM_USAGE
+
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -1050,6 +1063,7 @@ static int stm32_transmit(FAR struct stm32_ethmac_s *priv)
   txdesc  = priv->txhead;
   txfirst = txdesc;
 
+
   ninfo("d_len: %d d_buf: %p txhead: %p tdes0: %08x\n",
         priv->dev.d_len, priv->dev.d_buf, txdesc, txdesc->tdes0);
 
@@ -1058,6 +1072,12 @@ static int stm32_transmit(FAR struct stm32_ethmac_s *priv)
   /* Is the size to be sent greater than the size of the Ethernet buffer? */
 
   DEBUGASSERT(priv->dev.d_len > 0 && priv->dev.d_buf != NULL);
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  sys_trace_com_start("eth", 0);
+  tx_size[tx_pos_start] = priv->dev.d_len;
+  tx_pos_start++;
+  tx_pos_start %= 64;
+#endif //CONFIG_TRACE_CTF_COM_USAGE
 
 #if OPTIMAL_ETH_BUFSIZE > CONFIG_STM32_ETH_BUFSIZE
   if (priv->dev.d_len > CONFIG_STM32_ETH_BUFSIZE)
@@ -1966,6 +1986,14 @@ static void stm32_txdone(FAR struct stm32_ethmac_s *priv)
   DEBUGASSERT(priv->txtail != NULL);
 
   /* Scan the TX descriptor change, returning buffers to free list */
+
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  FAR struct net_driver_s *dev = &priv->dev;
+  sys_trace_com_finish("eth", tx_size[tx_pos_end], 0);
+
+  tx_pos_end++;
+  tx_pos_end %= 64;
+#endif  //CONFIG_TRACE_CTF_COM_USAGE
 
   stm32_freeframe(priv);
 
