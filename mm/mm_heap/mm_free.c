@@ -44,6 +44,9 @@
 
 #include <nuttx/mm/mm.h>
 
+#ifdef CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
+#include <nuttx/tracing/tracing_probes.h>
+#endif //CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -81,7 +84,10 @@ void mm_free(FAR struct mm_heap_s *heap, FAR void *mem)
   /* Map the memory chunk into a free node */
 
   node = (FAR struct mm_freenode_s *)((FAR char *)mem - SIZEOF_MM_ALLOCNODE);
-
+#ifdef CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
+  uint32_t blk_size = node->size;
+  void *blk = mem;
+#endif //CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
   /* Sanity check against double-frees */
 
   DEBUGASSERT(node->preceding & MM_ALLOC_BIT);
@@ -151,4 +157,8 @@ void mm_free(FAR struct mm_heap_s *heap, FAR void *mem)
 
   mm_addfreechunk(heap, node);
   mm_givesemaphore(heap);
+
+#if defined(CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO)
+  sys_trace_memory_dynamic_free(heap, blk, blk_size + SIZEOF_MM_ALLOCNODE, blk_size);
+#endif //CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 }

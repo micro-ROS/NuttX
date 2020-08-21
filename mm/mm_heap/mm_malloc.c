@@ -57,6 +57,9 @@
 /****************************************************************************
  * Debugging Functions
  ****************************************************************************/
+#ifdef CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
+#include <nuttx/tracing/tracing_probes.h>
+#endif //CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 #ifdef CONFIG_LIBBACKTRACE
 
 #include <backtrace.h>
@@ -347,7 +350,9 @@ FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
 #ifdef CONFIG_LIBBACKTRACE
   count = backtrace_unwind(backtrace_buf, BACKTRACE_SIZE);
   dump_backtrace(backtrace_buf, count, alignsize + SIZEOF_MM_ALLOCNODE, ret);
-#endif // CONFIG_LIBBACKTRACE
+#elif defined(CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO)
+  sys_trace_memory_dynamic_allocate(heap, ret, alignsize + SIZEOF_MM_ALLOCNODE, alignsize);
+#endif// CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 
   return ret;
 }
