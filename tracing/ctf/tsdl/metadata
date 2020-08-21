@@ -218,7 +218,8 @@ event {
 	fields := struct {
 		uint32_t pid;
 		integer { size = 32; align = 8; signed = 0; encoding = none; base = 16; } address;
-		uint32_t size;
+		uint32_t real_alloc;
+		uint32_t user_alloc;
 	};
 };
 
@@ -227,7 +228,9 @@ event {
 	id = 0x61;
 	fields := struct {
 		uint32_t pid;
-		uint32_t address;
+		integer { size = 32; align = 8; signed = 0; encoding = none; base = 16; } address;
+		uint32_t real_alloc;
+		uint32_t user_alloc;
 	};
 };
 

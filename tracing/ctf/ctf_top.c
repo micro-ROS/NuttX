@@ -10,7 +10,6 @@
 #include <nuttx/tracing/ctf_types.h>
 #include <nuttx/tracing/tracing_format.h>
 #include <nuttx/tracing/tracing_probes.h>
-#include <nuttx/sched.h>
 
 #define CPU_0 0
 
@@ -313,7 +312,7 @@ static void ctf_top_end_call(u32_t id)
 #endif
 }
 
-static void ctf_top_malloc(void *ptr, uint32_t size)
+static void ctf_top_malloc(void *ptr, uint32_t real_size, uint32_t user_size)
 {
 #ifdef CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 	struct tcb_s *proc = sched_self();
@@ -327,15 +326,17 @@ static void ctf_top_malloc(void *ptr, uint32_t size)
 		CTF_LITERAL(u8_t, CTF_EVENT_ID_HEAP_ALLOC),
 		pid,
 		ptr,
-		size
+		real_size,
+		user_size
 		);
 #else
 	(void)ptr;
-	(void)size;
+	(void)real_size;
+	(void)user_size;
 #endif // CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 }
 
-static void ctf_top_free(void *ptr)
+static void ctf_top_free(void *ptr, uint32_t real_size, uint32_t user_size)
 {
 #ifdef CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 	struct tcb_s *proc = sched_self();
@@ -348,10 +349,14 @@ static void ctf_top_free(void *ptr)
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_ID_HEAP_FREE),
 		pid,
-		ptr
+		ptr,
+		real_size,
+		user_size
 		);
 #else
-	(void) ptr;
+	(void)ptr;
+	(void)real_size;
+	(void)user_size;
 #endif //CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 }
 
@@ -600,14 +605,14 @@ void sys_trace_idle(void)
 }
 
 // Malloc calls
-void sys_trace_memory_dynamic_allocate(void *ptr, uint32_t size)
+void sys_trace_memory_dynamic_allocate(struct mm_heap_s *heap, void *ptr, uint32_t real_size, uint32_t user_size)
 { 
-	ctf_top_malloc(ptr, size);
+	ctf_top_malloc(ptr, real_size, user_size);
 }
 
-void sys_trace_memory_dynamic_free(void *ptr)
+void sys_trace_memory_dynamic_free(struct mm_heap_s *heap, void *ptr, uint32_t real_size, uint32_t user_size)
 { 
-	ctf_top_free(ptr);
+	ctf_top_free(ptr, real_size, user_size);
 }
 
 void sys_trace_func_usage_enter(void *func)
