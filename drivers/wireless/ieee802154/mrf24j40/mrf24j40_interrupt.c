@@ -46,6 +46,9 @@
 #include <nuttx/mm/iob.h>
 
 #include <nuttx/wireless/ieee802154/mrf24j40.h>
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+#include <nuttx/tracing/tracing_probes.h>
+#endif
 
 #include "mrf24j40.h"
 #include "mrf24j40_reg.h"
@@ -73,6 +76,11 @@ static void mrf24j40_irqwork_txnorm(FAR struct mrf24j40_radio_s *dev)
   uint8_t reg;
   enum ieee802154_status_e status;
   bool framepending;
+
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  uint32_t pkt_sz;
+  sys_trace_com_start("mrf24", 0);
+#endif //CONFIG_TRACE_CTF_COM_USAGE
 
   /* Disable tx int */
 
@@ -116,6 +124,9 @@ static void mrf24j40_irqwork_txnorm(FAR struct mrf24j40_radio_s *dev)
   framepending = (mrf24j40_getreg(dev->spi, MRF24J40_TXNCON) &
                   MRF24J40_TXNCON_FPSTAT);
 
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  pkt_sz = dev->csma_desc->frame->io_pktlen;
+#endif
   if (dev->txdelayed_busy)
     {
       /* Inform the next layer of the transmission success/failure */
@@ -153,6 +164,10 @@ static void mrf24j40_irqwork_txnorm(FAR struct mrf24j40_radio_s *dev)
         {
         }
     }
+
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  sys_trace_com_finish("mrf24", pkt_sz,0);
+#endif //CONFIG_TRACE_CTF_COM_USAGE
 }
 
 /****************************************************************************
@@ -219,9 +234,13 @@ static void mrf24j40_irqwork_rx(FAR struct mrf24j40_radio_s *dev)
   uint8_t  reg;
 
   wlinfo("RX interrupt\n");
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  uint32_t pkt_sz;
+  sys_trace_com_start("mrf24", 1);
+#endif //CONFIG_TRACE_CTF_COM_USAGE
+
 
   /* Disable rx int */
-
   reg  = mrf24j40_getreg(dev->spi, MRF24J40_INTCON);
   reg |= MRF24J40_INTCON_RXIE;
   mrf24j40_setreg(dev->spi, MRF24J40_INTCON, reg);
@@ -268,6 +287,9 @@ static void mrf24j40_irqwork_rx(FAR struct mrf24j40_radio_s *dev)
    * required.
    */
 
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  pkt_sz =  ind->frame->io_len;
+#endif
   ind->frame->io_len -= 2;
 
   /* Callback the receiver in the next highest layer */
@@ -282,6 +304,9 @@ done:
   mrf24j40_setreg(dev->spi, MRF24J40_RXFLUSH, 1);
 
   /* Only enable RX interrupt if we are to be listening when IDLE */
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  sys_trace_com_finish("mrf24", pkt_sz, 1);
+#endif //CONFIG_TRACE_CTF_COM_USAGE
 
   if (dev->rxenabled)
     {
