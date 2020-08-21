@@ -63,6 +63,9 @@
 #include <nuttx/usb/cdcacm.h>
 #include <nuttx/usb/usbhost_devaddr.h>
 
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+#include <nuttx/tracing/tracing_probes.h>
+#endif
 #ifdef CONFIG_USBHOST_CDCACM
 
 /****************************************************************************
@@ -923,15 +926,18 @@ static void usbhost_txdata_work(FAR void *arg)
 
   uartdev = &priv->uartdev;
   txbuf   = &uartdev->xmit;
-
   /* Do nothing if TX transmission is disabled */
-
   if (!priv->txena)
     {
       /* Terminate the work now *without* rescheduling */
 
       return;
     }
+
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  uint32_t total_bytes = 0;
+  sys_trace_com_start("usb", 0);
+#endif //CONFIG_TRACE_CTF_COM_USAGE
 
   /* Loop until The UART TX buffer is empty (or we become disconnected) */
 
@@ -986,6 +992,9 @@ static void usbhost_txdata_work(FAR void *arg)
           uerr("ERROR: DRVR_TRANSFER for packet failed: %d\n", (int)nwritten);
           break;
         }
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+        total_bytes = += nwritten;
+#endif // CONFIG_TRACE_CTF_COM_USAGE
     }
 
   /* We get here because: 1) the UART TX buffer is empty and there is
@@ -1026,6 +1035,10 @@ static void usbhost_txdata_work(FAR void *arg)
       DEBUGASSERT(ret >= 0);
       UNUSED(ret);
     }
+
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  sys_trace_com_finish("usb", total_bytes, 0);
+#endif  //CONFIG_TRACE_CTF_COM_USAGE
 }
 
 /****************************************************************************
@@ -1087,6 +1100,10 @@ static void usbhost_rxdata_work(FAR void *arg)
    * 2. There is no more data available from the CDC/ACM device
    * 3. RX rec
    */
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  uint32_t total_bytes = 0;
+  sys_trace_com_start("usb", 0);
+#endif //CONFIG_TRACE_CTF_COM_USAGE
 
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
   while (priv->rxena && priv->rts && !priv->disconnected)
@@ -1125,6 +1142,9 @@ static void usbhost_rxdata_work(FAR void *arg)
                    (int)nread);
               break;
             }
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+            total_bytes = += nread;
+#endif // CONFIG_TRACE_CTF_COM_USAGE
 
           /* Save the number of bytes read.  This might be zero if
            * a Zero Length Packet (ZLP) is received.  The ZLP is
@@ -1220,6 +1240,10 @@ static void usbhost_rxdata_work(FAR void *arg)
     {
       uart_datareceived(uartdev);
     }
+
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  sys_trace_com_finish("usb", total_bytes, 1);
+#endif  //CONFIG_TRACE_CTF_COM_USAGE
 }
 
 /****************************************************************************
