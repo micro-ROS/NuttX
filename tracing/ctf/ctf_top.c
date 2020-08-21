@@ -12,6 +12,7 @@
 #include <nuttx/tracing/tracing_probes.h>
 
 #define CPU_0 0
+#define COM_IFACE_CHAR 8
 
 /* Limit strings to 20 bytes to optimize bandwidth */
 #define CTF_MAX_STRING_LEN 20
@@ -415,9 +416,9 @@ static void ctf_top_com_pkt_tx(const char *iface, const uint8_t *pkt,
 	}
 
 	if (iface != NULL) {
-		strncpy(name.buf, iface, sizeof(name.buf));
+		strncpy(name.buf, iface, COM_IFACE_CHAR);
 		/* strncpy may not always null-terminate */
-		name.buf[sizeof(name.buf) - 1] = 0;
+		name.buf[COM_IFACE_CHAR - 1] = 0;
 	}
 
 	CTF_EVENT(
@@ -444,11 +445,10 @@ static void ctf_top_com_pkt_rx(const char *iface, const uint8_t *pkt,
 		memcpy(packet, pkt, size);
 	}
 
-
 	if (iface != NULL) {
-		strncpy(name.buf, iface, sizeof(name.buf));
+		strncpy(name.buf, iface, COM_IFACE_CHAR);
 		/* strncpy may not always null-terminate */
-		name.buf[sizeof(name.buf) - 1] = 0;
+		name.buf[COM_IFACE_CHAR - 1] = 0;
 	}
 
 	CTF_EVENT(
@@ -490,6 +490,38 @@ static void ctf_top_com_usage(const char *iface, uint32_t pkt_size,
 	(void) is_start;	
 #endif //CONFIG_TRACE_CTF_COM_USAGE
 }
+
+static void ctf_top_ctf_timer(uint32_t tid, const char *func, uint32_t line,
+		void* func_ptr, bool start_timer)
+{
+#ifdef CONFIG_TRACE_CTF_CTF_TIMER
+	ctf_bounded_string_t name = { "unkfunc" };
+
+	if (func != NULL) {
+		strncpy(name.buf, func, sizeof(name.buf));
+		/* strncpy may not always null-terminate */
+		name.buf[sizeof(name.buf) - 1] = 0;
+	}
+
+	if (start_timer) {
+		CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_CTF_TIMER_START),
+				tid, name, line, func_ptr
+			 );
+	} else {
+		CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_CTF_TIMER_STOP),
+				tid, name, line, func_ptr
+			 );
+	}
+#else
+	(void) tid;
+	(void) func;
+	(void) line;
+	(void) func_ptr;
+	(void) start_timer;
+
+#endif //CONFIG_TRACE_CTF_CTF_TIMER
+
+}	
 
 void sys_trace_thread_switched_out(struct tcb_s *thread)
 {
@@ -650,4 +682,18 @@ void sys_trace_com_pkt(const char *iface, uint8_t *pkt, uint32_t pkt_size, uint8
 	} else {
 		ctf_top_com_pkt_rx(iface, pkt, pkt_size);
 	}
+}
+
+void sys_trace_ctf_timer_start(uint32_t tid, const char *func_name, uint32_t line,
+		void *func_ptr)
+{
+	/** Start the timer */
+	ctf_top_ctf_timer(tid, func_name, line, func_ptr, 1);
+}
+
+void sys_trace_ctf_timer_stop(uint32_t tid, const char *func_name, uint32_t line,
+		void *func_ptr)
+{
+	/** Start the timer */
+	ctf_top_ctf_timer(tid, func_name, line, func_ptr, 0);
 }

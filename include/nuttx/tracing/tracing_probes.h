@@ -71,6 +71,16 @@ void cpu_stats_reset_counters(void);
 #define sys_trace_fenter_timer(thread)
 #define sys_trace_fexit_timer(thread)
 
+
+/** Function stack and heap usage */
+#define sys_trace_memory_dynamic_free(heap, ptr, real_size, user_size)
+#define sys_trace_memory_dynamic_allocate(heap, ptr,real_size, user_size, requested)
+#define sys_trace_memory_static_alloc(func, size)
+
+/** Function calls tracing */
+#define sys_trace_func_usage_enter(func)
+#define sys_trace_func_usage_exit(func)
+
 #ifdef __cplusplus
 }
 #endif
@@ -118,6 +128,13 @@ void sys_trace_memory_static_alloc(void *func, uint32_t size) __attribute__((no_
 void sys_trace_func_usage_enter(void *func) __attribute__((no_instrument_function));
 void sys_trace_func_usage_exit(void *func) __attribute__((no_instrument_function));
 
+/** CTF timer trace */
+void sys_trace_ctf_timer_start(uint32_t tid, const char *func_name,
+		uint32_t line, void* func_ptr) __attribute__((no_instrument_function));
+
+void sys_trace_ctf_timer_stop(uint32_t tid, const char *func_name,
+		uint32_t line, void* func_ptr)__attribute__((no_instrument_function));
+
 
 #else
 
@@ -160,6 +177,16 @@ void sys_trace_func_usage_exit(void *func) __attribute__((no_instrument_function
 /** Function calls tracing specific */
 #define sys_trace_fenter_timer(thread)
 #define sys_trace_fexit_timer(thread)
+
+/** Function stack and heap usage */
+#define sys_trace_memory_dynamic_free(heap, ptr, real_size, user_size)
+#define sys_trace_memory_dynamic_allocate(heap, ptr,real_size, user_size, requested)
+#define sys_trace_memory_static_alloc(func, size)
+
+/** Function calls tracing */
+#define sys_trace_func_usage_enter(func)
+#define sys_trace_func_usage_exit(func)
+
 #endif /* CONFIG_CTF_TRACE_USE_CTF */
 
 #endif /* __TRRACING_PROBES_H__ */
