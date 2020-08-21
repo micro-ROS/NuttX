@@ -279,6 +279,9 @@ event {
 	id = 0xA0;
 	fields := struct {
 		uint32_t id;
+		ctf_bounded_string_t interface[20];
+		uint32_t line;
+		integer { size = 32; align = 8; signed = 0; encoding = none; base = 16; } address;
 	};
 };
 
@@ -287,6 +290,9 @@ event {
 	id = 0xA1;
 	fields := struct {
 		uint32_t id;
+		ctf_bounded_string_t interface[20];
+		uint32_t line;
+		integer { size = 32; align = 8; signed = 0; encoding = none; base = 16; } address;
 	};
 };
 
