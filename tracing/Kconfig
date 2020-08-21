@@ -64,10 +64,11 @@ config TRACE_CTF_SCHEDULER_INFO
 	bool "Scheduler usage info"
 	
 config TRACE_CTF_MEMORY_STATIC_INFO
-	bool "Stack usage info and allocation"
+	bool "Stack usage info and allocation - do not activate CONFIG_TRACE_CTF_FUNCTIONS_USAGE"
 if TRACE_CTF_MEMORY_STATIC_INFO
 	config TRACE_CTF_APPLICATION
 	bool "Trace the applications stack usage"
+	default y
         help
 	  This Allows to trace the application
           Can be used in combination with TRACE_CTF_RTOS
@@ -99,7 +100,7 @@ config TRACE_CTF_COM_PACKETS
 	   performance a lot. 
 
 config TRACE_CTF_FUNCTIONS_USAGE
-	bool "Function usage info"
+	bool "Function usage info - do not activate CONFIG_TRACE_CTF_MEMORY_USAGE"
 
 if TRACE_CTF_FUNCTIONS_USAGE
 	config TRACE_CTF_FUNCTIONS_USAGE_EXCL_PATH 
@@ -111,13 +112,18 @@ if TRACE_CTF_FUNCTIONS_USAGE
 	string "Instrumentation exlucing function"
 	help 
 	  Comma separated list of function to not instrument
+
+	config TRACE_CTF_FUNCTIONS_USAGE_APPLICATION
+	bool "Trace only application"
+
+	config TRACE_CTF_FUNCTIONS_USAGE_RTOS
+	bool "Trace only the RTOS"
+
 endif
 
 config TRACE_CTF_IRQ
 	bool "Trace the IRQ calls"
-
 endif
-
 
 choice
 	prompt "Tracing backend"
