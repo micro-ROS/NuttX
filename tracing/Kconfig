@@ -121,6 +121,9 @@ if TRACE_CTF_FUNCTIONS_USAGE
 
 endif
 
+config TRACE_CTF_CTF_TIMER
+	bool "Trace function using internal CTF timer auto"
+
 config TRACE_CTF_IRQ
 	bool "Trace the IRQ calls"
 endif
