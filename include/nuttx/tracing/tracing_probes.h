@@ -48,18 +48,9 @@ void cpu_stats_reset_counters(void);
 
 #define sys_trace_void(id)
 #define sys_trace_end_call(id)
-
-/** Send/recv packet (rather used for wireshark later?) network/serial/usb interface */
-#define sys_trace_packet_sent(interface, buf, size)
-#define sys_trace_packet_rcvd(interface, buf, size)
-
-/** Send/recv latency network/serial/usb interface */
-#define sys_trace_latency_start(interface, buf, size)
-#define sys_trace_latency_end(interface, buf, size)
-
-/** Send/recv bandwitdh used */
-#define sys_trace_bw_up(interface, size)
-#define sys_trace_bw_down(interface, size)
+#define sys_trace_com_pkt(iface, pkt, pkt_size, is_rx)
+#define sys_trace_com_start(iface, is_rx)
+#define sys_trace_com_finish(iface, pkt_size, is_rx)
 
 /** Function stack pointer usage */
 #define sys_trace_fenter_stack_usage(thread, func, size)
@@ -156,17 +147,9 @@ void sys_trace_ctf_timer_stop(uint32_t tid, const char *func_name,
 #define sys_trace_(x)
 #define sys_trace_end_call(x)
 
-/** Send/recv packet (rather used for wireshark later?) network/serial/usb interface */
-#define sys_trace_packet_sent(interface, buf, size)
-#define sys_trace_packet_rcvd(interface, buf, size)
-
-/** Send/recv latency network/serial/usb interface */
-#define sys_trace_latency_start(interface, buf, size)
-#define sys_trace_latency_end(interface, buf, size)
-
-/** Send/recv bandwitdh used */
-#define sys_trace_bw_up(interface, size)
-#define sys_trace_bw_down(interface, size)
+#define sys_trace_com_pkt(iface, pkt, pkt_size, is_rx)
+#define sys_trace_com_start(iface, is_rx)
+#define sys_trace_com_finish(iface, pkt_size, is_rx)
 
 /** Function stack pointer usage */
 #define sys_trace_fenter_stack_usage(thread, func, size)

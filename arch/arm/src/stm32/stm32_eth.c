@@ -1075,7 +1075,7 @@ static int stm32_transmit(FAR struct stm32_ethmac_s *priv)
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
   sys_trace_com_start("eth", 0);
   tx_size[tx_pos_start] = priv->dev.d_len;
-  tx_pos_start++;
+  tx_pos_start++; 
   tx_pos_start %= 64;
 #endif //CONFIG_TRACE_CTF_COM_USAGE
 
@@ -1632,6 +1632,10 @@ static int stm32_recvframe(FAR struct stm32_ethmac_s *priv)
             {
               struct net_driver_s *dev = &priv->dev;
 
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  	      sys_trace_com_start("eth", 1);
+#endif
+
               /* Get the Frame Length of the received packet: substruct 4
                * bytes of the CRC
                */
@@ -1665,6 +1669,11 @@ static int stm32_recvframe(FAR struct stm32_ethmac_s *priv)
               ninfo("rxhead: %p d_buf: %p d_len: %d\n",
                     priv->rxhead, dev->d_buf, dev->d_len);
 
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+              rx_size[rx_pos_start] = priv->dev.d_len;
+	      rx_pos_start++; 
+	      rx_pos_start %= 64;
+#endif  // CONFIG_TRACE_CTF_COM_USAGE
               return OK;
             }
           else
@@ -1745,6 +1754,11 @@ static void stm32_receive(FAR struct stm32_ethmac_s *priv)
               dev->d_len = 0;
             }
 
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  	 sys_trace_com_finish("eth", 0, 1);
+  	 rx_pos_end++; 
+  	 rx_pos_end %= 64;
+#endif  //CONFIG_TRACE_CTF_COM_USAGE
           continue;
         }
 
@@ -1864,6 +1878,12 @@ static void stm32_receive(FAR struct stm32_ethmac_s *priv)
           dev->d_buf = NULL;
           dev->d_len = 0;
         }
+
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  	 sys_trace_com_finish("eth", rx_size[rx_pos_end], 1);
+  	 rx_pos_end++; 
+  	 rx_pos_end %= 64;
+#endif  //CONFIG_TRACE_CTF_COM_USAGE
     }
 }
 
@@ -1988,10 +2008,8 @@ static void stm32_txdone(FAR struct stm32_ethmac_s *priv)
   /* Scan the TX descriptor change, returning buffers to free list */
 
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
-  FAR struct net_driver_s *dev = &priv->dev;
   sys_trace_com_finish("eth", tx_size[tx_pos_end], 0);
-
-  tx_pos_end++;
+  tx_pos_end++; 
   tx_pos_end %= 64;
 #endif  //CONFIG_TRACE_CTF_COM_USAGE
 
@@ -2009,6 +2027,7 @@ static void stm32_txdone(FAR struct stm32_ethmac_s *priv)
 
       stm32_disableint(priv, ETH_DMAINT_TI);
     }
+  
 
   /* Then poll the network for new XMIT data */
 
@@ -2780,7 +2799,7 @@ static void stm32_txdescinit(FAR struct stm32_ethmac_s *priv)
 }
 
 /****************************************************************************
- * Function: stm32_rxdescinit
+ * Function: etm32_rxdescinit
  *
  * Description:
  *   Initializes the DMA RX descriptors in chain mode.
