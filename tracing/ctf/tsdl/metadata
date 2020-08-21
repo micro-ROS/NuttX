@@ -220,6 +220,7 @@ event {
 		integer { size = 32; align = 8; signed = 0; encoding = none; base = 16; } address;
 		uint32_t real_alloc;
 		uint32_t user_alloc;
+		uint32_t user_req;
 	};
 };
 

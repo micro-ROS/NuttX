@@ -111,7 +111,7 @@ void sys_trace_end_call(unsigned int id) __attribute__((no_instrument_function))
 
 /** Function stack and heap usage */
 void sys_trace_memory_dynamic_free(struct mm_heap_s *heap, void *ptr, uint32_t real_size, uint32_t user_size) __attribute__((no_instrument_function));
-void sys_trace_memory_dynamic_allocate(struct mm_heap_s *heap, void *ptr, uint32_t real_size, uint32_t user_size) __attribute__((no_instrument_function));
+void sys_trace_memory_dynamic_allocate(struct mm_heap_s *heap, void *ptr, uint32_t real_size, uint32_t user_size, uint32_t requested) __attribute__((no_instrument_function));
 void sys_trace_memory_static_alloc(void *func, uint32_t size) __attribute__((no_instrument_function));
 
 /** Function calls tracing */
