@@ -351,7 +351,7 @@ FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
   count = backtrace_unwind(backtrace_buf, BACKTRACE_SIZE);
   dump_backtrace(backtrace_buf, count, alignsize + SIZEOF_MM_ALLOCNODE, ret);
 #elif defined(CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO)
-  sys_trace_memory_dynamic_allocate(heap, ret, alignsize + SIZEOF_MM_ALLOCNODE, alignsize);
+  sys_trace_memory_dynamic_allocate(heap, ret, alignsize + SIZEOF_MM_ALLOCNODE, alignsize, size);
 #endif// CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 
   return ret;

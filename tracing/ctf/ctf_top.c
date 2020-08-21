@@ -312,7 +312,8 @@ static void ctf_top_end_call(u32_t id)
 #endif
 }
 
-static void ctf_top_malloc(void *ptr, uint32_t real_size, uint32_t user_size)
+static void ctf_top_malloc(void *ptr, uint32_t real_size, uint32_t user_size,
+			   uint32_t requested)
 {
 #ifdef CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 	struct tcb_s *proc = sched_self();
@@ -327,7 +328,8 @@ static void ctf_top_malloc(void *ptr, uint32_t real_size, uint32_t user_size)
 		pid,
 		ptr,
 		real_size,
-		user_size
+		user_size,
+		requested
 		);
 #else
 	(void)ptr;
@@ -605,9 +607,10 @@ void sys_trace_idle(void)
 }
 
 // Malloc calls
-void sys_trace_memory_dynamic_allocate(struct mm_heap_s *heap, void *ptr, uint32_t real_size, uint32_t user_size)
+void sys_trace_memory_dynamic_allocate(struct mm_heap_s *heap, void *ptr, 
+		uint32_t real_size, uint32_t user_size, uint32_t requested)
 { 
-	ctf_top_malloc(ptr, real_size, user_size);
+	ctf_top_malloc(ptr, real_size, user_size, requested);
 }
 
 void sys_trace_memory_dynamic_free(struct mm_heap_s *heap, void *ptr, uint32_t real_size, uint32_t user_size)
