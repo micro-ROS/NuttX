@@ -36,7 +36,10 @@ CSRCS += cpu_stats.c
 endif
 
 ifeq ($(CONFIG_TRACE_CTF_MEMORY_STATIC_INFO),y)
-CFLAGS += -I$(TOPDIR)/libs/libbacktrace/include/
+CSRCS += tracing_elements/tracing_stack.c
+endif
+
+ifeq ($(CONFIG_TRACE_CTF_FUNCTIONS_USAGE),y)
 CSRCS += tracing_elements/tracing_stack.c
 endif
 
