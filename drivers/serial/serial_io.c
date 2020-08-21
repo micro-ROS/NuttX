@@ -72,7 +72,6 @@ void uart_xmitchars(FAR uart_dev_t *dev)
   /* Send while we still have data in the TX buffer & room in the fifo */
 
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
-  uint32_t total_bytes = 0;
   sys_trace_com_start("uart", 0);
 #endif //CONFIG_TRACE_CTF_COM_USAGE
 
