@@ -467,20 +467,21 @@ static void ctf_top_com_usage(const char *iface, uint32_t pkt_size,
 {
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
 	ctf_bounded_string_t name = { "unkfac" };
+	u8_t src_u = src;
 
 	if (iface != NULL) {
-		strncpy(name.buf, iface, sizeof(name.buf));
+		strncpy(name.buf, iface, sizeof(name.buf) - 1);
 		/* strncpy may not always null-terminate */
 		name.buf[sizeof(name.buf) - 1] = 0;
 	}
 
 	if (is_start) { 
 		CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_COM_START),
-				name, pkt_size, src	
+				name, src_u
 			 );
 	} else {
 		CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_COM_FINISH),
-				name, src	
+				name, pkt_size, src_u
 			 );
 	}
 #else
@@ -665,14 +666,14 @@ void sys_trace_memory_static_alloc(void *func, uint32_t size)
 	ctf_top_stack_usage(func, size);
 }
 
-void sys_trace_com_start(const char *iface, uint32_t pkt_size, uint8_t is_rx)
+void sys_trace_com_start(const char *iface, uint8_t is_rx)
 {
-	ctf_top_com_usage(iface, pkt_size, (com_start_end_src_t)is_rx, 1);
+	ctf_top_com_usage(iface, 0, (com_start_end_src_t)is_rx, 1);
 }
 
-void sys_trace_com_finish(const char *iface, uint8_t is_rx)
+void sys_trace_com_finish(const char *iface, uint32_t pkt_size, uint8_t is_rx)
 {
-	ctf_top_com_usage(iface, 0, (com_start_end_src_t)is_rx, 0);
+	ctf_top_com_usage(iface, pkt_size, (com_start_end_src_t)is_rx, 0);
 }
 
 void sys_trace_com_pkt(const char *iface, uint8_t *pkt, uint32_t pkt_size, uint8_t is_rx)
