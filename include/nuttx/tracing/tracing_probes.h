@@ -126,6 +126,8 @@ void sys_trace_ctf_timer_start(uint32_t tid, const char *func_name,
 void sys_trace_ctf_timer_stop(uint32_t tid, const char *func_name,
 		uint32_t line, void* func_ptr)__attribute__((no_instrument_function));
 
+/** Thread create to keep track of the what's going on */
+void sys_trace_thread_create(struct tcb_s *thread);
 
 #else
 
