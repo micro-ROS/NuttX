@@ -94,8 +94,8 @@ void sys_trace_packet_rcvd(const char *interface, const char *buf, uint32_t size
 
 /** Send/recv latency network/serial/usb interface */
 void sys_trace_com_pkt(const char *iface, uint8_t *pkt, uint32_t pkt_size, uint8_t is_rx) __attribute__((no_instrument_function));
-void sys_trace_com_start(const char *iface, uint32_t pkt_size, uint8_t is_rx) __attribute__((no_instrument_function));
-void sys_trace_com_finish(const char *iface, uint8_t is_rx) __attribute__((no_instrument_function));
+void sys_trace_com_start(const char *iface, uint8_t is_rx) __attribute__((no_instrument_function));
+void sys_trace_com_finish(const char *iface, uint32_t pkt_size, uint8_t is_rx) __attribute__((no_instrument_function));
 
 /** Thread entering/exiting etc */
 void sys_trace_thread_abort(struct tcb_s *thread) __attribute__((no_instrument_function));
