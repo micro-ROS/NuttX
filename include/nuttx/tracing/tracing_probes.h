@@ -51,6 +51,8 @@ void cpu_stats_reset_counters(void);
 #define sys_trace_com_pkt(iface, pkt, pkt_size, is_rx)
 #define sys_trace_com_start(iface, is_rx)
 #define sys_trace_com_finish(iface, pkt_size, is_rx)
+#define  sys_trace_ctf_meas_start()
+#define  sys_trace_ctf_meas_stop()
 
 /** Function stack pointer usage */
 #define sys_trace_fenter_stack_usage(thread, func, size)
@@ -92,7 +94,9 @@ void sys_trace_com_finish(const char *iface, uint32_t pkt_size, uint8_t is_rx) _
 void sys_trace_thread_abort(struct tcb_s *thread) __attribute__((no_instrument_function));
 void sys_trace_thread_suspend(struct tcb_s *thread) __attribute__((no_instrument_function));
 void sys_trace_thread_switched(struct tcb_s *prev, struct tcb_s *next) __attribute__((no_instrument_function));
+
 void sys_trace_thread_switched_in(struct tcb_s *thread) __attribute__((no_instrument_function));
+
 void sys_trace_thread_switched_out(struct tcb_s *thread) __attribute__((no_instrument_function));
 
 /** Scheduler realtimeness */
@@ -124,10 +128,17 @@ void sys_trace_ctf_timer_start(uint32_t tid, const char *func_name,
 		uint32_t line, void* func_ptr) __attribute__((no_instrument_function));
 
 void sys_trace_ctf_timer_stop(uint32_t tid, const char *func_name,
-		uint32_t line, void* func_ptr)__attribute__((no_instrument_function));
+		uint32_t line, void* func_ptr) __attribute__((no_instrument_function));
 
 /** Thread create to keep track of the what's going on */
-void sys_trace_thread_create(struct tcb_s *thread);
+void sys_trace_thread_create(struct tcb_s *thread) __attribute__((no_instrument_function));
+
+void sys_trace_thread_name_set(struct tcb_s *thread)  __attribute__((no_instrument_function));
+void sys_trace_thread_resume(struct tcb_s *thread) __attribute__((no_instrument_function));
+void sys_trace_thread_priority_set(struct tcb_s *thread)  __attribute__((no_instrument_function));
+
+void sys_trace_ctf_meas_stop(void) __attribute__((no_instrument_function));
+void sys_trace_ctf_meas_start(void) __attribute__((no_instrument_function));
 
 #else
 
@@ -171,6 +182,9 @@ void sys_trace_thread_create(struct tcb_s *thread);
 /** Function calls tracing */
 #define sys_trace_func_usage_enter(func)
 #define sys_trace_func_usage_exit(func)
+
+#define  sys_trace_ctf_meas_start()
+#define  sys_trace_ctf_meas_stop()
 
 #endif /* CONFIG_CTF_TRACE_USE_CTF */
 
