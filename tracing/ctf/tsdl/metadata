@@ -240,7 +240,6 @@ event {
 	id = 0x70;
 	fields := struct {
 		ctf_bounded_string_t interface[20];
-		uint32_t pkt_size;
 		com_start_end_src_t recvorsend;
 	};
 };
@@ -250,6 +249,7 @@ event {
 	id = 0x71;
 	fields := struct {
 		ctf_bounded_string_t interface[20];
+		uint32_t pkt_size;
 		com_start_end_src_t recvorsend;
 	};
 };
@@ -314,4 +314,14 @@ event {
 		uint32_t tstart_ns;
 		uint32_t tstart_s;
 	};
+};
+
+event {
+	name = measurement_start;
+	id = 0xC0;
+};
+
+event {
+	name = measurement_stop;
+	id = 0xC1;
 };
