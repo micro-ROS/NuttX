@@ -6,7 +6,6 @@
 #include <sched.h>
 #include <stdbool.h>
 
-#define STACK_SIZE_DATA
 
 void __cyg_profile_func_enter (void *, void *) __attribute__((no_instrument_function));
 void __cyg_profile_func_exit (void *, void *) __attribute__((no_instrument_function));
@@ -83,6 +82,7 @@ void __cyg_profile_func_enter(void *this_fn, void *call_site)
 		tracing_ctx[pid].reached_max = sp_ptr;
 	}
 #endif // CONFIG_TRACE_CTF_MEMORY_STATIC_INFO
+
 #ifdef CONFIG_TRACE_CTF_FUNCTIONS_USAGE
 	sys_trace_func_usage_enter(this_fn);
 #endif // CONFIG_TRACE_CTF_FUNCTIONS_USAGE
