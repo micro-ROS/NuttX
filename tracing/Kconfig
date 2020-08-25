@@ -62,6 +62,7 @@ config TRACE_CTF_CPU_USAGE
 
 config TRACE_CTF_SCHEDULER_INFO
 	bool "Scheduler usage info"
+	select SCHED_INSTRUMENTATION
 	
 config TRACE_CTF_MEMORY_STATIC_INFO
 	bool "Stack usage info and allocation - do not activate CONFIG_TRACE_CTF_FUNCTIONS_USAGE"
