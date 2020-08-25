@@ -88,6 +88,8 @@ typedef enum {
 	CTF_EVENT_ID_CTF_TIMER_START    =  0xA0,
 	CTF_EVENT_ID_CTF_TIMER_STOP     =  0xA1,
 	CTF_EVENT_ID_CTF_MANTIMER_START =  0xA2,
+	CTF_EVENT_ID_CTF_MEAS_START     =  0xC0,
+	CTF_EVENT_ID_CTF_MEAS_STOP      =  0xC1,
 } ctf_event_t;
 
 typedef enum {
@@ -198,7 +200,7 @@ static  void ctf_top_thread_resume(u32_t thread_id)
 
 static  void ctf_top_thread_ready(u32_t thread_id)
 {
-#ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
+#if 0
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_READY),
 		thread_id
@@ -210,7 +212,7 @@ static  void ctf_top_thread_ready(u32_t thread_id)
 
 static  void ctf_top_thread_pend(u32_t thread_id)
 {
-#ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
+#if 0
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_PENDING),
 		thread_id
@@ -524,6 +526,16 @@ static void ctf_top_ctf_timer(uint32_t tid, const char *func, uint32_t line,
 
 }	
 
+void ctf_top_ctf_meas_start(void)
+{
+	CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_CTF_MEAS_START))
+}
+
+void ctf_top_ctf_meas_stop(void)
+{
+	CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_CTF_MEAS_STOP))
+}
+
 void sys_trace_thread_switched_out(struct tcb_s *thread)
 {
 	ctf_top_thread_switched_out((u32_t)thread->pid);
@@ -697,4 +709,19 @@ void sys_trace_ctf_timer_stop(uint32_t tid, const char *func_name, uint32_t line
 {
 	/** Start the timer */
 	ctf_top_ctf_timer(tid, func_name, line, func_ptr, 0);
+}
+
+void sys_trace_ctf_meas_start(void)
+{
+	/** Start the timer */
+	/** start measurement can be used in application to tell 
+	 * the benchmarking tool to start recording the data */
+	ctf_top_ctf_meas_start();
+}
+
+void sys_trace_ctf_meas_stop(void)
+{
+	/** start measurement can be used in application to tell 
+	 * the benchmarking tool to quit the data */
+	ctf_top_ctf_meas_stop();
 }
