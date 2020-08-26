@@ -20,10 +20,10 @@ struct tracing_stack_func {
 	bool is_tracing_enter;
 #ifdef CONFIG_TRACE_CTF_FUNCTIONS_USAGE
 	bool is_tracing_exit;
-#endif
+#endif //CONFIG_TRACE_CTF_FUNCTIONS_USAGE
 #ifdef CONFIG_TRACE_CTF_MEMORY_STATIC_INFO
 	uint32_t reached_max;
-#endif
+#endif //CONFIG_TRACE_CTF_MEMORY_STATIC_INFO
 } tracing_ctx [64];
 
 
@@ -60,7 +60,7 @@ void __cyg_profile_func_enter(void *this_fn, void *call_site)
 #ifdef CONFIG_TRACE_CTF_MEMORY_STATIC_INFO
 #if CONFIG_TRACE_STACK_USAGE_CALLS_CNT_SAMPLING > 0
 	static uint32_t call_count = 0;
-#endif
+#endif //CONFIG_TRACE_STACK_USAGE_CALLS_CNT_SAMPLING
 
 	register void *sp asm ("sp");
 	uint32_t sp_ptr = (uint32_t)(uintptr_t) sp;
