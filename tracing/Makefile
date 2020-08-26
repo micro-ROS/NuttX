@@ -37,7 +37,7 @@ endif
 
 ifeq ($(CONFIG_TRACE_CTF_MEMORY_STATIC_INFO),y)
 CSRCS += tracing_elements/tracing_stack.c
-else
+else 
 ifeq ($(CONFIG_TRACE_CTF_FUNCTIONS_USAGE), y)
 CSRCS += tracing_elements/tracing_stack.c
 endif
@@ -81,6 +81,7 @@ $(BIN): $(OBJS)
 depend: .depend
 
 clean:
+	find . -iname "*.o" -exec rm {} \;
 	$(call DELFILE, $(BIN))
 	$(call CLEAN)
 

@@ -66,8 +66,8 @@ void cpu_stats_reset_counters(void);
 
 
 /** Function stack and heap usage */
-#define sys_trace_memory_dynamic_free(heap, ptr, real_size, user_size)
-#define sys_trace_memory_dynamic_allocate(heap, ptr,real_size, user_size, requested)
+#define sys_trace_memory_dynamic_free(bt, heap, ptr, real_size, user_size)
+#define sys_trace_memory_dynamic_allocate((bt, heap, ptr,real_size, user_size, requested)
 #define sys_trace_memory_static_alloc(func, size)
 
 /** Function calls tracing */
@@ -116,7 +116,7 @@ void sys_trace_end_call(unsigned int id) __attribute__((no_instrument_function))
 
 /** Function stack and heap usage */
 void sys_trace_memory_dynamic_free(struct mm_heap_s *heap, void *ptr, uint32_t real_size, uint32_t user_size) __attribute__((no_instrument_function));
-void sys_trace_memory_dynamic_allocate(struct mm_heap_s *heap, void *ptr, uint32_t real_size, uint32_t user_size, uint32_t requested) __attribute__((no_instrument_function));
+void sys_trace_memory_dynamic_allocate(void **bt, struct mm_heap_s *heap, void *ptr, uint32_t real_size, uint32_t user_size, uint32_t requested) __attribute__((no_instrument_function));
 void sys_trace_memory_static_alloc(void *func, uint32_t size) __attribute__((no_instrument_function));
 
 /** Function calls tracing */
@@ -176,7 +176,7 @@ void sys_trace_ctf_meas_start(void) __attribute__((no_instrument_function));
 
 /** Function stack and heap usage */
 #define sys_trace_memory_dynamic_free(heap, ptr, real_size, user_size)
-#define sys_trace_memory_dynamic_allocate(heap, ptr,real_size, user_size, requested)
+#define sys_trace_memory_dynamic_allocate(bt, heap, ptr,real_size, user_size, requested)
 #define sys_trace_memory_static_alloc(func, size)
 
 /** Function calls tracing */

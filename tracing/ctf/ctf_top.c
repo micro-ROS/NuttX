@@ -91,6 +91,7 @@ typedef enum {
 	CTF_EVENT_ID_CTF_MANTIMER_START =  0xA2,
 	CTF_EVENT_ID_CTF_MEAS_START     =  0xC0,
 	CTF_EVENT_ID_CTF_MEAS_STOP      =  0xC1,
+	//CTF_EVENT_ID_CTF_MEAS_DUMMY     =  0xC2,
 } ctf_event_t;
 
 typedef enum {
@@ -317,12 +318,13 @@ static void ctf_top_end_call(u32_t id)
 #endif
 }
 
-static void ctf_top_malloc(void *ptr, uint32_t real_size, uint32_t user_size,
+static void ctf_top_malloc(void **bt, void *ptr, uint32_t real_size, uint32_t user_size,
 			   uint32_t requested)
 {
 #ifdef CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 	struct tcb_s *proc = sched_self();
 	uint32_t pid = 0;
+
 
 	if (proc) {
 		pid = proc->pid;
@@ -331,6 +333,10 @@ static void ctf_top_malloc(void *ptr, uint32_t real_size, uint32_t user_size,
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_ID_HEAP_ALLOC),
 		pid,
+		bt[3],
+		bt[2],
+		bt[1],
+		bt[0],
 		ptr,
 		real_size,
 		user_size,
@@ -658,10 +664,10 @@ void sys_trace_idle(void)
 }
 
 // Malloc calls
-void sys_trace_memory_dynamic_allocate(struct mm_heap_s *heap, void *ptr, 
+void sys_trace_memory_dynamic_allocate(void **bt, struct mm_heap_s *heap, void *ptr, 
 		uint32_t real_size, uint32_t user_size, uint32_t requested)
 { 
-	ctf_top_malloc(ptr, real_size, user_size, requested);
+	ctf_top_malloc(bt, ptr, real_size, user_size, requested);
 }
 
 void sys_trace_memory_dynamic_free(struct mm_heap_s *heap, void *ptr, uint32_t real_size, uint32_t user_size)

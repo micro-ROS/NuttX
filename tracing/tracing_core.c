@@ -164,7 +164,7 @@ void tracing_trigger_output(bool before_put_is_empty)
 			   &tracing_trigger_flush,
 			   tracing_thread_timer_expiry_fn,
 			   NULL,
-			   100);
+			   10);
 	}
 }
 
@@ -228,4 +228,10 @@ void tracing_backend_init(
 	if (backend && backend->api) {
 		backend->api->init();
 	}
+}
+
+int tracing_finish(void)
+{
+	nxsem_post(&tracing_thread_sem);
+	return 0;
 }
