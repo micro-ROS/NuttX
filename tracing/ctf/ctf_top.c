@@ -6,6 +6,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <nuttx/config.h>
 #include <nuttx/tracing/ctf_map.h>
 #include <nuttx/tracing/ctf_types.h>
 #include <nuttx/tracing/tracing_format.h>
@@ -153,7 +154,6 @@ static  void ctf_top_thread_create(
 	ctf_bounded_string_t name
 	)
 {
-
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_CREATE),
 		thread_id,
@@ -165,6 +165,7 @@ static  void ctf_top_thread_create(
 static  void ctf_top_thread_abort(u32_t thread_id)
 {
 #ifdef CONFIG_TRACE_CTF_SCHEDULER_INFO
+
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_THREAD_ABORT),
 		thread_id
@@ -256,6 +257,7 @@ static  void ctf_top_thread_name_set(
 static  void ctf_top_isr_enter(uint32_t isr_id)
 {
 #ifdef CONFIG_TRACE_CTF_IRQ
+
 	CTF_EVENT(
 		CTF_LITERAL(u8_t, CTF_EVENT_ISR_ENTER),
 		isr_id
@@ -528,12 +530,16 @@ static void ctf_top_ctf_timer(uint32_t tid, const char *func, uint32_t line,
 
 void ctf_top_ctf_meas_start(void)
 {
-	CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_CTF_MEAS_START))
+	CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_CTF_MEAS_START));
 }
 
 void ctf_top_ctf_meas_stop(void)
 {
-	CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_CTF_MEAS_STOP))
+	CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_CTF_MEAS_STOP));
+	tracing_finish();
+	usleep(100000);
+	CTF_EVENT(CTF_LITERAL(u8_t, CTF_EVENT_ID_CTF_MEAS_STOP));
+	tracing_finish();
 }
 
 void sys_trace_thread_switched_out(struct tcb_s *thread)
