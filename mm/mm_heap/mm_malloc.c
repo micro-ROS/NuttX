@@ -57,14 +57,18 @@
 /****************************************************************************
  * Debugging Functions
  ****************************************************************************/
+
+#define BACKTRACE_SIZE	4
+
 #ifdef CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 #include <nuttx/tracing/tracing_probes.h>
 #endif //CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
+
+
 #ifdef CONFIG_LIBBACKTRACE
 
 #include <backtrace.h>
 
-#define BACKTRACE_SIZE	8
 FAR backtrace_t backtrace_buf[BACKTRACE_SIZE];
 
 /* To satisfy nuttx with its -Wmissing-declarations */
@@ -347,11 +351,18 @@ FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
     }
 #endif
 
-#ifdef CONFIG_LIBBACKTRACE
+#ifdef CONFIG_MEMORY_BEMCHMARKING
   count = backtrace_unwind(backtrace_buf, BACKTRACE_SIZE);
   dump_backtrace(backtrace_buf, count, alignsize + SIZEOF_MM_ALLOCNODE, ret);
 #elif defined(CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO)
-  sys_trace_memory_dynamic_allocate(heap, ret, alignsize + SIZEOF_MM_ALLOCNODE, alignsize, size);
+  backtrace_t bt[BACKTRACE_SIZE];
+  count = backtrace_unwind(bt, BACKTRACE_SIZE);
+  void *backtrace_addresses[BACKTRACE_SIZE + 1] = { NULL, NULL, NULL, NULL, NULL };
+  for (int i = count - 1; i > -1 ; i--) {
+     backtrace_addresses[i] = bt[i].address;
+  }
+
+  sys_trace_memory_dynamic_allocate(backtrace_addresses, heap, ret, alignsize + SIZEOF_MM_ALLOCNODE, alignsize, size);
 #endif// CONFIG_TRACE_CTF_MEMORY_DYNAMIC_INFO
 
   return ret;

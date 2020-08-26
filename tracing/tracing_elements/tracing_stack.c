@@ -57,6 +57,7 @@ void __cyg_profile_func_enter(void *this_fn, void *call_site)
 	}
 
 	tracing_ctx[pid].is_tracing_enter = true;
+
 #ifdef CONFIG_TRACE_CTF_MEMORY_STATIC_INFO
 #if CONFIG_TRACE_STACK_USAGE_CALLS_CNT_SAMPLING > 0
 	static uint32_t call_count = 0;

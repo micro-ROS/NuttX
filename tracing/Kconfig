@@ -90,6 +90,7 @@ if TRACE_CTF_MEMORY_STATIC_INFO
 endif
 
 config TRACE_CTF_MEMORY_DYNAMIC_INFO
+	select LIBBACKTRACE
 	bool "Dynamic allocation usage info"
 
 config TRACE_CTF_COM_USAGE
