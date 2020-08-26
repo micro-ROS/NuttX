@@ -155,6 +155,7 @@ int cpu_stats_log_init(void);
 
 #ifdef CONFIG_TRACE_USE_CTF
 int tracing_init(void);
+int tracing_finish(void);
 #else //CONFIG_TRACE_USE_CTF
 #define tracing_init()
 #endif //CONFIG_TRACE_USE_CTF
