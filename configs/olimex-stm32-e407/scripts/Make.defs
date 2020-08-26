@@ -123,7 +123,7 @@ ifeq ($(CONFIG_LIBBACKTRACE), y)
   CFLAGS +=  -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wunused -Wuninitialized -Wmissing-declarations -std=c11 -mpoke-function-name -funwind-tables -fno-omit-frame-pointer
 endif
 
-ifeq ($(CONFIG_TRACE_CTF_FUNCTIONS_USAGE),y)
+ifeq ($(CONFIG_TRACE_CTF_FUNCTIONS_USAGE_RTOS),y)
   CFLAGS += -finstrument-functions
   CFLAGS += -finstrument-functions-exclude-function-list=libc,libxx,sched,task,arm,stm32,tracing,ctf,libatomic.c,atomic.h,up_,backtrace.c
   CFLAGS += -finstrument-functions-exclude-file-list=z_ring_buf_custom_space_get,$(TRACE_CTF_FUNCTIONS_USAGE_EXCL_PATH)

@@ -37,6 +37,10 @@ endif
 
 ifeq ($(CONFIG_TRACE_CTF_MEMORY_STATIC_INFO),y)
 CSRCS += tracing_elements/tracing_stack.c
+else
+ifeq ($(CONFIG_TRACE_CTF_FUNCTIONS_USAGE), y)
+CSRCS += tracing_elements/tracing_stack.c
+endif
 endif
 
 ifeq ($(CONFIG_ASYNC_CTF_TRACING),y)
