@@ -96,7 +96,10 @@ static struct tracing_backend *working_backend;
 static pid_t tracing_task_pid;
 static struct work_s tracing_trigger_flush;
 static sem_t tracing_thread_sem;
+
+#ifdef TRACE_CTF_FUNCTIONS_USAGE
 volatile uint64_t g_measuredtimestamp = 0;
+#endif
 
 uint64_t tracing_get_counter_value(void)
 {
@@ -124,8 +127,10 @@ uint64_t tracing_get_counter_for_dump(void)
 static int tracing_thread_func(int argc, char *argv[])
 {
 	u8_t *transferring_buf;
+#ifdef TRACE_CTF_FUNCTIONS_USAGE
 	u8_t start_id = 0xF0;
 	u8_t stop_id = 0xF1;
+#endif
 	u32_t transferring_length, tracing_buffer_max_length;
 
 	//tracing_task_pid = sched_self()->pid;
@@ -133,11 +138,15 @@ static int tracing_thread_func(int argc, char *argv[])
 	tracing_buffer_max_length = tracing_buffer_capacity_get();
 	while (true) {
 		if (tracing_buffer_is_empty()) {
+#ifdef TRACE_CTF_FUNCTIONS_USAGE
 			g_measuredtimestamp =  tracing_get_counter_value();
 			CTF_EVENT(CTF_LITERAL(u8_t, stop_id));
+#endif
 			nxsem_wait(&tracing_thread_sem);
 		} else {
+#ifdef TRACE_CTF_FUNCTIONS_USAGE
 			g_measuredtimestamp =  tracing_get_counter_value();
+#endif
 			transferring_length =
 				tracing_buffer_get_claim(
 						&transferring_buf,
@@ -145,7 +154,9 @@ static int tracing_thread_func(int argc, char *argv[])
 			tracing_buffer_handle(transferring_buf,
 					      transferring_length);
 			tracing_buffer_get_finish(transferring_length);
+#ifdef TRACE_CTF_FUNCTIONS_USAGE
 			CTF_EVENT(CTF_LITERAL(u8_t, start_id));
+#endif
 		}
 	}
 
