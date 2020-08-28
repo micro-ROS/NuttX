@@ -38,6 +38,30 @@ void tracing_format_string(const char *str, ...)
 	va_end(args);
 }
 
+#define CTF_INTERNAL_FIELD_APPEND(x)			 \
+	{						 \
+		memcpy(epacket_cursor, &(x), sizeof(x)); \
+		epacket_cursor += sizeof(x);		 \
+	}
+
+/*
+ * Gather fields to a contiguous event-packet, then atomically emit.
+ */
+#define CTF_GATHER_FIELDS(...)						    \
+{									    \
+	u8_t epacket[0 MAP(CTF_INTERNAL_FIELD_SIZE, ##__VA_ARGS__)];	    \
+	u8_t *epacket_cursor = &epacket[0];				    \
+									    \
+	MAP(CTF_INTERNAL_FIELD_APPEND, ##__VA_ARGS__)			    \
+	tracing_format_raw_data(epacket, sizeof(epacket));		    \
+}
+
+#define CTF_EVENT(...)							    \
+	{								    \
+		const u64_t tstamp = tracing_get_counter_value();	    \
+		CTF_GATHER_FIELDS(tstamp, __VA_ARGS__)			    \
+	}
+
 void tracing_format_raw_data(u8_t *data, u32_t length)
 {
 	if (!is_tracing_enabled()) {
