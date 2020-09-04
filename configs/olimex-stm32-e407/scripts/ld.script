@@ -88,6 +88,12 @@ SECTIONS
 		_tracing_backend_list_end = ABSOLUTE(.);
 	} > flash
 
+	._backend_timer : {
+		_backend_timer_list_start = ABSOLUTE(.);
+		KEEP(*(._backend_timer*));
+		_backend_timer_list_end = ABSOLUTE(.);
+	} > flash
+
 
 	.ARM.extab : {
 		*(.ARM.extab*)

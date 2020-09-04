@@ -121,7 +121,6 @@ if TRACE_CTF_FUNCTIONS_USAGE
 
 	config TRACE_CTF_FUNCTIONS_USAGE_RTOS
 	bool "Trace only the RTOS"
-
 endif
 
 config TRACE_CTF_CTF_TIMER
@@ -129,6 +128,97 @@ config TRACE_CTF_CTF_TIMER
 
 config TRACE_CTF_IRQ
 	bool "Trace the IRQ calls"
+
+config TRACE_CTF_PWR_MEASUREMENT
+	bool "Allow to generate a trigger on a pin to measure the power"
+
+if TRACE_CTF_PWR_MEASUREMENT 
+
+choice
+	prompt "Select the PORT where the GPIO"
+	default GPIO_TRIGGER_PORT_G
+config GPIO_TRIGGER_PORT_A
+	bool "Port A for the trigger"
+
+config GPIO_TRIGGER_PORT_B
+	bool "Port B for the trigger"
+
+config GPIO_TRIGGER_PORT_C
+	bool "Port C for the trigger"
+
+config GPIO_TRIGGER_PORT_D
+	bool "Port D for the trigger"
+
+config GPIO_TRIGGER_PORT_E
+	bool "Port E for the trigger"
+
+config GPIO_TRIGGER_PORT_F
+	bool "Port F for the trigger"
+
+config GPIO_TRIGGER_PORT_H
+	bool "Port H for the trigger"
+
+config GPIO_TRIGGER_PORT_G
+	bool "Port G for the trigger"
+
+config GPIO_TRIGGER_PORT_I
+	bool "Port I for the trigger"
+endchoice
+
+choice
+	prompt "Select the PIN where the GPIO"
+	default GPIO_TRIGGER_PIN_7
+config GPIO_TRIGGER_PIN_0
+	bool "Pin 0 for the trigger"
+
+config GPIO_TRIGGER_PIN_1
+	bool "Pin 1 for the trigger"
+
+config GPIO_TRIGGER_PIN_2
+	bool "Pin 2 for the trigger"
+
+config GPIO_TRIGGER_PIN_3
+	bool "Pin 4 for the trigger"
+
+config GPIO_TRIGGER_PIN_4
+	bool "Pin 4 for the trigger"
+
+config GPIO_TRIGGER_PIN_5
+	bool "Pin 5 for the trigger"
+
+config GPIO_TRIGGER_PIN_6
+	bool "Pin 6 for the trigger"
+
+config GPIO_TRIGGER_PIN_7
+	bool "Pin 7 for the trigger"
+
+config GPIO_TRIGGER_PIN_8
+	bool "Pin 8 for the trigger"
+
+config GPIO_TRIGGER_PIN_9
+	bool "Pin 9 for the trigger"
+
+config GPIO_TRIGGER_PIN_10
+	bool "Pin 10 for the trigger"
+
+config GPIO_TRIGGER_PIN_11
+	bool "Pin 11 for the trigger"
+
+config GPIO_TRIGGER_PIN_12
+	bool "Pin 12 for the trigger"
+
+config GPIO_TRIGGER_PIN_13
+	bool "Pin 13 for the trigger"
+
+config GPIO_TRIGGER_PIN_14
+	bool "Pin 14 for the trigger"
+
+config GPIO_TRIGGER_PIN_15
+	bool "Pin 15 for the trigger"
+endchoice
+
+endif
+
 endif
 
 choice
@@ -146,6 +236,7 @@ config CTF_BACKEND_ITM
 	depends on !ARMV7M_ITMSYSLOG
 	help 
 	  Use the ITM facilities to transfer the CTF data
+
 endchoice
 
 if CTF_BACKEND_TRACING_SERIAL
@@ -153,6 +244,7 @@ if CTF_BACKEND_TRACING_SERIAL
 choice 
 	prompt "Select UART backend"
 	default CTF_BACKEND_SERIAL_NONE
+
 config CTF_BACKEND_SERIAL_NONE
 	bool "None"
 	select DEV_NULL

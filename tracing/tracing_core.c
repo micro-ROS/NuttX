@@ -200,6 +200,10 @@ int tracing_init(void)
 			(main_t) tracing_thread_func, (FAR char * const *) NULL);
 #endif
 
+#ifdef CONFIG_TRACE_CTF_PWR_MEASUREMENT
+	gpio_backend_configure_trigger();
+#endif
+
 	tracing_set_state(TRACING_ENABLE);
 	return 0;
 }

@@ -107,7 +107,8 @@ CTF_BACKEND_OBJ =
 LDFLAGS += --verbose
 
 ifeq ($(CONFIG_TRACE_USE_CTF), y)
-	CTF_BACKEND_OBJ += ${shell find $(TOPDIR)/tracing/backends/ -iname "*.o"} -lfs
+	CTF_BACKEND_OBJ += ${shell find $(TOPDIR)/tracing/backends/tracing -iname "*.o"} -lfs
+	CTF_BACKEND_OBJ += ${shell find $(TOPDIR)/tracing/backends/timers -iname "*.o"} -larch
 endif
 
 
@@ -120,7 +121,7 @@ ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
 endif
 
 ifeq ($(CONFIG_LIBBACKTRACE), y)
-  CFLAGS +=  -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wunused -Wuninitialized -Wmissing-declarations -std=c11 -mpoke-function-name -funwind-tables -fno-omit-frame-pointer
+  CFLAGS += -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wunused -Wuninitialized -Wmissing-declarations -std=c11 -mpoke-function-name -funwind-tables -fno-omit-frame-pointer
 endif
 
 ifeq ($(CONFIG_TRACE_CTF_FUNCTIONS_USAGE_RTOS),y)

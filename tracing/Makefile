@@ -28,11 +28,15 @@ CSRCS +=  backends/timers/backend_timer_systick.c
 endif
 
 ifeq ($(CONFIG_CTF_BACKEND_TRACING_SERIAL),y)
-CSRCS +=  backends/tracing_backend_uart.c
+CSRCS +=  backends/tracing/tracing_backend_uart.c
 endif
 
 ifeq ($(CONFIG_TRACE_USE_NOCTF),y)
 CSRCS += cpu_stats.c
+endif
+
+ifeq ($(CONFIG_TRACE_CTF_PWR_MEASUREMENT),y)
+CSRCS += backends/gpios/backend_gpios.c
 endif
 
 ifeq ($(CONFIG_TRACE_CTF_MEMORY_STATIC_INFO),y)

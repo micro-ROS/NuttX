@@ -14,7 +14,9 @@
 #include <fcntl.h>
 
 #define OPEN_MODE  (S_IROTH | S_IRGRP | S_IRUSR | S_IWUSR)
-#define CONFIG_TRACING_BACKEND_UART_NAME "/dev/ttyS0"
+#ifndef CONFIG_CTF_TRACING_BACKEND_UART_NAME
+#define CONFIG_CTF_TRACING_BACKEND_UART_NAME "/dev/ttyS0"
+#endif //CONFIG_CTF_TRACING_BACKEND_UART_NAME
 
 #define USART3_SR	0x40004800
 #define USART3_DR	0x40004804
@@ -51,7 +53,7 @@ static void tracing_backend_uart_output(
 
 static void tracing_backend_uart_init(void)
 {
-  	int ret = file_open(&g_backend_uart, CONFIG_TRACING_BACKEND_UART_NAME,
+  	int ret = file_open(&g_backend_uart, CONFIG_CTF_TRACING_BACKEND_UART_NAME,
 			O_RDWR, OPEN_MODE);
 	if (ret) {
 		g_error_open = 1;
