@@ -4,16 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#if 0
 #ifndef _TRACE_BACKEND_H
 #define _TRACE_BACKEND_H
 
 #include <string.h>
+#include <utils.h>
+
+#include <nuttx/tracing/ctf_types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 /**
  * @brief Tracing backend
  * @defgroup Tracing_backend Tracing backend
@@ -105,5 +106,4 @@ static inline struct tracing_backend *tracing_backend_get(char *name)
 }
 #endif
 
-#endif
-#endif
+#endif // _TRACE_BACKEND_H

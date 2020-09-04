@@ -6,6 +6,8 @@
 
 #include <nuttx/config.h>
 
+#include <backend.h>
+
 #include <tracing_core.h>
 #include <tracing_buffer.h>
 #include <sys/stat.h>
@@ -20,49 +22,8 @@
 FAR struct file g_backend_uart;
 FAR bool is_first = true;
 FAR int g_error_open = 0;
+
 static const char starter[] = {0xbe, 0xbe, 0xde, 0xad};
-
-#ifdef CONFIG_TRACING_HANDLE_HOST_CMD
-// TODO Not for now?
-static void uart_isr(struct device *dev)
-{
-	int rx;
-	u8_t byte;
-	static u8_t *cmd;
-	static u32_t length, cur;
-
-	while (uart_irq_update(dev) && uart_irq_is_pending(dev)) {
-		if (!uart_irq_rx_ready(dev)) {
-			continue;
-		}
-
-		rx = uart_fifo_read(dev, &byte, 1);
-		if (rx < 0) {
-			uart_irq_rx_disable(dev);
-			return;
-		}
-
-		if (!cmd) {
-			length = tracing_cmd_buffer_alloc(&cmd);
-		}
-
-		if (!isprint(byte)) {
-			if (byte == '\r') {
-				cmd[cur] = '\0';
-				tracing_cmd_handle(cmd, cur);
-				cmd = NULL;
-				cur = 0U;
-			}
-
-			continue;
-		}
-
-		if (cur < length - 1) {
-			cmd[cur++] = byte;
-		}
-	}
-}
-#endif
 
 static void raw_writing(u8_t *data, u32_t length)
 {
@@ -77,7 +38,7 @@ static void raw_writing(u8_t *data, u32_t length)
 
 static void tracing_backend_uart_output(
 		const struct tracing_backend *backend,
-		u8_t *data, u32_t length)
+		const u8_t *data, u32_t length)
 {
 
 	if (is_first) {
@@ -96,21 +57,6 @@ static void tracing_backend_uart_init(void)
 		g_error_open = 1;
 		return;
 	}
-
-#ifdef CONFIG_TRACING_HANDLE_HOST_CMD
-	uart_irq_rx_disable(dev);
-	uart_irq_tx_disable(dev);
-
-	uart_irq_callback_set(dev, uart_isr);
-
-	while (uart_irq_rx_ready(dev)) {
-		u8_t c;
-
-		uart_fifo_read(dev, &c, 1);
-	}
-
-	uart_irq_rx_enable(dev);
-#endif
 }
 
 static const struct tracing_backend_api tracing_backend_uart_api = {

@@ -72,7 +72,7 @@ void uart_xmitchars(FAR uart_dev_t *dev)
   /* Send while we still have data in the TX buffer & room in the fifo */
 
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
-  sys_trace_com_start("uart", 0);
+  //sys_trace_com_start("uart", 0);
 #endif //CONFIG_TRACE_CTF_COM_USAGE
 
   while (dev->xmit.head != dev->xmit.tail && uart_txready(dev))
@@ -91,7 +91,7 @@ void uart_xmitchars(FAR uart_dev_t *dev)
     }
 
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
-  sys_trace_com_finish("uart", nbytes, 0);
+  //sys_trace_com_finish("uart", nbytes, 0);
 #endif  //CONFIG_TRACE_CTF_COM_USAGE
 
   /* When all of the characters have been sent from the buffer disable the TX
@@ -143,7 +143,7 @@ void uart_recvchars(FAR uart_dev_t *dev)
   uint16_t nbytes = 0;
 
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
-  sys_trace_com_start("uart", 1);
+  //sys_trace_com_start("uart", 1);
 #endif //CONFIG_TRACE_CTF_COM_USAGE
 
   if (nexthead >= rxbuf->size)
@@ -281,7 +281,7 @@ void uart_recvchars(FAR uart_dev_t *dev)
    */
 
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
-  sys_trace_com_finish("uart", nbytes, 1);
+  //sys_trace_com_finish("uart", nbytes, 1);
 #endif //CONFIG_TRACE_CTF_COM_USAGE
   if (nbytes)
     {

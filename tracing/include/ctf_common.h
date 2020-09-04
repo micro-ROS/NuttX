@@ -10,6 +10,9 @@
 
 #define ARG_UNUSED(x) (void)(x)
 
+#define START_ID	((u8_t) 0xF0)
+#define STOP_ID	((u8_t) 0xF1)
+
 int irq_lock(void);
 
 void irq_unlock(int key);

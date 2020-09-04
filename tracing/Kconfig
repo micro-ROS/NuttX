@@ -19,13 +19,13 @@ choice
 config TRACE_TIMESTAMP_REFERENCE_SYSTICK_TIMER
 	bool "Use the system tick to get the timer information"
 
-config TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER
+config TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER_FREERUNER
 	bool "Use a specific timer board defined"
 	help
 	  The timer should be large enough to avoid ISR count.
 endchoice
 
-if TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER
+if TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER_FREERUNER
 config TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER_RES_US
 	int "Resolution of the timer in nano-seconds"
 	range 12 10000
@@ -36,7 +36,7 @@ config TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER_RES_US
 
 config TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER_ID
 	int "Counter low-level ID"
-	range 1 10
+	range 1 65535
 	default 2
 endif
 
@@ -214,13 +214,14 @@ if ASYNC_CTF_TRACING
 
 	config ASYNC_THREAD_CTF_WAIT_THRESHOLD
 	 int "Waiting timer before flushing to the output in ms"
+         range 0 65535
 	 default 100
 
 	config CTF_RING_BUFFER_SIZE
-		int "Data ring buffer size"
-		depends on TRACE_USE_CTF
-		range 32 65536
-		default 256	
+          int "Data ring buffer size"
+          depends on TRACE_USE_CTF
+          range 32 65536
+          default 256	
 endif
 
 #menu "Tracing elements"
