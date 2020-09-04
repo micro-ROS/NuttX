@@ -149,6 +149,7 @@ config CTF_BACKEND_ITM
 endchoice
 
 if CTF_BACKEND_TRACING_SERIAL
+
 choice 
 	prompt "Select UART backend"
 	default CTF_BACKEND_SERIAL_NONE
@@ -185,6 +186,12 @@ config CTF_BACKEND_SERIAL_UART7
 	depends on USART7_SERIALDRIVER
 
 endchoice
+
+config CTF_TRACING_BACKEND_UART_NAME
+	depends on !CTF_BACKEND_SERIAL_NONE
+	default "/dev/ttyS0"
+	string "UART device path"
+
 endif
 
 if CTF_BACKEND_ITM

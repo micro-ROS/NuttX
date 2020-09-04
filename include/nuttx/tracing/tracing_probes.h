@@ -30,6 +30,8 @@ void sys_trace_idle(void);
 void cpu_stats_get_ns(struct cpu_stats *cpu_stats_ns);
 void cpu_stats_reset_counters(void);
 
+#define sys_trace_ctf_meas_pwr()
+
 #define sys_trace_isr_exit_to_scheduler()
 #define sys_trace_isr_enter(x)
 #define sys_trace_isr_exit(x)
@@ -140,6 +142,8 @@ void sys_trace_thread_priority_set(struct tcb_s *thread)  __attribute__((no_inst
 void sys_trace_ctf_meas_stop(void) __attribute__((no_instrument_function));
 void sys_trace_ctf_meas_start(void) __attribute__((no_instrument_function));
 
+void sys_trace_ctf_meas_pwr(void) __attribute__((no_instrument_function));
+
 #else
 
 #define sys_trace_thread_switched_out()
@@ -163,6 +167,7 @@ void sys_trace_ctf_meas_start(void) __attribute__((no_instrument_function));
 #define sys_trace_com_pkt(iface, pkt, pkt_size, is_rx)
 #define sys_trace_com_start(iface, is_rx)
 #define sys_trace_com_finish(iface, pkt_size, is_rx)
+#define sys_trace_ctf_meas_pwr()
 
 /** Function stack pointer usage */
 #define sys_trace_fenter_stack_usage(thread, func, size)
