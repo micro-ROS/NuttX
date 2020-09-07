@@ -79,7 +79,6 @@ static void mrf24j40_irqwork_txnorm(FAR struct mrf24j40_radio_s *dev)
 
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
   uint32_t pkt_sz;
-  sys_trace_com_start("mrf24", 0);
 #endif //CONFIG_TRACE_CTF_COM_USAGE
 
   /* Disable tx int */
@@ -164,10 +163,6 @@ static void mrf24j40_irqwork_txnorm(FAR struct mrf24j40_radio_s *dev)
         {
         }
     }
-
-#ifdef CONFIG_TRACE_CTF_COM_USAGE
-  sys_trace_com_finish("mrf24", pkt_sz,0);
-#endif //CONFIG_TRACE_CTF_COM_USAGE
 }
 
 /****************************************************************************
@@ -236,7 +231,6 @@ static void mrf24j40_irqwork_rx(FAR struct mrf24j40_radio_s *dev)
   wlinfo("RX interrupt\n");
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
   uint32_t pkt_sz;
-  sys_trace_com_start("mrf24", 1);
 #endif //CONFIG_TRACE_CTF_COM_USAGE
 
 
@@ -305,7 +299,7 @@ done:
 
   /* Only enable RX interrupt if we are to be listening when IDLE */
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
-  sys_trace_com_finish("mrf24", pkt_sz, 1);
+  sys_trace_com_finish("radio", pkt_sz, 1);
 #endif //CONFIG_TRACE_CTF_COM_USAGE
 
   if (dev->rxenabled)
@@ -376,14 +370,15 @@ void mrf24j40_irqworker(FAR void *arg)
   if ((intstat & MRF24J40_INTSTAT_RXIF) && dev->rxenabled)
     {
       /* A packet was received, retrieve it */
-
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+      sys_trace_com_start("radio", 1);
+#endif //CONFIG_TRACE_CTF_COM_USAGE
       mrf24j40_irqwork_rx(dev);
     }
 
   if ((intstat & MRF24J40_INTSTAT_TXNIF))
     {
       /* A packet was transmitted or failed*/
-
       mrf24j40_irqwork_txnorm(dev);
     }
 

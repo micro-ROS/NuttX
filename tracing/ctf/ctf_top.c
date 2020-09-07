@@ -737,3 +737,8 @@ void sys_trace_ctf_meas_stop(void)
 	 * the benchmarking tool to quit the data */
 	ctf_top_ctf_meas_stop();
 }
+
+void sys_trace_ctf_meas_pwr()
+{
+	gpio_backend_trigger();
+}

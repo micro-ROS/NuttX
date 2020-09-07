@@ -291,8 +291,12 @@ int sixlowpan_send(FAR struct net_driver_s *dev,
   sinfo.s_destmac = destmac;
   sinfo.s_buf     = buf;
   sinfo.s_len     = len;
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+      sys_trace_com_start("radio", 0);
+#endif //CONFIG_TRACE_CTF_COM_USAGE
 
   net_lock();
+
   if (len > 0)
     {
       /* Allocate resources to receive a callback.
@@ -336,6 +340,14 @@ int sixlowpan_send(FAR struct net_driver_s *dev,
 
   nxsem_destroy(&sinfo.s_waitsem);
   net_unlock();
+
+#ifdef CONFIG_TRACE_CTF_COM_USAGE
+  if (sinfo.s_result < 0) {
+	sys_trace_com_finish("radio", 0, 0);
+  } else {
+	sys_trace_com_finish("radio", len, 0);
+  }
+#endif //CONFIG_TRACE_CTF_COM_USAGE
 
   return (sinfo.s_result < 0 ? sinfo.s_result : len);
 }
