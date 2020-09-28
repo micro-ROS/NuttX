@@ -212,7 +212,8 @@
 /* LED index values for use with board_userled() */
 
 #define BOARD_LED_STATUS  0
-#define BOARD_NLEDS       1
+#define BOARD_LED_HB  	  1
+#define BOARD_NLEDS       2
 
 /* LED bits for use with board_userled_all() */
 
@@ -230,6 +231,8 @@
 #define LED_SIGNAL        5  /* no change */
 #define LED_ASSERTION     6  /* LED_STATUS off */
 #define LED_PANIC         7  /* LED_STATUS blinking */
+/* KEEP the 8 for IDLE */
+#define LED_HB		  9  /* Heatbeat led LED_IDLE */
 
 /* Button definitions ***************************************************************/
 /* The Olimex STM32-E405 supports one buttons: */
@@ -283,6 +286,8 @@
 #define GPIO_MRF24J40_CS      (GPIO_OUTPUT|GPIO_SPEED_50MHz|\
                             GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4) /*PA4/ D10*/
 
+#define GPIO_LED_HB	(GPIO_OUTPUT|GPIO_SPEED_50MHz|\
+                            GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN10) /*GPIO*/
 /*XBee*/
 //cambiar a otor puerto
 

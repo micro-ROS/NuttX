@@ -67,6 +67,7 @@ void board_autoled_initialize(void)
    /* Configure LED_STATUS GPIO for output */
 
    stm32_configgpio(GPIO_LED_STATUS);
+   stm32_configgpio(GPIO_LED_HB);
 }
 
 /****************************************************************************
@@ -84,6 +85,11 @@ void board_autoled_on(int led)
     {
       stm32_gpiowrite(GPIO_LED_STATUS, false);
     }
+
+  if (led == LED_HB) {
+      stm32_gpiowrite(GPIO_LED_HB, false);
+  }
+
 }
 
 /****************************************************************************
@@ -101,6 +107,11 @@ void board_autoled_off(int led)
     {
       stm32_gpiowrite(GPIO_LED_STATUS, true);
     }
+
+  if (led == LED_HB) {
+      stm32_gpiowrite(GPIO_LED_HB, true);
+  }
+
 }
 
 #endif /* CONFIG_ARCH_LEDS */
