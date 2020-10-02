@@ -1,0 +1,9 @@
+mount -t procfs /proc
+ifdown wpan0
+i8sak wpan0 startpan cd:ab 
+i8sak set chan 11 
+i8sak set panid cd:ab 
+i8sak set saddr 42:03 
+i8sak set eaddr 00:fa:de:00:de:ad:be:03 
+ifup wpan0
+ucs_distance

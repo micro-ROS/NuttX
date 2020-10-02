@@ -1,7 +1,7 @@
 /****************************************************************************
- * configs/olimex-stm32-e407/src/stm32_autoleds.c
+ * config/stm32f4discovery/src/stm32_reset.c
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,79 +39,39 @@
 
 #include <nuttx/config.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-
+#include <nuttx/arch.h>
 #include <nuttx/board.h>
-#include <arch/board/board.h>
 
-#include "chip.h"
-#include "up_arch.h"
-#include "up_internal.h"
-#include "stm32.h"
-#include "olimex-stm32-e407.h"
-
-#ifdef CONFIG_ARCH_LEDS
+#ifdef CONFIG_BOARDCTL_RESET
 
 /****************************************************************************
- * Public Functions
+ * Public functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: board_autoled_initialize
+ * Name: board_reset
+ *
+ * Description:
+ *   Reset board.  Support for this function is required by board-level
+ *   logic if CONFIG_BOARDCTL_RESET is selected.
+ *
+ * Input Parameters:
+ *   status - Status information provided with the reset event.  This
+ *            meaning of this status information is board-specific.  If not
+ *            used by a board, the value zero may be provided in calls to
+ *            board_reset().
+ *
+ * Returned Value:
+ *   If this function returns, then it was not possible to power-off the
+ *   board due to some constraints.  The return value int this case is a
+ *   board-specific reason for the failure to shutdown.
+ *
  ****************************************************************************/
 
-void board_autoled_initialize(void)
+int board_reset(int status)
 {
-   /* Configure LED_STATUS GPIO for output */
-
-   stm32_configgpio(GPIO_LED_STATUS);
-   stm32_configgpio(GPIO_LED_HB);
+  up_systemreset();
+  return 0;
 }
 
-/****************************************************************************
- * Name: board_autoled_on
- ****************************************************************************/
-
-void board_autoled_on(int led)
-{
-  if (led == LED_STARTED)
-    {
-      stm32_gpiowrite(GPIO_LED_STATUS, true);
-    }
-
-  if (led == LED_ASSERTION || led == LED_PANIC)
-    {
-      stm32_gpiowrite(GPIO_LED_STATUS, false);
-    }
-
-  if (led == LED_HB) {
-      stm32_gpiowrite(GPIO_LED_HB, false);
-  }
-
-}
-
-/****************************************************************************
- * Name: board_autoled_off
- ****************************************************************************/
-
-void board_autoled_off(int led)
-{
-  if (led == LED_STARTED)
-    {
-      stm32_gpiowrite(GPIO_LED_STATUS, false);
-    }
-
-  if (led == LED_ASSERTION || led == LED_PANIC)
-    {
-      stm32_gpiowrite(GPIO_LED_STATUS, true);
-    }
-
-  if (led == LED_HB) {
-      stm32_gpiowrite(GPIO_LED_HB, true);
-  }
-
-}
-
-#endif /* CONFIG_ARCH_LEDS */
+#endif /* CONFIG_BOARDCTL_RESET */
