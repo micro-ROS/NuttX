@@ -37,7 +37,6 @@
 /************************************************************************************
  * Included Files
  ************************************************************************************/
-
 #include <nuttx/config.h>
 
 #include <errno.h>
@@ -49,6 +48,8 @@
 #include "stm32.h"
 #include "stm32_i2c.h"
 #include "olimex-stm32-e407.h"
+
+#define INA219_ADC(x) (1 << (x - 1))
 
 #if defined(CONFIG_I2C) && defined(CONFIG_SENSORS_INA219)
 
@@ -70,37 +71,38 @@
  *
  * Input parameters:
  *   devpath - The full path to the driver to register. E.g., "/dev/ina219"
+ *   addr - The full path to the driver to register. E.g., "/dev/ina219"
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
  *
  ************************************************************************************/
 
-int stm32_ina219initialize(FAR const char *devpath)
+int stm32_ina219initialize(FAR const char *devpath, unsigned char addr)
 {
-  FAR struct i2c_master_s *i2c;
-  int ret;
+	FAR struct i2c_master_s *i2c;
+	int ret;
+	uint32_t config = (2 << 11) | 
+			((INA219_ADC(3) | INA219_ADC(2) | INA219_ADC(1)) << 7) |
+			((INA219_ADC(3) | INA219_ADC(2) | INA219_ADC(1)) << 3);
 
-  sninfo("Initializing INA219!\n");
+	sninfo("Initializing INA219!\n");
 
-  /* Initialize I2C */
+	/* Initialize I2C */
 
-  i2c = stm32_i2cbus_initialize(INA219_I2C_PORTNO);
+	i2c = stm32_i2cbus_initialize(INA219_I2C_PORTNO);
+	if (!i2c) {
+		return -ENODEV;
+	}
 
-  if (!i2c)
-    {
-      return -ENODEV;
-    }
+	/* Then register the v sensor */
 
-  /* Then register the v sensor */
+	ret = ina219_register(devpath, i2c, 0x40 + addr, 100, config);
+	if (ret < 0) {
+		snerr("ERROR: Error registering ina219 address %d\n", (int) addr);
+	}
 
-  ret = ina219_register(devpath, i2c,0x40,100000,0x00);
-  if (ret < 0)
-    {
-      snerr("ERROR: Error registering hih6130\n");
-    }
-
-  return ret;
+	return ret;
 }
 
 #endif /* CONFIG_I2C && CONFIG_SENSORS_INA219 && CONFIG_STM32_I2C1 */

@@ -286,7 +286,13 @@ int ret = OK;
 #ifdef CONFIG_SENSORS_INA219
   /* Configure and initialize the INA219 sensor */
 
-  ret = stm32_ina219initialize("/dev/ina219");
+  ret = stm32_ina219initialize("/dev/ina219_2", 0);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: stm32_ina219initialize() failed: %d\n", ret);
+    }
+
+  ret = stm32_ina219initialize("/dev/ina219_1", 1);
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: stm32_ina219initialize() failed: %d\n", ret);

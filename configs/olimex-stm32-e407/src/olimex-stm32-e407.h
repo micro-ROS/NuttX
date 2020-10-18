@@ -354,8 +354,8 @@ int stm32_hih6130initialize(FAR const char *devpath);
  ****************************************************************************/
 
 
-#ifdef CONFIG_SENSORS_HIH6130
-int stm32_ina219initialize(FAR const char *devpath);
+#ifdef CONFIG_SENSORS_INA219
+int stm32_ina219initialize(FAR const char *devpath, unsigned char addr);
 #endif
 
 #endif  /* __ASSEMBLY__ */
