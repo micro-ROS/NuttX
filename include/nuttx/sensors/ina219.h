@@ -96,8 +96,9 @@ struct i2c_master_s;
 
 struct ina219_s
 {
-  uint32_t voltage;  /* [microvolt] max 4.2 kV - device max 26V */
-  int32_t  current;  /* [microampere] max 2.1 kA - sensor is bidirectional */
+  int32_t   voltage;  /* [millivolt] max 4.2 kV - device max 26V */
+  int32_t   current;  /* [microampere] max 2.1 kA - sensor is bidirectional */
+  uint32_t  power;  /* [milliWatt] */
 };
 
 /****************************************************************************

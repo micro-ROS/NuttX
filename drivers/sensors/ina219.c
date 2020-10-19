@@ -94,7 +94,7 @@ struct ina219_dev_s
   FAR struct i2c_master_s *i2c;  /* I2C interface */
   uint8_t addr;                  /* I2C address */
   uint16_t config;               /* INA 219 config shadow */
-  int32_t shunt_resistor_value; /* micro-ohms, max 2.15 kohms */
+  int32_t shunt_resistor_value; /* mili-ohms, max 2.15 kohms */
 };
 
 /****************************************************************************
@@ -215,14 +215,12 @@ static int ina219_write16(FAR struct ina219_dev_s *priv, uint8_t regaddr,
 static int ina219_readpower(FAR struct ina219_dev_s *priv,
                              FAR struct ina219_s *buffer)
 {
-  uint16_t reg;
-  int64_t  tmp;
-
+  int16_t reg;
   int ret;
 
   /* Read the raw bus voltage */
 
-  ret = ina219_read16(priv, INA219_REG_BUS_VOLTAGE, &reg);
+  ret = ina219_read16(priv, INA219_REG_BUS_VOLTAGE, (uint16_t *) &reg);
   if (ret < 0)
   {
     snerr("ERROR: ina219_read16 failed: %d\n", ret);
@@ -232,11 +230,11 @@ static int ina219_readpower(FAR struct ina219_dev_s *priv,
   /* Convert register value to bus voltage */
 
   reg >>= 3; /* 3 LSB of reg contains status bits */
-  buffer->voltage = ((uint32_t)reg) * 4000LU;
+  buffer->voltage = reg * 4;
 
   /* Read the raw shunt voltage */
 
-  ret = ina219_read16(priv, INA219_REG_SHUNT_VOLTAGE, &reg);
+  ret = ina219_read16(priv, INA219_REG_SHUNT_VOLTAGE, (uint16_t *) &reg);
   if (ret < 0)
   {
     snerr("ERROR: ina219_read16 failed: %d\n", ret);
@@ -245,8 +243,6 @@ static int ina219_readpower(FAR struct ina219_dev_s *priv,
 
   /* Convert register value to shunt voltage */
 
-  tmp = ((int64_t)(int16_t)reg) * 10LL; /* micro volts across shunt */
-
   /* Convert shunt voltage to current across the shunt resistor.
    * I(uA) = U(uV)/R(ohms)
    *       = U(uV)/(R(uohms)/1000000)
@@ -254,13 +250,16 @@ static int ina219_readpower(FAR struct ina219_dev_s *priv,
    * We use a temporary 64-bit accumulator to avoid overflows.
    */
 
-  tmp = tmp * 1000000LL;
-  tmp = tmp / (int64_t)priv->shunt_resistor_value;
+#if 0
+  ratio =  10000000 / priv->shunt_resistor_value;
+#endif
+  buffer->current = reg;
+  buffer->current = buffer->current * 1000 / priv->shunt_resistor_value;
+  buffer->current = buffer->current * 10;
 
-  buffer->current = (int32_t)tmp;
-
-  sninfo("Voltage: %u uV, Current: %d uA\n",
-         buffer->voltage, buffer->current);
+  buffer->power = (buffer->current * buffer->voltage) * 0.000001 ;
+  sninfo("Voltage: %u mV, Current: %d uA\n",
+         buffer->voltage, buffer->current, buffer->power);
 
   return OK;
 }
@@ -278,8 +277,11 @@ static int ina219_open(FAR struct file *filep)
   FAR struct inode *inode = filep->f_inode;
   FAR struct ina219_dev_s *priv   = inode->i_private;
 
+#if 1
   return ina219_write16(priv, INA219_REG_CONFIG,
                         priv->config | INA219_CONFIG_OPMODE_SBCONT);
+#endif
+  return 0;
 }
 
 /****************************************************************************
@@ -376,7 +378,7 @@ static int ina219_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  *   devpath - The full path to the driver to register. E.g., "/dev/pwrmntr0"
  *   i2c - An instance of the I2C interface to use to communicate with INA219
  *   addr - The I2C address of the INA219.
- *   shuntval - the shunt resistor value in micro-ohms.
+ *   shuntval - the shunt resistor value in mili-ohms.
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
