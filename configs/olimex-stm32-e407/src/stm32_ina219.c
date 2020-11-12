@@ -96,8 +96,21 @@ int stm32_ina219initialize(FAR const char *devpath, unsigned char addr)
 	}
 
 	/* Then register the v sensor */
+#if 1
+	int32_t shuntval;
+	if(addr == 0) {
+		shuntval = 50;
+	}
+	else {
+		shuntval = 100;
+	}
+	ret = ina219_register(devpath, i2c, 0x40 + addr, shuntval, config);
+#endif	
 
+#if 0
 	ret = ina219_register(devpath, i2c, 0x40 + addr, 100, config);
+#endif
+
 	if (ret < 0) {
 		snerr("ERROR: Error registering ina219 address %d\n", (int) addr);
 	}
