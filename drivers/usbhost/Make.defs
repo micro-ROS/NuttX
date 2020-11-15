@@ -70,6 +70,10 @@ ifeq ($(CONFIG_USBHOST_XBOXCONTROLLER),y)
 CSRCS += usbhost_xboxcontroller.c
 endif
 
+ifeq ($(CONFIG_USBHOST_JOYSTICK),y)
+CSRCS += usbhost_joystick.c
+endif
+
 ifeq ($(CONFIG_USBHOST_MAX3421E),y)
 CSRCS += usbhost_max3421e.c
 endif

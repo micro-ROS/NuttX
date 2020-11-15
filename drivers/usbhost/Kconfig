@@ -588,6 +588,38 @@ config MAX3421E_USBHOST_PKTDUMP
 
 endif # USBHOST_MAX3421E
 
+config USBHOST_JOYSTICK
+	bool "Joystick Support"
+	default n
+	depends on !INT_DISABLE
+	select INPUT
+	---help---
+		Enable support for the Joystick
+
+if USBHOST_JOYSTICK
+
+config JOYSTICK_DEFPRIO
+	int "Polling Thread Priority"
+	default 50
+	---help---
+		Priority of the polling thread.  Default: 50.
+
+config JOYSTICK_STACKSIZE
+	int "Polling thread stack size"
+	default 1024
+	---help---
+		Stack size for polling thread.  Default: 1024
+
+config JOYSTICK_NPOLLWAITERS
+	int "Max Number of Waiters for Poll Event"
+	default 2
+	depends on !DISABLE_POLL
+	---help---
+		If the poll() method is enabled, this defines the maximum number
+		of threads that can be waiting for mouse events.  Default: 2.
+
+endif # USBHOST_JOYSTICK
+
 config USBHOST_TRACE
 	bool "Enable USB HCD tracing for debug"
 	default n
