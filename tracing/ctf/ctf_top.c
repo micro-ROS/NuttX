@@ -12,6 +12,10 @@
 #include <nuttx/tracing/tracing_format.h>
 #include <nuttx/tracing/tracing_probes.h>
 
+#if 1 // ADATAP
+#include "stm32_gpio.h"
+#endif
+
 #define CPU_0 0
 #define COM_IFACE_CHAR 8
 

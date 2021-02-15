@@ -343,9 +343,9 @@ int sixlowpan_send(FAR struct net_driver_s *dev,
 
 #ifdef CONFIG_TRACE_CTF_COM_USAGE
   if (sinfo.s_result < 0) {
-	sys_trace_com_finish("radio", 0, 0);
+  	sys_trace_com_finish("radio", 0, 0);
   } else {
-	sys_trace_com_finish("radio", len, 0);
+  	sys_trace_com_finish("radio", len, 0);
   }
 #endif //CONFIG_TRACE_CTF_COM_USAGE
 
