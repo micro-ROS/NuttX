@@ -1,5 +1,6 @@
 #include <backend_timer.h>
 #include <utils.h>
+#include <stdio.h>
 
 #include <time.h>
 #include <stm32_freerun.h>
@@ -22,12 +23,12 @@ static int32_t backend_timer_freerunner_init(void)
 	int32_t rc = stm32_freerun_initialize(&g_freerun, 
 			CONFIG_TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER_ID, 
 			CONFIG_TRACE_TIMESTAMP_CUSTOM_BOARD_TIMER_RES_US);
-
-	if (!rc)
-		return -1;
-
-	g_initialised = true;
-	return 0;
+	if (!rc) {
+		g_initialised = true;
+		return 0;
+	}
+	
+	return -1;
 }
 
 static uint64_t backend_timer_freerunner_gettime(const struct backend_timer *btimer)
@@ -37,7 +38,6 @@ static uint64_t backend_timer_freerunner_gettime(const struct backend_timer *bti
 	if (!g_initialised) {
 		return 0;
 	}
-
 	/* Use the final free runing counter for finer timer */
 	stm32_freerun_counter(&g_freerun, &time);
 	return time.tv_nsec + (uint64_t)time.tv_sec * NSEC_PER_SEC;
