@@ -744,5 +744,7 @@ void sys_trace_ctf_meas_stop(void)
 
 void sys_trace_ctf_meas_pwr()
 {
+#ifdef CONFIG_TRACE_CTF_PWR_MEASUREMENT
 	gpio_backend_trigger();
+#endif // TRACE_CTF_PWR_MEASUREMENT
 }
