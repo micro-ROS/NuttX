@@ -20,6 +20,17 @@
 
 #define USART3_SR	0x40004800
 #define USART3_DR	0x40004804
+#define USART6_SR	0x40011400
+#define USART6_DR	0x40011404
+
+// #ifdef CONFIG_USART3_SERIAL_CONSOLE
+#ifdef CONFIG_CTF_BACKEND_SERIAL_UART6
+	#define USART_SR	USART6_SR
+	#define USART_DR	USART6_DR
+#else
+	#define USART_SR	USART3_SR
+	#define USART_DR	USART3_DR
+#endif
 
 FAR struct file g_backend_uart;
 FAR bool is_first = true;
@@ -29,8 +40,8 @@ static const char starter[] = {0xbe, 0xbe, 0xde, 0xad};
 
 static void raw_writing(u8_t *data, u32_t length)
 {
-	volatile uint32_t *uart_st = (volatile uint32_t *) USART3_SR;
-	volatile uint32_t *uart_dt = (volatile uint32_t *) USART3_DR;
+	volatile uint32_t *uart_st = (volatile uint32_t *) USART_SR;
+	volatile uint32_t *uart_dt = (volatile uint32_t *) USART_DR;
 
 	for (uint32_t i = 0 ; i < length; i++) {
 		while(!(*uart_st & (1 << 7))) {asm("nop");}
@@ -42,7 +53,6 @@ static void tracing_backend_uart_output(
 		const struct tracing_backend *backend,
 		const u8_t *data, u32_t length)
 {
-
 	if (is_first) {
 		raw_writing(starter, sizeof(starter));
 		is_first = false;
