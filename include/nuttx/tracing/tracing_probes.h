@@ -27,16 +27,19 @@ void sys_trace_thread_switched_in(struct tcb_s *thread);
 void sys_trace_thread_switched_out(struct tcb_s *thread);
 void sys_trace_idle(void);
 
+
 void cpu_stats_get_ns(struct cpu_stats *cpu_stats_ns);
 void cpu_stats_reset_counters(void);
+uint32_t cpu_stats_non_idle_and_sched_get_percent(void);
+void sys_trace_isr_enter(uint32_t isr);
+void sys_trace_isr_exit(uint32_t isr);
 
 #define sys_trace_ctf_meas_pwr()
 
 #define sys_trace_isr_exit_to_scheduler()
-#define sys_trace_isr_enter(x)
-#define sys_trace_isr_exit(x)
 
-#define cpu_stats_non_idle_and_sched_get_percent(x)
+#define ctf_top_ctf_meas_stop()
+#define ctf_top_ctf_meas_start()
 
 #define sys_trace_thread_priority_set(thread)
 #define sys_trace_thread_info(thread)
@@ -69,7 +72,7 @@ void cpu_stats_reset_counters(void);
 
 /** Function stack and heap usage */
 #define sys_trace_memory_dynamic_free(bt, heap, ptr, real_size, user_size)
-#define sys_trace_memory_dynamic_allocate((bt, heap, ptr,real_size, user_size, requested)
+#define sys_trace_memory_dynamic_allocate(bt, heap, ptr,real_size, user_size, requested)
 #define sys_trace_memory_static_alloc(func, size)
 
 /** Function calls tracing */

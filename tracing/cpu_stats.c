@@ -71,8 +71,7 @@ void cpu_stats_get_ns(struct cpu_stats *cpu_stats_ns)
 	irq_unlock(key);
 }
 
-u32_t cpu_stats_non_idle_and_sched_get_percent(void)
-{
+uint32_t  cpu_stats_non_idle_and_sched_get_percent(void) {
 	int key = irq_lock();
 //	last_cpu_state = CPU_STATE_IDLE;
 	cpu_stats_update_counters();
@@ -128,9 +127,10 @@ void sys_trace_thread_switched_out(struct tcb_s *thread)
 	irq_unlock(key);
 }
 
-void sys_trace_isr_enter(void)
+void sys_trace_isr_enter(uint32_t isr)
 {
 	int key = irq_lock();
+	(void) isr;
 
 	if (nested_interrupts == 0) {
 		cpu_stats_update_counters();
@@ -141,9 +141,10 @@ void sys_trace_isr_enter(void)
 	irq_unlock(key);
 }
 
-void sys_trace_isr_exit(void)
+void sys_trace_isr_exit(uint32_t isr)
 {
 	int key = irq_lock();
+	(void) isr;
 
 	nested_interrupts--;
 	if (nested_interrupts == 0) {
